@@ -11,7 +11,7 @@ from typing import Any
 import yaml
 
 from grain_growth_pf.config import ModelConfig, PFConfig
-from grain_growth_pf.io.provenance import canonical_hash
+from grain_growth_pf.io.provenance import canonical_hash, git_sha
 from grain_growth_pf.simulation import EventResolvedSimulation
 
 
@@ -81,8 +81,9 @@ def launch_campaign(spec_path: str | Path, root: str | Path = "results/campaigns
     payloads = []
     reused: list[str] = []
     prior = _completed_index(Path(root))
+    code_sha = git_sha()
     for config in configs:
-        full_hash = canonical_hash(config.to_dict())
+        full_hash = canonical_hash({"config": config.to_dict(), "git_sha": code_sha})
         run_hash = full_hash[:12]
         if full_hash in prior:
             reused.append(prior[full_hash])

@@ -34,10 +34,11 @@ def canonical_hash(data: dict[str, Any]) -> str:
 
 def write_manifest(path: str | Path, config: dict[str, Any], status: str = "started",
                    extra: dict[str, Any] | None = None) -> dict[str, Any]:
+    code_sha = git_sha()
     manifest = {
         "config": config,
-        "config_sha256": canonical_hash(config),
-        "git_sha": git_sha(),
+        "config_sha256": canonical_hash({"config": config, "git_sha": code_sha}),
+        "git_sha": code_sha,
         "software": software_versions(),
         "status": status,
     }
