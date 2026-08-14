@@ -1,0 +1,36 @@
+regime_catalog: ../mechanisms/regimes.yaml
+regime_names: [B0, B1, G1, G2, G3, T1, T2, T3, S2, S3, C2, C3, C4, C5, SC1, SC2, SC3, SC4, P1, P2, P3, P4, P5, E1, E2, J1, J2, J3]
+temperatures: [700, 800, 900, 1050]
+seeds: [1101, 1102, 1103, 1104, 1105]
+base:
+  regime: B0
+  seed: 1101
+  pf:
+    simulation_dimension: 2
+    physics_dimension: 2
+    shape: [192, 192]
+    grid_spacing: 1.0
+    interface_width: 4.0
+    time_step: 0.05
+    gb_energy: 1.0
+    intrinsic_mobility: 0.2
+    boundary_conditions: periodic
+    temperature: 900
+    adaptive_stepping: true
+  mechanics_backend: none
+  compatibility_model: "off"
+  active_modules: []
+  output_cadence: 10
+  max_steps: 8000
+  termination_grains: 20
+  parameters:
+    initial_grains: 250
+    equilibration_steps: 200
+    event_domain_length: 12.0
+    encounter_density: 0.08
+    barrier_core_ev: 0.25
+    attempt_frequency: 100.0
+    required_hits: 3
+    packet_size: 4.0
+    pinned_mobility_fraction: 0.0
+

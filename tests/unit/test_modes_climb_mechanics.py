@@ -67,3 +67,21 @@ def test_serial_mean_not_parallel_and_shear_sign():
     assert memory.internal_shear_stress == -2
     assert memory.normal_velocity(1, capillary_pressure=0.5, beta=1) < 0
     assert memory.release(0.5) > 0
+
+
+def test_tj_closed_burgers_sequence_and_combined_driving():
+    from grain_growth_pf.entities.triple_junction import TripleJunction
+    tj = TripleJunction((1, 2, 3), (0.0, 0.0))
+    increments = [np.array([1.0, 0.0]), np.array([-0.5, 0.5]), np.array([-0.5, -0.5])]
+    for increment in increments:
+        tj.add_burgers(increment)
+    assert np.linalg.norm(tj.residual_burgers) < 1e-15
+
+    shear_mode = DisconnectionMode("shear", (1, 0), -1, 0, 0.4, 1e6, 1,
+                                    activation_volume_normal=-1, activation_volume_shear=2)
+    step_mode = DisconnectionMode("step", (-1, 0), 1, 0, 0.4, 1e6, 1,
+                                   activation_volume_normal=2, activation_volume_shear=-1)
+    shear_favored = ModeDriving(normal_pressure=0.05, resolved_shear=0.2)
+    curvature_favored = ModeDriving(normal_pressure=0.2, resolved_shear=0.05)
+    assert shear_mode.rate(900, shear_favored) > step_mode.rate(900, shear_favored)
+    assert step_mode.rate(900, curvature_favored) > shear_mode.rate(900, curvature_favored)

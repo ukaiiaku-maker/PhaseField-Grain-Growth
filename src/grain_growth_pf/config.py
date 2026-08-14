@@ -65,10 +65,11 @@ class ModelConfig:
             pf_data["shape"] = tuple(pf_data["shape"])
         if "active_modules" in d:
             d["active_modules"] = tuple(d["active_modules"])
+        if d.get("compatibility_model") is False:
+            d["compatibility_model"] = "off"
         return cls(pf=PFConfig(**pf_data), **d)
 
     @classmethod
     def load(cls, path: str | Path) -> "ModelConfig":
         with Path(path).open(encoding="utf-8") as handle:
             return cls.from_dict(yaml.safe_load(handle))
-
