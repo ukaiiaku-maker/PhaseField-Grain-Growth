@@ -1,0 +1,70 @@
+{
+  "git_sha": "7ba2e13b01e2779634793929dbe5efcdeed164d9",
+  "mechanism_isolation_activation": {
+    "exact_rates": [
+      209.0287246310949,
+      803.8596403010481,
+      2291.712847715915,
+      7588.17457580625
+    ],
+    "input_barrier_ev": 0.65,
+    "measured_multihit_elementary_rates": [
+      209.69183670926444,
+      797.9563672506405,
+      2294.5550015527474,
+      7550.339654624811
+    ],
+    "measured_single_rates": [
+      206.93372622895978,
+      799.8796953005667,
+      2286.8250423798545,
+      7576.808465620981
+    ],
+    "persistent_K5_Q_ev": 0.6490427817498777,
+    "persistent_K5_Q_standard_error_ev": 0.00134332711168027,
+    "single_hit_Q_ev": 0.6515818120552934,
+    "single_hit_Q_standard_error_ev": 0.0003590391775644749,
+    "temperatures": [
+      700.0,
+      800.0,
+      900.0,
+      1050.0
+    ]
+  },
+  "packet_reset": {
+    "K": 3,
+    "Lambda": 2.2,
+    "exact_poisson_tail": 0.3772862500036838,
+    "sample_fraction": 0.376485
+  },
+  "parallel_serial": {
+    "parallel_expected": 0.14285714285714285,
+    "parallel_mean": 0.14242400034328223,
+    "serial_expected": 0.7,
+    "serial_mean": 0.7005611036185854
+  },
+  "passed": true,
+  "persistent_multihit": {
+    "K": 5,
+    "expected_cv": 0.4472135954999579,
+    "expected_mean": 2.0,
+    "sample_cv": 0.44657824411833436,
+    "sample_mean": 1.9980069933878173
+  },
+  "seed": 20260814,
+  "single_hit": {
+    "expected_mean": 0.4,
+    "input_rate": 2.5,
+    "ks_pvalue_exponential": 0.823871672556937,
+    "paired_max_difference": 3.774758283725532e-14,
+    "sample_cv": 1.0165673942387912,
+    "sample_mean": 0.4036574239459066,
+    "timestep_mean_relative_difference": 1.1102230246251565e-15
+  },
+  "software": {
+    "numpy": "2.4.6",
+    "platform": "macOS-26.1-x86_64-i386-64bit",
+    "python": "3.11.3 (v3.11.3:f3909b8bc8, Apr  4 2023, 20:12:10) [Clang 13.0.0 (clang-1300.0.29.30)]",
+    "scipy": "1.17.1"
+  }
+}
