@@ -55,7 +55,8 @@
       "slope_R2": -0.4047012297101322
     }
   ],
-  "git_sha": "64b42626864091aaa7d6dc37e80b2ddb5df3b1c2-dirty",
+  "git_sha": "7afc7d40e68fad2a726479d84bc7f485db04ba75",
+  "grid_anisotropy_fraction": 0.026014367558080034,
   "mesh_slope_spread_fraction": 0.0024677202420607092,
   "mobility_slope_ratios": {
     "0.5": 2.015419251524722,
@@ -86,6 +87,12 @@
       "phase_area_change": 0.0
     }
   ],
+  "planar_surface_energy_by_angle": {
+    "0.0": 0.9979289904415793,
+    "14.999999999999998": 0.9981871005878657,
+    "29.999999999999996": 0.9987033143874088,
+    "45.0": 0.9728988938364846
+  },
   "software": {
     "numpy": "2.4.6",
     "platform": "macOS-26.1-x86_64-i386-64bit",
