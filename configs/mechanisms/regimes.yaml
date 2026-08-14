@@ -1,0 +1,35 @@
+regimes:
+  B0: {modules: [], compatibility_model: off, mechanics_backend: none}
+  B1: {modules: [arrhenius_intrinsic], compatibility_model: off, mechanics_backend: none}
+  G1: {modules: [gb_compatibility, single_hit_poisson], compatibility_model: geometric_surrogate, mechanics_backend: none}
+  G2: {modules: [gb_compatibility, multihit_persistent], compatibility_model: geometric_surrogate, mechanics_backend: none}
+  G3: {modules: [gb_compatibility, multihit_packet_reset], compatibility_model: geometric_surrogate, mechanics_backend: none}
+  T1: {modules: [tj_compatibility, single_hit_poisson], compatibility_model: geometric_surrogate, mechanics_backend: none}
+  T2: {modules: [tj_compatibility, multihit_persistent], compatibility_model: geometric_surrogate, mechanics_backend: none}
+  T3: {modules: [tj_compatibility, multihit_packet_reset], compatibility_model: geometric_surrogate, mechanics_backend: none}
+  S1: {modules: [shear_memory, deterministic_relaxation], compatibility_model: off, mechanics_backend: local_memory}
+  S2: {modules: [shear_memory, single_hit_poisson], compatibility_model: geometric_surrogate, mechanics_backend: local_memory}
+  S3: {modules: [shear_memory, multihit_persistent], compatibility_model: geometric_surrogate, mechanics_backend: local_memory}
+  C1: {modules: [free_volume, nucleation_limited], compatibility_model: off, mechanics_backend: none}
+  C2: {modules: [free_volume, multihit_nucleation], compatibility_model: off, mechanics_backend: none}
+  C3: {modules: [free_volume, exchange_limited], compatibility_model: off, mechanics_backend: none}
+  C4: {modules: [free_volume, transport_limited], compatibility_model: off, mechanics_backend: none}
+  C5: {modules: [free_volume, serial_climb], compatibility_model: off, mechanics_backend: none}
+  SC1: {modules: [shear_memory, free_volume, independent_and], compatibility_model: explicit_modes, mechanics_backend: local_memory}
+  SC2: {modules: [mixed_shear_climb_event], compatibility_model: explicit_modes, mechanics_backend: local_memory}
+  SC3: {modules: [parallel_mode_competition, shear_memory, free_volume], compatibility_model: explicit_modes, mechanics_backend: qiu_full_field}
+  SC4: {modules: [gb_compatibility, tj_compatibility, shear_memory, serial_climb], compatibility_model: explicit_modes, mechanics_backend: qiu_full_field}
+  P1: {modules: [gb_area_point_defect_pinning], compatibility_model: off, mechanics_backend: none}
+  P2: {modules: [random_spatial_pinning], compatibility_model: off, mechanics_backend: none}
+  P3: {modules: [particle_zener], compatibility_model: off, mechanics_backend: none}
+  P4: {modules: [tj_pinning], compatibility_model: off, mechanics_backend: none}
+  P5: {modules: [gb_pinning, tj_pinning], compatibility_model: off, mechanics_backend: none}
+  Q0: {modules: [qiu_reference_curvature], compatibility_model: off, mechanics_backend: none}
+  Q1: {modules: [qiu_reference_shear], compatibility_model: off, mechanics_backend: qiu_full_field}
+  E0: {modules: [event_modes], compatibility_model: explicit_modes, mechanics_backend: none}
+  E1: {modules: [event_modes, shear_feedback], compatibility_model: explicit_modes, mechanics_backend: qiu_full_field}
+  E2: {modules: [event_modes, shear_feedback], compatibility_model: explicit_modes, mechanics_backend: local_memory}
+  J1: {modules: [tj_burgers_strict], compatibility_model: explicit_modes, mechanics_backend: none}
+  J2: {modules: [tj_burgers_residual], compatibility_model: explicit_modes, mechanics_backend: qiu_full_field}
+  J3: {modules: [tj_geometric_surrogate], compatibility_model: geometric_surrogate, mechanics_backend: none}
+

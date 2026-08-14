@@ -1,0 +1,21 @@
+regime: B0
+seed: 101
+pf:
+  simulation_dimension: 2
+  physics_dimension: 2
+  shape: [64, 64]
+  grid_spacing: 1.0
+  interface_width: 4.0
+  time_step: 0.05
+  gb_energy: 1.0
+  intrinsic_mobility: 0.2
+  boundary_conditions: periodic
+  temperature: 900.0
+  adaptive_stepping: true
+mechanics_backend: none
+compatibility_model: off
+active_modules: []
+output_cadence: 50
+max_steps: 2500
+termination_grains: 1
+
