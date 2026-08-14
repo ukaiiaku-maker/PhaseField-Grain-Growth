@@ -10,7 +10,9 @@ def circular_grain(shape: tuple[int, int], radius: float, width: float,
     center = center or ((shape[0] - 1) / 2, (shape[1] - 1) / 2)
     y, x = np.indices(shape, dtype=float)
     r = np.hypot(y - center[0], x - center[1])
-    inside = 0.5 * (1.0 - np.tanh(2.0 * (r - radius) / width))
+    # Exact one-dimensional equilibrium profile for the coefficients in
+    # free_energy.py: eta=1/2[1-tanh((r-R)/width)].
+    inside = 0.5 * (1.0 - np.tanh((r - radius) / width))
     return np.stack((1.0 - inside, inside))
 
 
@@ -19,7 +21,7 @@ def planar_interface(shape: tuple[int, int], width: float, angle: float = 0.0,
     y, x = np.indices(shape, dtype=float)
     yc, xc = (np.array(shape) - 1) / 2
     signed = (x - xc) * np.cos(angle) + (y - yc) * np.sin(angle) - offset
-    phase = 0.5 * (1.0 + np.tanh(2.0 * signed / width))
+    phase = 0.5 * (1.0 + np.tanh(signed / width))
     return np.stack((1.0 - phase, phase))
 
 
@@ -46,4 +48,3 @@ def voronoi_polycrystal(shape: tuple[int, int], n_grains: int, seed: int,
 
 def equivalent_radius(phase: NDArray[np.float64], dx: float = 1.0) -> float:
     return float(np.sqrt(phase.sum() * dx**2 / np.pi))
-

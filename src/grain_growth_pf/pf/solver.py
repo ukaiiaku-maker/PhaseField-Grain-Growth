@@ -63,8 +63,9 @@ class MultiphaseFieldSolver:
         # Explicit diffusion stability bound in 2-D; the factor 0.18 leaves
         # margin for the local double-well term.
         kappa = 3.0 * self.config.gb_energy * self.config.interface_width
+        kinetic = self.config.intrinsic_mobility / (3.0 * self.config.interface_width)
         return 0.18 * self.config.grid_spacing**2 / max(
-            self.config.intrinsic_mobility * kappa, np.finfo(float).tiny
+            kinetic * kappa, np.finfo(float).tiny
         )
 
     def step(self, dt: float | None = None) -> StepDiagnostics:
@@ -78,13 +79,16 @@ class MultiphaseFieldSolver:
         active = self.eta > 1e-12
         count = np.maximum(active.sum(axis=0, keepdims=True), 1)
         lagrange = (mu * active).sum(axis=0, keepdims=True) / count
-        rate = -cfg.intrinsic_mobility * (mu - lagrange) * active
+        # For the chosen equilibrium profile integral(|grad eta|^2) = 1/(3w).
+        # L=M_sharp/(3w) therefore gives v_n=M_sharp*gamma*kappa.
+        kinetic = cfg.intrinsic_mobility / (3.0 * cfg.interface_width)
+        rate = -kinetic * (mu - lagrange) * active
         if self.driving is not None:
             ext = np.asarray(self.driving(self.eta, self.time), dtype=float)
             if ext.shape != self.eta.shape:
                 raise ValueError("driving callback returned the wrong shape")
             ext -= ext.mean(axis=0, keepdims=True)
-            rate += cfg.intrinsic_mobility * ext
+            rate += kinetic * ext
         self.eta = project_simplex(self.eta + used_dt * rate)
         self.time += used_dt
         self.step_number += 1
@@ -110,4 +114,3 @@ class MultiphaseFieldSolver:
         self.eta = np.asarray(state["eta"], dtype=float).copy()
         self.time = float(state["time"])
         self.step_number = int(state["step_number"])
-
