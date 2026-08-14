@@ -1,0 +1,30 @@
+.venv/
+.external/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+.DS_Store
+
+# Supplied immutable source material; tracked by checksums in docs/source_manifest.md.
+PF_Codes.zip
+Archive.zip
+Supporting_Information.docx
+GrainGrowth_V6.docx
+Instructions.md
+codefromShen_merged.ipynb
+*.m
+graingrowth_polycrystal_TJ_hazard_gate_RENEWAL_patched_v4 copy.txt
+
+# Dense/interruptible outputs stay outside Git. Compact summaries are allow-listed.
+results/runs/
+results/campaigns/
+results/checkpoints/
+*.npz
+*.npy
+*.parquet
+
