@@ -78,3 +78,32 @@ def test_event_simulation_checkpoint_restart_is_exact(tmp_path):
     assert {k: v.state_dict() for k, v in resumed.domains.items()} == {
         k: v.state_dict() for k, v in continuous.domains.items()
     }
+
+
+def test_named_temperature_and_tj_particle_regimes_are_distinct(tmp_path):
+    common = dict(shape=(18, 18), interface_width=3, time_step=0.01,
+                  intrinsic_mobility=1.0, adaptive_stepping=True)
+    low = ModelConfig(regime="B1", seed=3, pf=PFConfig(**common, temperature=700),
+                      active_modules=("arrhenius_intrinsic",), max_steps=1,
+                      parameters={"initial_grains": 5, "intrinsic_barrier_ev": 0.4})
+    high = ModelConfig(regime="B1", seed=3, pf=PFConfig(**common, temperature=1050),
+                       active_modules=("arrhenius_intrinsic",), max_steps=1,
+                       parameters={"initial_grains": 5, "intrinsic_barrier_ev": 0.4})
+    low_sim = EventResolvedSimulation(low, tmp_path / "low")
+    high_sim = EventResolvedSimulation(high, tmp_path / "high")
+    assert high_sim.solver.config.intrinsic_mobility > low_sim.solver.config.intrinsic_mobility
+    low_sim.ledger.close(); low_sim.track_handle.close()
+    high_sim.ledger.close(); high_sim.track_handle.close()
+
+    tj_config = ModelConfig(
+        regime="P5", seed=12, pf=PFConfig(**common, temperature=900),
+        compatibility_model="off", active_modules=("gb_pinning", "tj_pinning", "random_spatial_pinning"),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={"initial_grains": 7, "equilibration_steps": 0, "particle_count": 100,
+                    "particle_radius": 3.0, "encounter_density": 10.0},
+    )
+    simulation = EventResolvedSimulation(tj_config, tmp_path / "pins")
+    simulation.run()
+    assert simulation.particles is not None
+    assert simulation.tj_domains
+    assert (simulation.solver.mobility_scale == 0).any()

@@ -12,6 +12,7 @@ from grain_growth_pf.climb.free_volume import FreeVolumeState
 from grain_growth_pf.climb.serial_cycle import SerialClimbCycle
 from grain_growth_pf.config import ModelConfig
 from grain_growth_pf.disconnections.mode import DisconnectionMode, ModeDriving
+from grain_growth_pf.disconnections.mode import K_B_EV
 from grain_growth_pf.disconnections.spectrum import isotropic_surrogate_library
 from grain_growth_pf.encounters.geometric_hazard import GeometricEncounterClock
 from grain_growth_pf.entities.gb_segment import GBSegment
@@ -20,6 +21,7 @@ from grain_growth_pf.io.event_ledger import EventLedger
 from grain_growth_pf.io.provenance import git_sha, write_manifest
 from grain_growth_pf.mechanics.local_shear_memory import LocalShearMemory
 from grain_growth_pf.mechanics.qiu_full_field import QiuFullField
+from grain_growth_pf.obstacles.particles import ParticleField
 from grain_growth_pf.pf.geometry import voronoi_polycrystal
 from grain_growth_pf.pf.solver import MultiphaseFieldSolver
 from grain_growth_pf.stochastic.multihit import MultiHitProcess
@@ -118,7 +120,14 @@ class EventResolvedSimulation:
             periodic=config.pf.boundary_conditions == "periodic",
         )
         self.orientations = orientations
-        self.solver = MultiphaseFieldSolver(eta, config.pf, driving=self._driving)
+        effective_pf = config.pf
+        if "arrhenius_intrinsic" in config.active_modules:
+            from dataclasses import replace
+            barrier = float(config.parameters.get("intrinsic_barrier_ev", 0.45))
+            effective_pf = replace(config.pf, intrinsic_mobility=(
+                config.pf.intrinsic_mobility * np.exp(-barrier / (K_B_EV * config.pf.temperature))
+            ))
+        self.solver = MultiphaseFieldSolver(eta, effective_pf, driving=self._driving)
         self.tracker = EntityTracker(
             orientations, config.pf.grid_spacing,
             float(config.parameters.get("event_domain_length", 8.0)),
@@ -126,6 +135,7 @@ class EventResolvedSimulation:
         )
         self.snapshot = self.tracker.update(self.solver.labels)
         self.domains: dict[str, DomainPhysics] = {}
+        self.tj_domains: dict[str, DomainPhysics] = {}
         self.driving_field = np.zeros_like(eta)
         self.modes = isotropic_surrogate_library(
             b_shells=tuple(config.parameters.get("b_shells", (0.25, 0.5, 1.0))),
@@ -138,6 +148,12 @@ class EventResolvedSimulation:
         )
         self.sha = git_sha()
         self.full_field = QiuFullField(config.pf.shape) if config.mechanics_backend == "qiu_full_field" else None
+        particle_modules = {"random_spatial_pinning", "particle_zener"}.intersection(config.active_modules)
+        self.particles = ParticleField.random(
+            int(config.parameters.get("particle_count", 20)),
+            float(config.parameters.get("particle_radius", 1.5)), config.pf.shape,
+            config.seed + 991,
+        ) if particle_modules else None
         self.ledger = EventLedger(self.output_dir / "events.csv")
         track_path = self.output_dir / "grain_tracks.csv"
         self.track_handle = track_path.open("a" if resume else "w", newline="", encoding="utf-8")
@@ -197,6 +213,9 @@ class EventResolvedSimulation:
             position = tuple(segment.points[len(segment.points) // 2].astype(int))
             shear_increment = np.array([[0.0, b[0]], [b[0], 2.0 * dq * domain.formation_volume]])
             self.full_field.add_event(position, 0.5 * shear_increment)
+        for tj in self.snapshot.triple_junctions.values():
+            if segment.entity_id in tj.adjoining_boundaries:
+                tj.add_burgers(b)
         ds_release = mode.delta_s * packet
         released = domain.shear.release(ds_release)
         q_release = domain.free_volume.accommodate(abs(dq) if dq else mode.delta_q * packet)
@@ -230,6 +249,95 @@ class EventResolvedSimulation:
         if released >= 0:
             domain.blocked = False
 
+    def _stage_rates(self) -> tuple[float, float, float]:
+        p, temperature = self.config.parameters, self.config.pf.temperature
+        def arrhenius(prefactor: float, barrier: float) -> float:
+            return prefactor * np.exp(-barrier / (K_B_EV * temperature))
+        return (
+            arrhenius(float(p.get("nucleation_prefactor", 1e4)), float(p.get("nucleation_barrier_ev", 0.45))),
+            arrhenius(float(p.get("exchange_prefactor", 1e4)), float(p.get("exchange_barrier_ev", 0.55))),
+            arrhenius(float(p.get("transport_prefactor", 1e4)), float(p.get("transport_barrier_ev", 0.70))),
+        )
+
+    def _advance_climb(self, domain: DomainPhysics, segment: GBSegment, delta_length: float) -> None:
+        modules = set(self.config.active_modules)
+        if not modules.intersection({"nucleation_limited", "multihit_nucleation", "exchange_limited", "transport_limited", "serial_climb"}):
+            return
+        if domain.free_volume.deficit <= float(self.config.parameters.get("climb_trigger_quota", 0.25)):
+            return
+        domain.blocked = True
+        rn, re, rt = self._stage_rates()
+        complete = False
+        if "serial_climb" in modules:
+            if domain.climb.stage.value in {"inactive", "quota_completion"}:
+                domain.climb.activate(self.solver.time)
+            complete = domain.climb.advance(self.config.pf.time_step,
+                self.solver.time - self.config.pf.time_step, rn, re, rt)
+        else:
+            rate = rn if modules.intersection({"nucleation_limited", "multihit_nucleation"}) else (re if "exchange_limited" in modules else rt)
+            complete = bool(domain.activation.advance(rate, self.config.pf.time_step,
+                                                       self.solver.time - self.config.pf.time_step))
+        if complete:
+            release = float(self.config.parameters.get("climb_release_quota", 1.0))
+            domain.free_volume.accommodate(release)
+            domain.blocked = domain.free_volume.deficit > float(self.config.parameters.get("climb_trigger_quota", 0.25))
+            mode, total, driving = self._activation_mode(domain, segment)
+            self._record_event(domain, segment, mode, total, driving, "climb_quota_completion", delta_length)
+            domain.blocked = domain.free_volume.deficit > float(self.config.parameters.get("climb_trigger_quota", 0.25))
+
+    def _update_tj_physics(self, mobility: np.ndarray) -> None:
+        modules = set(self.config.active_modules)
+        enabled = bool(modules.intersection({"tj_compatibility", "tj_pinning", "tj_burgers_strict", "tj_burgers_residual", "tj_geometric_surrogate"}))
+        if not enabled:
+            self.tj_domains.clear()
+            return
+        current = set(self.snapshot.triple_junctions)
+        self.tj_domains = {key: value for key, value in self.tj_domains.items() if key in current}
+        for key, tj in self.snapshot.triple_junctions.items():
+            if key not in self.tj_domains:
+                fake = GBSegment(tj.grain_ids[0], tj.grain_ids[1], 0)
+                fake.points = np.asarray([tj.position]); fake.length = self.config.pf.grid_spacing
+                fake_key = fake.entity_id
+                fake.segment_id = abs(sum(tj.grain_ids))
+                domain = self._new_domain(fake)
+                domain.entity_id = key
+                self.tj_domains[key] = domain
+            domain = self.tj_domains[key]
+            delta_path = max(0.0, tj.travel_distance - domain.previous_length)
+            domain.previous_length = tj.travel_distance
+            explicit_residual = modules.intersection({"tj_burgers_strict", "tj_burgers_residual"}) and np.linalg.norm(tj.residual_burgers) > 1e-10
+            if self.solver.step_number > int(self.config.parameters.get("equilibration_steps", 20)):
+                if domain.encounter.advance(delta_path) or explicit_residual:
+                    domain.blocked = True
+            if domain.blocked:
+                rate = float(self.config.parameters.get("tj_attempt_frequency", 1e3)) * np.exp(
+                    -float(self.config.parameters.get("tj_barrier_ev", 0.6)) / (K_B_EV * self.config.pf.temperature))
+                if domain.activation.advance(rate, self.config.pf.time_step, self.solver.time - self.config.pf.time_step):
+                    domain.event_counter += 1
+                    if explicit_residual:
+                        target = -tj.residual_burgers
+                        mode = min(self.modes, key=lambda m: np.linalg.norm(np.asarray(m.burgers) - target))
+                        tj.add_burgers(np.asarray(mode.burgers))
+                    domain.blocked = bool("tj_burgers_strict" in modules and np.linalg.norm(tj.residual_burgers) > 1e-10)
+                    self.ledger.write({
+                        "run_id": self.run_id, "time": self.solver.time, "step": self.solver.step_number,
+                        "temperature": self.config.pf.temperature, "seed": self.config.seed,
+                        "event_id": f"{key}:{domain.event_counter}", "event_type": "tj_compatibility_release",
+                        "grain_ids": ";".join(map(str, tj.grain_ids)), "entity_id": key,
+                        "position": tj.position, "geometry_measure_Q": tj.travel_distance,
+                        "TJ_travel": delta_path, "instantaneous_rate": rate,
+                        "cumulative_hazard": domain.activation.clock.cumulative_hazard,
+                        "random_hazard_threshold": domain.activation.clock.threshold,
+                        "hit_count": domain.activation.hit_count, "required_hits_K": domain.hits,
+                        "burgers_vector_b": tj.residual_burgers.tolist(), "Git_SHA": self.sha,
+                    })
+            if domain.blocked:
+                y, x = np.rint(tj.position).astype(int) % np.asarray(self.config.pf.shape)
+                radius = int(self.config.parameters.get("tj_correlation_radius", 2))
+                for oy in range(-radius, radius + 1):
+                    for ox in range(-radius, radius + 1):
+                        mobility[(y + oy) % mobility.shape[0], (x + ox) % mobility.shape[1]] = 0.0
+
     def _update_physics(self) -> None:
         cfg, modules = self.config, set(self.config.active_modules)
         equilibration = int(cfg.parameters.get("equilibration_steps", 20))
@@ -251,10 +359,12 @@ class EventResolvedSimulation:
             if "shear_memory" in modules or "shear_feedback" in modules:
                 beta = float(cfg.parameters.get("easy_beta", 0.35))
                 domain.shear.migrate(beta, normal_displacement, cfg.pf.time_step)
-            if "free_volume" in modules or "serial_climb" in modules:
+            if modules.intersection({"free_volume", "serial_climb", "nucleation_limited", "multihit_nucleation", "exchange_limited", "transport_limited", "mixed_shear_climb_event", "independent_and"}):
                 domain.free_volume.require_for_area_change(delta_length)
 
-            encounter_enabled = cfg.compatibility_model == "geometric_surrogate" or any("pinning" in m for m in modules)
+            encounter_enabled = cfg.compatibility_model == "geometric_surrogate" or bool(
+                modules.intersection({"gb_area_point_defect_pinning", "gb_pinning"})
+            )
             if self.solver.step_number > equilibration and encounter_enabled and domain.encounter.advance(delta_length):
                 domain.blocked = True
                 domain.activation.clock.reset()
@@ -272,15 +382,7 @@ class EventResolvedSimulation:
                 if complete:
                     self._record_event(domain, segment, mode, total_rate, driving, "disconnection_mode", delta_length)
 
-            if "serial_climb" in modules and domain.free_volume.deficit > 0:
-                p = cfg.parameters
-                done = domain.climb.advance(cfg.pf.time_step, self.solver.time - cfg.pf.time_step,
-                    float(p.get("nucleation_rate", 1.0)), float(p.get("exchange_rate", 1.0)),
-                    float(p.get("transport_rate", 1.0)))
-                if done:
-                    domain.free_volume.accommodate(domain.climb.required_quota)
-                else:
-                    domain.blocked = True
+            self._advance_climb(domain, segment, delta_length)
 
             pair_force = float(cfg.parameters.get("easy_beta", 0.35)) * domain.shear.internal_shear_stress
             for yx in segment.points.astype(int):
@@ -289,6 +391,14 @@ class EventResolvedSimulation:
                     mobility[y, x] = min(mobility[y, x], float(cfg.parameters.get("pinned_mobility_fraction", 0.0)))
                 self.driving_field[segment.grain_i, y, x] += pair_force
                 self.driving_field[segment.grain_j, y, x] -= pair_force
+        if self.particles is not None:
+            for segment in self.snapshot.boundaries.values():
+                if len(segment.points):
+                    contact = self.particles.contacts(segment.points)
+                    for yx in segment.points[contact].astype(int):
+                        y, x = yx % np.asarray(cfg.pf.shape)
+                        mobility[y, x] = 0.0
+        self._update_tj_physics(mobility)
         self.solver.set_mobility_scale(mobility)
         if self.full_field is not None:
             self.full_field.solve()
@@ -313,6 +423,7 @@ class EventResolvedSimulation:
         state = {
             "time": self.solver.time, "step_number": self.solver.step_number,
             "domains": {key: domain.state_dict() for key, domain in self.domains.items()},
+            "tj_domains": {key: domain.state_dict() for key, domain in self.tj_domains.items()},
             "energy_records": self.energy_records,
         }
         (self.output_dir / "checkpoint.json").write_text(json.dumps(state, indent=2) + "\n")
@@ -333,6 +444,13 @@ class EventResolvedSimulation:
                 domain = self._new_domain(self.snapshot.boundaries[key])
                 domain.load_state_dict(domain_state)
                 self.domains[key] = domain
+        for key, domain_state in state.get("tj_domains", {}).items():
+            if key in self.snapshot.triple_junctions:
+                tj = self.snapshot.triple_junctions[key]
+                fake = GBSegment(tj.grain_ids[0], tj.grain_ids[1], 0)
+                fake.points = np.asarray([tj.position]); fake.length = self.config.pf.grid_spacing
+                domain = self._new_domain(fake); domain.entity_id = key
+                domain.load_state_dict(domain_state); self.tj_domains[key] = domain
         self.energy_records = state["energy_records"]
 
     def run(self) -> Path:
