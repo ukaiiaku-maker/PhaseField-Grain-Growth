@@ -1,0 +1,364 @@
+from __future__ import annotations
+
+import csv
+import json
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any
+
+import numpy as np
+
+from grain_growth_pf.climb.free_volume import FreeVolumeState
+from grain_growth_pf.climb.serial_cycle import SerialClimbCycle
+from grain_growth_pf.config import ModelConfig
+from grain_growth_pf.disconnections.mode import DisconnectionMode, ModeDriving
+from grain_growth_pf.disconnections.spectrum import isotropic_surrogate_library
+from grain_growth_pf.encounters.geometric_hazard import GeometricEncounterClock
+from grain_growth_pf.entities.gb_segment import GBSegment
+from grain_growth_pf.entities.tracker import EntityTracker
+from grain_growth_pf.io.event_ledger import EventLedger
+from grain_growth_pf.io.provenance import git_sha, write_manifest
+from grain_growth_pf.mechanics.local_shear_memory import LocalShearMemory
+from grain_growth_pf.mechanics.qiu_full_field import QiuFullField
+from grain_growth_pf.pf.geometry import voronoi_polycrystal
+from grain_growth_pf.pf.solver import MultiphaseFieldSolver
+from grain_growth_pf.stochastic.multihit import MultiHitProcess
+
+
+@dataclass
+class DomainPhysics:
+    entity_id: str
+    rng: np.random.Generator
+    encounter_density: float
+    hits: int
+    hit_interpretation: str
+    shear_stiffness: float
+    excess_volume: float
+    formation_volume: float
+    free_volume_stiffness: float
+    encounter: GeometricEncounterClock = field(init=False)
+    activation: MultiHitProcess = field(init=False)
+    shear: LocalShearMemory = field(init=False)
+    free_volume: FreeVolumeState = field(init=False)
+    climb: SerialClimbCycle = field(init=False)
+    blocked: bool = False
+    previous_length: float = 0.0
+    normal_displacement_ledger: float = 0.0
+    event_counter: int = 0
+
+    def __post_init__(self) -> None:
+        self.encounter = GeometricEncounterClock(self.encounter_density, self.rng)
+        self.activation = MultiHitProcess(self.hits, self.rng, self.hit_interpretation)
+        self.shear = LocalShearMemory(self.shear_stiffness)
+        self.free_volume = FreeVolumeState(self.excess_volume, self.formation_volume, self.free_volume_stiffness)
+        self.climb = SerialClimbCycle(self.rng)
+
+    def state_dict(self) -> dict[str, Any]:
+        return {
+            "rng": self.rng.bit_generator.state,
+            "encounter": {"cumulative_hazard": self.encounter.cumulative_hazard,
+                          "threshold": self.encounter.threshold, "total_measure": self.encounter.total_measure},
+            "activation": {"cumulative_hazard": self.activation.clock.cumulative_hazard,
+                           "threshold": self.activation.clock.threshold, "last_rate": self.activation.clock.last_rate,
+                           "hit_count": self.activation.hit_count},
+            "shear": {"state": self.shear.state, "dissipated_energy": self.shear.dissipated_energy},
+            "free_volume": {"required_total": self.free_volume.required_total,
+                            "accommodated_total": self.free_volume.accommodated_total},
+            "climb": {"stage": self.climb.stage.value, "required_quota": self.climb.required_quota,
+                      "completed_quota": self.climb.completed_quota,
+                      "clock_hazard": self.climb.clock.cumulative_hazard,
+                      "clock_threshold": self.climb.clock.threshold,
+                      "clock_last_rate": self.climb.clock.last_rate},
+            "blocked": self.blocked, "previous_length": self.previous_length,
+            "normal_displacement_ledger": self.normal_displacement_ledger,
+            "event_counter": self.event_counter,
+        }
+
+    def load_state_dict(self, state: dict[str, Any]) -> None:
+        from grain_growth_pf.climb.serial_cycle import ClimbStage
+        self.rng.bit_generator.state = state["rng"]
+        for name, value in state["encounter"].items(): setattr(self.encounter, name, value)
+        self.activation.clock.cumulative_hazard = state["activation"]["cumulative_hazard"]
+        self.activation.clock.threshold = state["activation"]["threshold"]
+        self.activation.clock.last_rate = state["activation"]["last_rate"]
+        self.activation.hit_count = state["activation"]["hit_count"]
+        self.shear.state = state["shear"]["state"]
+        self.shear.dissipated_energy = state["shear"]["dissipated_energy"]
+        self.free_volume.required_total = state["free_volume"]["required_total"]
+        self.free_volume.accommodated_total = state["free_volume"]["accommodated_total"]
+        self.climb.stage = ClimbStage(state["climb"]["stage"])
+        self.climb.required_quota = state["climb"]["required_quota"]
+        self.climb.completed_quota = state["climb"]["completed_quota"]
+        self.climb.clock.cumulative_hazard = state["climb"]["clock_hazard"]
+        self.climb.clock.threshold = state["climb"]["clock_threshold"]
+        self.climb.clock.last_rate = state["climb"]["clock_last_rate"]
+        self.blocked = state["blocked"]
+        self.previous_length = state["previous_length"]
+        self.normal_displacement_ledger = state["normal_displacement_ledger"]
+        self.event_counter = state["event_counter"]
+
+
+def _child_rng(seed: int, entity_id: str) -> np.random.Generator:
+    # Stable hierarchy independent of dictionary/Python hash ordering.
+    words = np.frombuffer(entity_id.encode(), dtype=np.uint8).astype(np.uint32)
+    sequence = np.random.SeedSequence([seed, *words.tolist()])
+    return np.random.default_rng(sequence)
+
+
+class EventResolvedSimulation:
+    """Couples persistent entity clocks and compatibility state to the PF solver."""
+
+    def __init__(self, config: ModelConfig, output_dir: str | Path, resume: bool = False):
+        self.config = config
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=resume)
+        eta, seeds, orientations = voronoi_polycrystal(
+            config.pf.shape, int(config.parameters.get("initial_grains", 50)), config.seed,
+            width=config.pf.interface_width / 2,
+            periodic=config.pf.boundary_conditions == "periodic",
+        )
+        self.orientations = orientations
+        self.solver = MultiphaseFieldSolver(eta, config.pf, driving=self._driving)
+        self.tracker = EntityTracker(
+            orientations, config.pf.grid_spacing,
+            float(config.parameters.get("event_domain_length", 8.0)),
+            periodic=config.pf.boundary_conditions == "periodic",
+        )
+        self.snapshot = self.tracker.update(self.solver.labels)
+        self.domains: dict[str, DomainPhysics] = {}
+        self.driving_field = np.zeros_like(eta)
+        self.modes = isotropic_surrogate_library(
+            b_shells=tuple(config.parameters.get("b_shells", (0.25, 0.5, 1.0))),
+            directions=int(config.parameters.get("mode_directions", 8)),
+            step_heights=tuple(config.parameters.get("step_heights", (0.25,))),
+            barrier_core_ev=float(config.parameters.get("barrier_core_ev", 0.25)),
+            b_power=float(config.parameters.get("b_power", 2.0)),
+            attempt_frequency=float(config.parameters.get("attempt_frequency", 1e2)),
+            seed=config.seed,
+        )
+        self.sha = git_sha()
+        self.full_field = QiuFullField(config.pf.shape) if config.mechanics_backend == "qiu_full_field" else None
+        self.ledger = EventLedger(self.output_dir / "events.csv")
+        track_path = self.output_dir / "grain_tracks.csv"
+        self.track_handle = track_path.open("a" if resume else "w", newline="", encoding="utf-8")
+        self.track_writer = csv.DictWriter(self.track_handle, fieldnames=(
+            "run_id", "time", "step", "grain_id", "area", "radius", "perimeter", "neighbors"
+        ))
+        if not resume or track_path.stat().st_size == 0:
+            self.track_writer.writeheader()
+        self.run_id = self.output_dir.name
+        self.energy_records: list[dict[str, float]] = []
+        if resume:
+            self._load_checkpoint()
+        else:
+            write_manifest(self.output_dir / "manifest.json", config.to_dict(), "running", {
+                "initial_seed_positions": seeds.tolist(), "orientations": orientations.tolist(),
+            })
+
+    def _driving(self, _eta: np.ndarray, _time: float) -> np.ndarray:
+        return self.driving_field
+
+    def _new_domain(self, segment: GBSegment) -> DomainPhysics:
+        p = self.config.parameters
+        modules = set(self.config.active_modules)
+        hits = int(p.get("required_hits", 3 if any("multihit" in m for m in modules) else 1))
+        interpretation = "packet_reset" if "multihit_packet_reset" in modules else "persistent_hits"
+        return DomainPhysics(
+            segment.entity_id, _child_rng(self.config.seed, segment.entity_id),
+            float(p.get("encounter_density", 0.08)), hits, interpretation,
+            float(p.get("shear_stiffness", 0.15)), float(p.get("excess_volume_per_area", 0.02)),
+            float(p.get("point_defect_formation_volume", 0.01)), float(p.get("free_volume_stiffness", 0.05)),
+        )
+
+    def _activation_mode(self, domain: DomainPhysics, segment: GBSegment) -> tuple[DisconnectionMode, float, ModeDriving]:
+        capillary = self.config.pf.gb_energy * segment.curvature
+        driving = ModeDriving(
+            normal_pressure=capillary + domain.free_volume.chemical_potential,
+            resolved_shear=domain.shear.internal_shear_stress,
+            vacancy_chemical_potential=domain.free_volume.chemical_potential,
+        )
+        candidates = [m for m in self.modes if (m.family != "easy" if domain.blocked else True)]
+        rates = np.asarray([m.rate(self.config.pf.temperature, driving) for m in candidates])
+        total = float(rates.sum())
+        if total == 0:
+            return candidates[0], 0.0, driving
+        mode_rng = domain.rng
+        return candidates[int(mode_rng.choice(len(candidates), p=rates / total))], total, driving
+
+    def _record_event(self, domain: DomainPhysics, segment: GBSegment, mode: DisconnectionMode,
+                      rate: float, driving: ModeDriving, event_type: str, delta_length: float) -> None:
+        domain.event_counter += 1
+        packet = float(self.config.parameters.get("packet_size", 1.0))
+        b = np.asarray(mode.burgers) * packet
+        h = mode.step_height * packet
+        dq = mode.point_defect_quota * packet
+        domain.normal_displacement_ledger += h
+        if self.full_field is not None and len(segment.points):
+            position = tuple(segment.points[len(segment.points) // 2].astype(int))
+            shear_increment = np.array([[0.0, b[0]], [b[0], 2.0 * dq * domain.formation_volume]])
+            self.full_field.add_event(position, 0.5 * shear_increment)
+        ds_release = mode.delta_s * packet
+        released = domain.shear.release(ds_release)
+        q_release = domain.free_volume.accommodate(abs(dq) if dq else mode.delta_q * packet)
+        self.ledger.write({
+            "run_id": self.run_id, "time": self.solver.time, "step": self.solver.step_number,
+            "temperature": self.config.pf.temperature, "seed": self.config.seed,
+            "event_id": f"{domain.entity_id}:{domain.event_counter}", "event_type": event_type,
+            "grain_ids": f"{segment.grain_i};{segment.grain_j}", "entity_id": domain.entity_id,
+            "position": segment.points.mean(axis=0).tolist() if len(segment.points) else "",
+            "geometry_measure_Q": domain.encounter.total_measure,
+            "grain_size": 0.5 * (self.snapshot.grains[segment.grain_i].equivalent_radius + self.snapshot.grains[segment.grain_j].equivalent_radius),
+            "curvature": segment.curvature, "local_velocity": segment.velocity,
+            "barrier_type": mode.family, "DeltaG0": mode.barrier_ev,
+            "effective_DeltaG": mode.effective_barrier_ev(driving),
+            "activation_volume": f"{mode.activation_volume_normal};{mode.activation_volume_shear}",
+            "local_shear_stress": driving.resolved_shear,
+            "local_normal_free_volume_stress": driving.normal_pressure,
+            "shear_state_s": domain.shear.state, "free_volume_state_q": domain.free_volume.deficit,
+            "Ns": mode.site_multiplicity, "nu0": mode.attempt_frequency, "instantaneous_rate": rate,
+            "cumulative_hazard": domain.activation.clock.cumulative_hazard,
+            "random_hazard_threshold": domain.activation.clock.threshold,
+            "hit_count": domain.activation.hit_count, "required_hits_K": domain.hits,
+            "release_Delta_s": ds_release, "release_Delta_q": q_release,
+            "GB_area_change": delta_length, "TJ_travel": 0,
+            "point_defect_quota": domain.free_volume.deficit,
+            "normal_step_h": h, "burgers_vector_b": b.tolist(), "Nv": dq,
+            "shear_strain_increment": float(np.linalg.norm(b) * segment.length / np.prod(self.config.pf.shape)),
+            "volumetric_strain_increment": dq * domain.formation_volume / np.prod(self.config.pf.shape),
+            "packet_size": packet, "Git_SHA": self.sha,
+        })
+        if released >= 0:
+            domain.blocked = False
+
+    def _update_physics(self) -> None:
+        cfg, modules = self.config, set(self.config.active_modules)
+        equilibration = int(cfg.parameters.get("equilibration_steps", 20))
+        mobility = np.ones(cfg.pf.shape)
+        self.driving_field.fill(0.0)
+        current_ids = set(self.snapshot.boundaries)
+        self.domains = {key: state for key, state in self.domains.items() if key in current_ids}
+        for key, segment in self.snapshot.boundaries.items():
+            if key not in self.domains:
+                self.domains[key] = self._new_domain(segment)
+            domain = self.domains[key]
+            delta_length = 0.0 if not domain.previous_length else abs(segment.length - domain.previous_length)
+            domain.previous_length = segment.length
+            normal_displacement = delta_length / max(segment.length, cfg.pf.grid_spacing)
+            ri = self.snapshot.grains[segment.grain_i].equivalent_radius
+            rj = self.snapshot.grains[segment.grain_j].equivalent_radius
+            segment.curvature = 0.5 * (1.0 / max(ri, cfg.pf.grid_spacing) - 1.0 / max(rj, cfg.pf.grid_spacing))
+            segment.velocity = normal_displacement / cfg.pf.time_step
+            if "shear_memory" in modules or "shear_feedback" in modules:
+                beta = float(cfg.parameters.get("easy_beta", 0.35))
+                domain.shear.migrate(beta, normal_displacement, cfg.pf.time_step)
+            if "free_volume" in modules or "serial_climb" in modules:
+                domain.free_volume.require_for_area_change(delta_length)
+
+            encounter_enabled = cfg.compatibility_model == "geometric_surrogate" or any("pinning" in m for m in modules)
+            if self.solver.step_number > equilibration and encounter_enabled and domain.encounter.advance(delta_length):
+                domain.blocked = True
+                domain.activation.clock.reset()
+                domain.climb.activate(self.solver.time)
+
+            mode, total_rate, driving = self._activation_mode(domain, segment)
+            if domain.blocked:
+                complete = domain.activation.advance(total_rate, cfg.pf.time_step, self.solver.time - cfg.pf.time_step)
+                if complete:
+                    self._record_event(domain, segment, mode, total_rate, driving, "compatibility_release", delta_length)
+            elif cfg.compatibility_model == "explicit_modes" and self.solver.step_number > equilibration:
+                # Event-resolved easy-mode flux; completion changes finite hidden
+                # kinematics even when it does not gate mobility.
+                complete = domain.activation.advance(total_rate, cfg.pf.time_step, self.solver.time - cfg.pf.time_step)
+                if complete:
+                    self._record_event(domain, segment, mode, total_rate, driving, "disconnection_mode", delta_length)
+
+            if "serial_climb" in modules and domain.free_volume.deficit > 0:
+                p = cfg.parameters
+                done = domain.climb.advance(cfg.pf.time_step, self.solver.time - cfg.pf.time_step,
+                    float(p.get("nucleation_rate", 1.0)), float(p.get("exchange_rate", 1.0)),
+                    float(p.get("transport_rate", 1.0)))
+                if done:
+                    domain.free_volume.accommodate(domain.climb.required_quota)
+                else:
+                    domain.blocked = True
+
+            pair_force = float(cfg.parameters.get("easy_beta", 0.35)) * domain.shear.internal_shear_stress
+            for yx in segment.points.astype(int):
+                y, x = yx % np.asarray(cfg.pf.shape)
+                if domain.blocked:
+                    mobility[y, x] = min(mobility[y, x], float(cfg.parameters.get("pinned_mobility_fraction", 0.0)))
+                self.driving_field[segment.grain_i, y, x] += pair_force
+                self.driving_field[segment.grain_j, y, x] -= pair_force
+        self.solver.set_mobility_scale(mobility)
+        if self.full_field is not None:
+            self.full_field.solve()
+
+    def _write_tracks(self) -> None:
+        for grain in self.snapshot.grains.values():
+            self.track_writer.writerow({
+                "run_id": self.run_id, "time": self.solver.time, "step": self.solver.step_number,
+                "grain_id": grain.grain_id, "area": grain.area, "radius": grain.equivalent_radius,
+                "perimeter": grain.perimeter, "neighbors": len(grain.neighbors),
+            })
+        self.track_handle.flush()
+
+    def _save_checkpoint(self) -> None:
+        arrays: dict[str, np.ndarray] = {
+            "eta": self.solver.eta, "mobility_scale": self.solver.mobility_scale,
+            "driving_field": self.driving_field,
+        }
+        if self.full_field is not None:
+            arrays["eigenstrain"] = self.full_field.eigenstrain
+        np.savez_compressed(self.output_dir / "checkpoint.npz", **arrays)
+        state = {
+            "time": self.solver.time, "step_number": self.solver.step_number,
+            "domains": {key: domain.state_dict() for key, domain in self.domains.items()},
+            "energy_records": self.energy_records,
+        }
+        (self.output_dir / "checkpoint.json").write_text(json.dumps(state, indent=2) + "\n")
+
+    def _load_checkpoint(self) -> None:
+        state = json.loads((self.output_dir / "checkpoint.json").read_text())
+        with np.load(self.output_dir / "checkpoint.npz") as arrays:
+            self.solver.eta = arrays["eta"].copy()
+            self.solver.mobility_scale = arrays["mobility_scale"].copy()
+            self.driving_field = arrays["driving_field"].copy()
+            if self.full_field is not None and "eigenstrain" in arrays:
+                self.full_field.eigenstrain = arrays["eigenstrain"].copy()
+        self.solver.time = float(state["time"])
+        self.solver.step_number = int(state["step_number"])
+        self.snapshot = self.tracker.update(self.solver.labels)
+        for key, domain_state in state["domains"].items():
+            if key in self.snapshot.boundaries:
+                domain = self._new_domain(self.snapshot.boundaries[key])
+                domain.load_state_dict(domain_state)
+                self.domains[key] = domain
+        self.energy_records = state["energy_records"]
+
+    def run(self) -> Path:
+        failure: str | None = None
+        try:
+            for _ in range(max(0, self.config.max_steps - self.solver.step_number)):
+                diag = self.solver.step()
+                self.snapshot = self.tracker.update(self.solver.labels)
+                self._update_physics()
+                stored = sum(d.shear.energy + d.free_volume.energy for d in self.domains.values())
+                self.energy_records.append({"time": diag.time, "interfacial": diag.interfacial_energy, "stored": stored})
+                if self.solver.step_number % self.config.output_cadence == 0:
+                    self._write_tracks()
+                    self._save_checkpoint()
+                if len(self.snapshot.grains) <= self.config.termination_grains:
+                    break
+        except Exception as exc:
+            failure = f"{type(exc).__name__}: {exc}"
+            raise
+        finally:
+            self.ledger.close()
+            self.track_handle.close()
+            (self.output_dir / "energy.json").write_text(json.dumps(self.energy_records, indent=2) + "\n")
+            write_manifest(self.output_dir / "manifest.json", self.config.to_dict(),
+                           "failed" if failure else "completed", {
+                               "failure": failure, "steps_completed": self.solver.step_number,
+                               "final_grains": len(self.snapshot.grains),
+                           })
+        return self.output_dir

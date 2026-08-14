@@ -1,9 +1,9 @@
 {
   "date": "2026-08-14",
   "suite": "pytest -q",
-  "passed": 20,
+  "passed": 29,
   "failed": 0,
-  "duration_seconds": 13.56,
+  "duration_seconds": 15.71,
   "python": "3.11.3",
   "numpy": "2.4.6",
   "scipy": "1.17.1",

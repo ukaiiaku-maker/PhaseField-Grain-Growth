@@ -1,0 +1,14 @@
+{
+  "campaign": "20260814T233414Z-2b423af7d4",
+  "date": "2026-08-14",
+  "regimes_requested": 33,
+  "regimes_completed": 33,
+  "steps_per_run": 3,
+  "temperature_count": 1,
+  "realizations_per_condition": 1,
+  "purpose": "wiring and manifest smoke test only",
+  "scientific_scaling_valid": false,
+  "reason": "three steps do not establish a post-transient coarsening window",
+  "source_git_sha": "99b709faa7e4208c1f4a0d9afca9a792519d60f5",
+  "working_tree_dirty_during_run": true
+}

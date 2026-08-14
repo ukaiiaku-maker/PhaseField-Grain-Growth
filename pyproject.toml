@@ -20,6 +20,7 @@ test = ["pytest>=8"]
 [project.scripts]
 ggpf-run = "grain_growth_pf.cli:run_main"
 ggpf-campaign = "grain_growth_pf.cli:campaign_main"
+ggpf-analyze = "grain_growth_pf.cli:analyze_main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
@@ -27,4 +28,3 @@ where = ["src"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
-

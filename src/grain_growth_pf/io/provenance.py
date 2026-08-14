@@ -15,7 +15,12 @@ import scipy
 def git_sha(root: str | Path = ".") -> str:
     result = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, text=True,
                             capture_output=True, check=False)
-    return result.stdout.strip() if result.returncode == 0 else "UNCOMMITTED"
+    if result.returncode != 0:
+        return "UNCOMMITTED"
+    sha = result.stdout.strip()
+    dirty = subprocess.run(["git", "status", "--porcelain"], cwd=root, text=True,
+                           capture_output=True, check=False)
+    return sha + ("-dirty" if dirty.stdout.strip() else "")
 
 
 def software_versions() -> dict[str, str]:
@@ -41,4 +46,3 @@ def write_manifest(path: str | Path, config: dict[str, Any], status: str = "star
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return manifest
-

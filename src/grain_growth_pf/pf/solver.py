@@ -52,6 +52,7 @@ class MultiphaseFieldSolver:
         self.eta = project_simplex(eta)
         self.config = config
         self.driving = driving
+        self.mobility_scale = np.ones(config.shape, dtype=float)
         self.time = 0.0
         self.step_number = 0
 
@@ -89,6 +90,7 @@ class MultiphaseFieldSolver:
                 raise ValueError("driving callback returned the wrong shape")
             ext -= ext.mean(axis=0, keepdims=True)
             rate += kinetic * ext
+        rate *= self.mobility_scale[None, :, :]
         self.eta = project_simplex(self.eta + used_dt * rate)
         self.time += used_dt
         self.step_number += 1
@@ -107,10 +109,20 @@ class MultiphaseFieldSolver:
                 callback(self, diag)
         return records
 
+    def set_mobility_scale(self, scale: Array | float) -> None:
+        value = np.asarray(scale, dtype=float)
+        if value.ndim == 0:
+            value = np.full(self.config.shape, float(value))
+        if value.shape != self.config.shape or np.any(value < 0) or np.any(~np.isfinite(value)):
+            raise ValueError("mobility scale must be a finite nonnegative spatial field")
+        self.mobility_scale = value.copy()
+
     def state_dict(self) -> dict[str, object]:
-        return {"eta": self.eta.copy(), "time": self.time, "step_number": self.step_number}
+        return {"eta": self.eta.copy(), "time": self.time, "step_number": self.step_number,
+                "mobility_scale": self.mobility_scale.copy()}
 
     def load_state_dict(self, state: dict[str, object]) -> None:
         self.eta = np.asarray(state["eta"], dtype=float).copy()
         self.time = float(state["time"])
         self.step_number = int(state["step_number"])
+        self.mobility_scale = np.asarray(state.get("mobility_scale", np.ones(self.config.shape)), dtype=float).copy()
