@@ -142,6 +142,8 @@ class EventResolvedSimulation:
             directions=int(config.parameters.get("mode_directions", 8)),
             step_heights=tuple(config.parameters.get("step_heights", (0.25,))),
             barrier_core_ev=float(config.parameters.get("barrier_core_ev", 0.25)),
+            b_coefficient_ev=float(config.parameters.get("b_coefficient_ev", 0.25)),
+            h_coefficient_ev=float(config.parameters.get("h_coefficient_ev", 0.10)),
             b_power=float(config.parameters.get("b_power", 2.0)),
             attempt_frequency=float(config.parameters.get("attempt_frequency", 1e2)),
             seed=config.seed,
@@ -340,6 +342,9 @@ class EventResolvedSimulation:
 
     def _update_physics(self) -> None:
         cfg, modules = self.config, set(self.config.active_modules)
+        if not modules and cfg.compatibility_model == "off" and self.particles is None:
+            self.solver.set_mobility_scale(1.0)
+            return
         equilibration = int(cfg.parameters.get("equilibration_steps", 20))
         mobility = np.ones(cfg.pf.shape)
         self.driving_field.fill(0.0)
@@ -456,16 +461,19 @@ class EventResolvedSimulation:
     def run(self) -> Path:
         failure: str | None = None
         try:
+            entity_every_step = bool(self.config.active_modules) or self.config.compatibility_model != "off"
             for _ in range(max(0, self.config.max_steps - self.solver.step_number)):
                 diag = self.solver.step()
-                self.snapshot = self.tracker.update(self.solver.labels)
-                self._update_physics()
+                update_entities = entity_every_step or self.solver.step_number % self.config.output_cadence == 0
+                if update_entities:
+                    self.snapshot = self.tracker.update(self.solver.labels)
+                    self._update_physics()
                 stored = sum(d.shear.energy + d.free_volume.energy for d in self.domains.values())
                 self.energy_records.append({"time": diag.time, "interfacial": diag.interfacial_energy, "stored": stored})
                 if self.solver.step_number % self.config.output_cadence == 0:
                     self._write_tracks()
                     self._save_checkpoint()
-                if len(self.snapshot.grains) <= self.config.termination_grains:
+                if update_entities and len(self.snapshot.grains) <= self.config.termination_grains:
                     break
         except Exception as exc:
             failure = f"{type(exc).__name__}: {exc}"

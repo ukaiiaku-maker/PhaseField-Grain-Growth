@@ -91,7 +91,13 @@ class MultiphaseFieldSolver:
             ext -= ext.mean(axis=0, keepdims=True)
             rate += kinetic * ext
         rate *= self.mobility_scale[None, :, :]
-        self.eta = project_simplex(self.eta + used_dt * rate)
+        trial = self.eta + used_dt * rate
+        if float(trial.min()) >= 0.0 and float(trial.max()) <= 1.0:
+            # The constrained rate has zero local sum. Normalization removes
+            # only roundoff and avoids an O(N log N) simplex sort at every pixel.
+            self.eta = trial / trial.sum(axis=0, keepdims=True)
+        else:
+            self.eta = project_simplex(trial)
         self.time += used_dt
         self.step_number += 1
         return StepDiagnostics(
