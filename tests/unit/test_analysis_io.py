@@ -165,6 +165,15 @@ def test_event_rate_observation_retains_zero_event_exposure(tmp_path):
     assert count == 2
     assert np.isclose(exposure, 2.5)
 
+    pd.DataFrame({
+        "time": [0.2, 0.2, 0.8, 0.8],
+        "event_type": ["activation_hit", "compatibility_release",
+                       "climb_exchange", "climb_quota_completion"],
+    }).to_csv(tmp_path / "events.csv", index=False)
+    count, exposure = _event_rate_observation(tmp_path)
+    assert count == 2
+    assert np.isclose(exposure, 2.5)
+
 
 def test_analytical_limits():
     t = np.arange(4.0)

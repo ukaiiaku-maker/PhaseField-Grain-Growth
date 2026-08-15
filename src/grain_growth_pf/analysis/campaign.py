@@ -38,6 +38,18 @@ CLASS_B_REGIMES = {
 }
 CLASS_C_REGIMES = {"C3", "C4", "C5"}
 CLASS_D_REGIMES = {"S2", "S3", "SC1", "SC2", "SC3", "SC4", "P5"}
+ACTIVATION_EVENT_TYPES = {
+    "activation_hit", "tj_activation_hit", "climb_nucleation",
+    "climb_exchange", "climb_transport",
+}
+
+
+def _activation_rows(events: pd.DataFrame) -> pd.DataFrame:
+    """Prefer primitive stochastic passages over duplicate release summaries."""
+    if "event_type" not in events:
+        return events
+    selected = events[events["event_type"].isin(ACTIVATION_EVENT_TYPES)]
+    return selected if not selected.empty else events
 
 
 def _growth_window_arrays(run_dirs: list[Path], measure: str = "R_A") -> tuple[np.ndarray, np.ndarray, dict]:
@@ -254,6 +266,7 @@ def _event_statistics(run_dir: Path) -> tuple[int, float]:
     events = pd.read_csv(path)
     if events.empty:
         return 0, np.nan
+    events = _activation_rows(events)
     if "time" not in events:
         return len(events), np.nan
     tracks = pd.read_csv(run_dir / "grain_tracks.csv", usecols=["time"])
@@ -279,7 +292,7 @@ def _event_rate_observation(run_dir: Path) -> tuple[int, float]:
         ))
     if not event_path.exists() or event_path.stat().st_size == 0:
         return 0, exposure
-    events = pd.read_csv(event_path, usecols=["time"])
+    events = _activation_rows(pd.read_csv(event_path))
     return len(events), exposure
 
 

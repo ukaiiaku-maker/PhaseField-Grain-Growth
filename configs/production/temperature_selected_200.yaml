@@ -36,6 +36,7 @@ base:
     h_coefficient_ev: 0.02
     attempt_frequency: 10.0
     packet_size: 2.0
+    packet_window_time: 1.0
     pinned_mobility_fraction: 0.0
     shear_stiffness: 0.20
     shear_trigger: 0.25

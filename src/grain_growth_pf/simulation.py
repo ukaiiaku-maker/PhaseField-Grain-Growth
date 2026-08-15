@@ -9,7 +9,9 @@ from typing import Any
 import numpy as np
 
 from grain_growth_pf.climb.free_volume import FreeVolumeState
+from grain_growth_pf.climb.exchange import butler_volmer_flux
 from grain_growth_pf.climb.serial_cycle import SerialClimbCycle
+from grain_growth_pf.climb.transport import diffusivity, transport_time
 from grain_growth_pf.config import ModelConfig
 from grain_growth_pf.disconnections.barriers import assign_barriers
 from grain_growth_pf.disconnections.mode import DisconnectionMode, ModeDriving
@@ -27,7 +29,8 @@ from grain_growth_pf.obstacles.particles import ParticleField
 from grain_growth_pf.pf.geometry import voronoi_polycrystal
 from grain_growth_pf.pf.kinematics import interface_kinematics
 from grain_growth_pf.pf.solver import MultiphaseFieldSolver
-from grain_growth_pf.stochastic.multihit import MultiHitProcess
+from grain_growth_pf.stochastic.multihit import CompletionEvent, MultiHitProcess
+from grain_growth_pf.stochastic.hazard import HazardEvent
 
 
 @dataclass
@@ -54,6 +57,7 @@ class DomainPhysics:
     previous_time: float = 0.0
     normal_displacement_ledger: float = 0.0
     normal_release_remaining: float = 0.0
+    packet_window_elapsed: float = 0.0
     event_counter: int = 0
 
     def __post_init__(self) -> None:
@@ -70,7 +74,8 @@ class DomainPhysics:
                           "threshold": self.encounter.threshold, "total_measure": self.encounter.total_measure},
             "activation": {"cumulative_hazard": self.activation.clock.cumulative_hazard,
                            "threshold": self.activation.clock.threshold, "last_rate": self.activation.clock.last_rate,
-                           "hit_count": self.activation.hit_count},
+                           "hit_count": self.activation.hit_count,
+                           "packet_window_elapsed": self.packet_window_elapsed},
             "shear": {"state": self.shear.state, "dissipated_energy": self.shear.dissipated_energy},
             "free_volume": {"required_total": self.free_volume.required_total,
                             "accommodated_total": self.free_volume.accommodated_total,
@@ -97,6 +102,7 @@ class DomainPhysics:
         self.activation.clock.threshold = state["activation"]["threshold"]
         self.activation.clock.last_rate = state["activation"]["last_rate"]
         self.activation.hit_count = state["activation"]["hit_count"]
+        self.packet_window_elapsed = state["activation"].get("packet_window_elapsed", 0.0)
         self.shear.state = state["shear"]["state"]
         self.shear.dissipated_energy = state["shear"]["dissipated_energy"]
         self.free_volume.required_total = state["free_volume"]["required_total"]
@@ -281,7 +287,7 @@ class EventResolvedSimulation:
         modules = set(self.config.active_modules)
         hits = int(p.get("required_hits", 3 if any("multihit" in m for m in modules) else 1))
         interpretation = "packet_reset" if "multihit_packet_reset" in modules else "persistent_hits"
-        return DomainPhysics(
+        domain = DomainPhysics(
             segment.entity_id, _child_rng(self.config.seed, segment.entity_id),
             float(p.get("encounter_density", 0.08)), hits, interpretation,
             float(p.get("shear_stiffness", 0.15)),
@@ -289,6 +295,93 @@ class EventResolvedSimulation:
             float(p.get("excess_volume_per_area", 0.02)),
             float(p.get("point_defect_formation_volume", 0.01)), float(p.get("free_volume_stiffness", 0.05)),
         )
+        domain.climb.required_quota = float(p.get("climb_release_quota", 1.0))
+        return domain
+
+    def _begin_activation_window(self, domain: DomainPhysics) -> None:
+        domain.activation.begin_window()
+        domain.packet_window_elapsed = 0.0
+
+    def _advance_activation(self, domain: DomainPhysics, rate: float, dt: float,
+                            start_time: float) -> tuple[list[CompletionEvent], list[tuple[HazardEvent, int, bool]]]:
+        """Advance an activation clock with explicit finite packet renewal windows."""
+        if domain.activation.interpretation != "packet_reset":
+            completions = domain.activation.advance(rate, dt, start_time)
+            hits = list(zip(domain.activation.last_hit_events,
+                            domain.activation.last_hit_counts,
+                            domain.activation.last_hit_completions))
+            return completions, hits
+        window_time = float(self.config.parameters.get("packet_window_time", 1.0))
+        if not np.isfinite(window_time) or window_time <= 0:
+            raise ValueError("packet_window_time must be finite and positive")
+        completions: list[CompletionEvent] = []
+        hits: list[tuple[HazardEvent, int, bool]] = []
+        remaining = float(dt)
+        current_time = float(start_time)
+        tolerance = 16 * np.finfo(float).eps * max(1.0, window_time)
+        while remaining > tolerance:
+            available = max(window_time - domain.packet_window_elapsed, 0.0)
+            if available <= tolerance:
+                domain.activation.begin_window()
+                domain.packet_window_elapsed = 0.0
+                available = window_time
+            span = min(remaining, available)
+            found = domain.activation.advance(rate, span, current_time)
+            completions.extend(found)
+            hits.extend(zip(domain.activation.last_hit_events,
+                            domain.activation.last_hit_counts,
+                            domain.activation.last_hit_completions))
+            domain.packet_window_elapsed += span
+            current_time += span
+            remaining -= span
+            if found:
+                domain.packet_window_elapsed = max(0.0, current_time - found[-1].time)
+            elif domain.packet_window_elapsed >= window_time - tolerance:
+                domain.activation.begin_window()
+                domain.packet_window_elapsed = 0.0
+        return completions, hits
+
+    def _record_activation_hits(
+        self, domain: DomainPhysics, rate: float,
+        hits: list[tuple[HazardEvent, int, bool]], *,
+        segment: GBSegment | None = None, grain_ids: str = "",
+        position: Any = "", geometry_measure: float = 0.0,
+        tj_travel: float = 0.0,
+    ) -> None:
+        """Write every stochastic first passage, including sub-completion hits."""
+        if segment is not None:
+            grain_ids = f"{segment.grain_i};{segment.grain_j}"
+            position = segment.points.mean(axis=0).tolist() if len(segment.points) else ""
+            geometry_measure = domain.encounter.total_measure
+        for event, hit_count, completed in hits:
+            domain.event_counter += 1
+            self.ledger.write({
+                "run_id": self.run_id, "time": event.event_time,
+                "step": self.solver.step_number,
+                "temperature": self.config.pf.temperature, "seed": self.config.seed,
+                "event_id": f"{domain.entity_id}:{domain.event_counter}",
+                "event_type": "activation_hit" if segment is not None else "tj_activation_hit",
+                "grain_ids": grain_ids, "entity_id": domain.entity_id,
+                "position": position, "geometry_measure_Q": geometry_measure,
+                "curvature": segment.curvature if segment is not None else "",
+                "local_velocity": segment.velocity if segment is not None else "",
+                "local_normal_free_volume_stress": domain.free_volume.chemical_potential,
+                "shear_state_s": domain.shear.state,
+                "free_volume_state_q": domain.free_volume.deficit,
+                "instantaneous_rate": rate,
+                "cumulative_hazard": event.threshold,
+                "random_hazard_threshold": event.threshold,
+                "hit_count": hit_count, "required_hits_K": domain.hits,
+                "release_Delta_s": 0.0, "release_Delta_q": 0.0,
+                "GB_area_change": 0.0,
+                "TJ_travel": tj_travel,
+                "point_defect_quota": domain.free_volume.deficit,
+                "normal_step_h": 0.0, "burgers_vector_b": "", "Nv": 0.0,
+                "shear_strain_increment": 0.0,
+                "volumetric_strain_increment": 0.0,
+                "packet_size": self.config.parameters.get("packet_size", 1.0),
+                "Git_SHA": self.sha,
+            })
 
     def _activation_rates(self, domain: DomainPhysics, segment: GBSegment) -> tuple[
         list[DisconnectionMode], np.ndarray, float, np.ndarray, float
@@ -432,15 +525,67 @@ class EventResolvedSimulation:
         if released >= 0:
             domain.blocked = False
 
-    def _stage_rates(self) -> tuple[float, float, float]:
+    def _stage_rates(self, domain: DomainPhysics,
+                     segment: GBSegment) -> tuple[float, float, float]:
         p, temperature = self.config.parameters, self.config.pf.temperature
         def arrhenius(prefactor: float, barrier: float) -> float:
             return prefactor * np.exp(-barrier / (K_B_EV * temperature))
-        return (
-            arrhenius(float(p.get("nucleation_prefactor", 1e4)), float(p.get("nucleation_barrier_ev", 0.45))),
-            arrhenius(float(p.get("exchange_prefactor", 1e4)), float(p.get("exchange_barrier_ev", 0.55))),
-            arrhenius(float(p.get("transport_prefactor", 1e4)), float(p.get("transport_barrier_ev", 0.70))),
+        nucleation = arrhenius(
+            float(p.get("nucleation_prefactor", 1e4)),
+            float(p.get("nucleation_barrier_ev", 0.45)),
         )
+        exchange_current = arrhenius(
+            float(p.get("exchange_prefactor", 1e4)),
+            float(p.get("exchange_barrier_ev", 0.55)),
+        )
+        exchange_flux = abs(butler_volmer_flux(
+            domain.free_volume.chemical_potential, temperature, exchange_current,
+            float(p.get("exchange_transfer_coefficient", 0.5)),
+        ))
+        exchange = exchange_flux / max(
+            domain.climb.required_quota, np.finfo(float).tiny
+        )
+        diffusion = diffusivity(
+            temperature, float(p.get("transport_prefactor", 1e4)),
+            float(p.get("transport_barrier_ev", 0.70)),
+        )
+        transport_length = float(p.get(
+            "transport_length", max(segment.length, self.config.pf.grid_spacing)
+        ))
+        transport = 1.0 / transport_time(
+            transport_length, diffusion,
+            float(p.get("transport_geometry_factor", 1.0)),
+        )
+        return nucleation, exchange, transport
+
+    def _record_climb_transition(self, domain: DomainPhysics, segment: GBSegment,
+                                 event_time: float, stage: str, rate: float,
+                                 threshold: float) -> None:
+        domain.event_counter += 1
+        self.ledger.write({
+            "run_id": self.run_id, "time": event_time, "step": self.solver.step_number,
+            "temperature": self.config.pf.temperature, "seed": self.config.seed,
+            "event_id": f"{domain.entity_id}:{domain.event_counter}",
+            "event_type": stage, "grain_ids": f"{segment.grain_i};{segment.grain_j}",
+            "entity_id": domain.entity_id,
+            "position": segment.points.mean(axis=0).tolist() if len(segment.points) else "",
+            "geometry_measure_Q": domain.encounter.total_measure,
+            "curvature": segment.curvature, "local_velocity": segment.velocity,
+            "local_normal_free_volume_stress": domain.free_volume.chemical_potential,
+            "free_volume_state_q": domain.free_volume.deficit,
+            "instantaneous_rate": rate,
+            "cumulative_hazard": threshold,
+            "random_hazard_threshold": threshold,
+            "hit_count": 1, "required_hits_K": 1,
+            "release_Delta_s": 0.0, "release_Delta_q": 0.0,
+            "GB_area_change": 0.0, "TJ_travel": 0.0,
+            "point_defect_quota": domain.free_volume.deficit,
+            "normal_step_h": 0.0, "burgers_vector_b": "", "Nv": 0.0,
+            "shear_strain_increment": 0.0,
+            "volumetric_strain_increment": 0.0,
+            "packet_size": self.config.parameters.get("packet_size", 1.0),
+            "Git_SHA": self.sha,
+        })
 
     def _advance_climb(self, domain: DomainPhysics, segment: GBSegment, delta_length: float) -> None:
         modules = set(self.config.active_modules)
@@ -449,7 +594,7 @@ class EventResolvedSimulation:
         if domain.free_volume.deficit <= float(self.config.parameters.get("climb_trigger_quota", 0.25)):
             return
         domain.blocked = True
-        rn, re, rt = self._stage_rates()
+        rn, re, rt = self._stage_rates(domain, segment)
         complete = False
         event_time = None
         if modules.intersection({"serial_climb", "independent_and"}):
@@ -458,10 +603,23 @@ class EventResolvedSimulation:
             complete = domain.climb.advance(self.config.pf.time_step,
                 self.solver.time - self.config.pf.time_step, rn, re, rt)
             event_time = domain.climb.last_completion_time
+            transition_rates = {
+                "exchange": ("climb_nucleation", rn),
+                "transport": ("climb_exchange", re),
+                "quota_completion": ("climb_transport", rt),
+            }
+            for transition_time, transition_stage, threshold in domain.climb.last_transitions:
+                name, rate = transition_rates[transition_stage.value]
+                self._record_climb_transition(
+                    domain, segment, transition_time, name, rate, threshold
+                )
         else:
             rate = rn if modules.intersection({"nucleation_limited", "multihit_nucleation"}) else (re if "exchange_limited" in modules else rt)
-            completions = domain.activation.advance(rate, self.config.pf.time_step,
-                                                     self.solver.time - self.config.pf.time_step)
+            completions, hits = self._advance_activation(
+                domain, rate, self.config.pf.time_step,
+                self.solver.time - self.config.pf.time_step,
+            )
+            self._record_activation_hits(domain, rate, hits, segment=segment)
             complete = bool(completions)
             event_time = completions[0].time if completions else None
         if complete:
@@ -497,12 +655,19 @@ class EventResolvedSimulation:
             if self.solver.step_number > 0 and not domain.blocked:
                 if domain.encounter.advance(delta_path) or explicit_residual:
                     domain.blocked = True
-                    domain.activation.begin_window()
+                    self._begin_activation_window(domain)
             if domain.blocked:
                 rate = float(self.config.parameters.get("tj_attempt_frequency", 1e3)) * np.exp(
                     -float(self.config.parameters.get("tj_barrier_ev", 0.6)) / (K_B_EV * self.config.pf.temperature))
-                completions = domain.activation.advance(
-                    rate, self.config.pf.time_step, self.solver.time - self.config.pf.time_step
+                completions, hits = self._advance_activation(
+                    domain, rate, self.config.pf.time_step,
+                    self.solver.time - self.config.pf.time_step,
+                )
+                self._record_activation_hits(
+                    domain, rate, hits,
+                    grain_ids=";".join(map(str, tj.grain_ids)),
+                    position=tj.position, geometry_measure=tj.travel_distance,
+                    tj_travel=delta_path,
                 )
                 if completions:
                     domain.event_counter += 1
@@ -617,7 +782,7 @@ class EventResolvedSimulation:
             if (modules.intersection({"mixed_shear_climb_event", "independent_and"})
                     and compatibility_trigger and not domain.blocked):
                 domain.blocked = True
-                domain.activation.begin_window()
+                self._begin_activation_window(domain)
                 domain.climb.activate(self.solver.time)
 
             encounter_enabled = cfg.compatibility_model == "geometric_surrogate" or bool(
@@ -626,7 +791,7 @@ class EventResolvedSimulation:
             if (self.solver.step_number > 0 and encounter_enabled and not domain.blocked
                     and domain.encounter.advance(delta_length)):
                 domain.blocked = True
-                domain.activation.begin_window()
+                self._begin_activation_window(domain)
                 domain.climb.activate(self.solver.time)
 
             if domain.blocked and self.solver.step_number > 0:
@@ -634,7 +799,11 @@ class EventResolvedSimulation:
                     domain, segment
                 )
                 total_rate = float(rates.sum())
-                completions = domain.activation.advance(total_rate, cfg.pf.time_step, self.solver.time - cfg.pf.time_step)
+                completions, hits = self._advance_activation(
+                    domain, total_rate, cfg.pf.time_step,
+                    self.solver.time - cfg.pf.time_step,
+                )
+                self._record_activation_hits(domain, total_rate, hits, segment=segment)
                 if completions:
                     if total_rate:
                         selected = int(domain.rng.choice(len(candidates), p=rates / total_rate))
@@ -653,7 +822,11 @@ class EventResolvedSimulation:
                     domain, segment
                 )
                 total_rate = float(rates.sum())
-                completions = domain.activation.advance(total_rate, cfg.pf.time_step, self.solver.time - cfg.pf.time_step)
+                completions, hits = self._advance_activation(
+                    domain, total_rate, cfg.pf.time_step,
+                    self.solver.time - cfg.pf.time_step,
+                )
+                self._record_activation_hits(domain, total_rate, hits, segment=segment)
                 for completion in completions:
                     if total_rate:
                         selected = int(domain.rng.choice(len(candidates), p=rates / total_rate))

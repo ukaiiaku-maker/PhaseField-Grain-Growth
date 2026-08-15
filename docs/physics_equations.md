@@ -79,6 +79,12 @@ P(N\geq K)=1-e^{-\Lambda}\sum_{j=0}^{K-1}\Lambda^j/j!=P(K,\Lambda),
 \]
 
 where the last form is SciPy's regularized lower incomplete gamma `gammainc(K,Lambda)`.
+The packet interpretation uses an explicit renewal duration
+`packet_window_time`: incomplete hit counts and their hazard clock are discarded
+at each window boundary. Persistent-hit clocks retain their count across
+encounters. Renewal age is checkpointed, and every primitive hit is written to
+the event ledger; completion/release rows are retained separately and are not
+double-counted by the event-rate estimator.
 
 ## Shear memory and nonlocal mechanics
 
@@ -147,7 +153,7 @@ with Onsager limit \(J_{ex}\simeq J_0\Delta\mu/(k_BT)\). Exponentials enter a do
 D=D_0e^{-Q_D/k_BT},\qquad \tau_{tr}=C_{tr}\ell_{tr}^2/D.
 \]
 
-The stochastic production representation is the explicit serial state chain nucleation \(\rightarrow\) exchange \(\rightarrow\) transport \(\rightarrow\) quota completion. Its fixed-rate mean is \(r_{nuc}^{-1}+r_{ex}^{-1}+r_{tr}^{-1}\), never \((r_{nuc}+r_{ex}+r_{tr})^{-1}\).
+The stochastic production representation is the explicit serial state chain nucleation \(\rightarrow\) exchange \(\rightarrow\) transport \(\rightarrow\) quota completion. Its fixed-rate mean is \(r_{nuc}^{-1}+r_{ex}^{-1}+r_{tr}^{-1}\), never \((r_{nuc}+r_{ex}+r_{tr})^{-1}\). Production rates use \(r_{ex}=|J_{ex}|/N_q\) and \(r_{tr}=D/(C_{tr}\ell_{tr}^2)\), with the current domain length as \(\ell_{tr}\) unless a configuration specifies another physical transport length. Each serial stage transition is a separate auditable event-ledger row.
 
 ## Numerical execution
 

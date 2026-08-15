@@ -55,7 +55,7 @@
       "slope_R2": -0.39008402121345737
     }
   ],
-  "git_sha": "666fdc7d3718cb4d14638134f674d6666d7c357b",
+  "git_sha": "ce92e092131d2c318e16795e2d965c1a8604b974-dirty",
   "grid_anisotropy_fraction": 0.00846725597167164,
   "mesh_slope_spread_fraction": 0.094198937753866,
   "mobility_slope_ratios": {

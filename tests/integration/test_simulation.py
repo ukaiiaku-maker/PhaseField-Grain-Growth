@@ -7,6 +7,7 @@ from grain_growth_pf.config import ModelConfig, PFConfig
 from grain_growth_pf.disconnections.mode import ModeDriving
 from grain_growth_pf.pf.initial_conditions import prepare_initial_condition
 from grain_growth_pf.simulation import EventResolvedSimulation
+from grain_growth_pf.stochastic.multihit import MultiHitProcess, poisson_completion_probability
 
 
 def test_event_resolved_smoke_writes_reproducible_schema(tmp_path):
@@ -105,6 +106,97 @@ def test_vectorized_mode_rates_match_individual_mode_equations(tmp_path):
         for index, mode in enumerate(candidates)
     ])
     assert np.allclose(rates, expected, rtol=3e-14, atol=0.0)
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
+def test_production_climb_rates_use_butler_volmer_and_l_squared_transport(tmp_path):
+    config = ModelConfig(
+        regime="climb-rates", seed=192,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01,
+                    temperature=900.0),
+        active_modules=("free_volume", "serial_climb"),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={
+            "initial_grains": 5, "event_domain_length": 100.0,
+            "exchange_prefactor": 1e4, "exchange_barrier_ev": 0.4,
+            "transport_prefactor": 1e4, "transport_barrier_ev": 0.5,
+            "free_volume_stiffness": 0.1,
+        },
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "climb-rates")
+    segment = next(iter(simulation.snapshot.boundaries.values()))
+    domain = simulation.domains[segment.entity_id]
+    domain.free_volume.required_total = 0.2
+    _, exchange_1, transport_1 = simulation._stage_rates(domain, segment)
+    domain.free_volume.required_total = 0.4
+    _, exchange_2, _ = simulation._stage_rates(domain, segment)
+    segment.length *= 2.0
+    _, _, transport_2 = simulation._stage_rates(domain, segment)
+    assert exchange_2 > exchange_1
+    assert np.isclose(transport_2, transport_1 / 4.0)
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
+def test_packet_renewal_window_matches_poisson_tail_and_checkpoints_age(tmp_path):
+    config = ModelConfig(
+        regime="packet-renewal", seed=193,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01),
+        compatibility_model="geometric_surrogate",
+        active_modules=("gb_compatibility", "multihit_packet_reset"),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={"initial_grains": 5, "required_hits": 3,
+                    "packet_window_time": 1.0},
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "packet-tail")
+    segment = next(iter(simulation.snapshot.boundaries.values()))
+    domain = simulation.domains[segment.entity_id]
+    rng = np.random.default_rng(194)
+    completed = 0
+    samples, window_hazard = 12000, 2.2
+    for _ in range(samples):
+        domain.activation = MultiHitProcess(3, rng, "packet_reset")
+        domain.packet_window_elapsed = 0.0
+        completions, _ = simulation._advance_activation(domain, window_hazard, 1.0, 0.0)
+        completed += bool(completions)
+    expected = poisson_completion_probability(3, window_hazard)
+    assert abs(completed / samples - expected) < 0.015
+    domain.packet_window_elapsed = 0.37
+    restored = simulation._new_domain(segment)
+    restored.load_state_dict(domain.state_dict())
+    assert restored.packet_window_elapsed == 0.37
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
+def test_packet_reset_cannot_accumulate_hits_across_renewal_windows(tmp_path):
+    config = ModelConfig(
+        regime="packet-memory", seed=195,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01),
+        active_modules=("multihit_packet_reset",),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={"initial_grains": 5, "required_hits": 2,
+                    "packet_window_time": 0.5},
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "packet-memory")
+    segment = next(iter(simulation.snapshot.boundaries.values()))
+    packet = simulation.domains[segment.entity_id]
+    persistent = simulation._new_domain(segment)
+    persistent.activation = MultiHitProcess(2, np.random.default_rng(196), "persistent_hits")
+    for domain in (packet, persistent):
+        domain.activation.clock.cumulative_hazard = 0.0
+        domain.activation.clock.threshold = 0.25
+        domain.activation.clock.last_rate = None
+        first, _ = simulation._advance_activation(domain, 1.0, 0.251, 0.0)
+        assert not first and domain.activation.hit_count == 1
+        domain.activation.clock.threshold = 100.0
+        simulation._advance_activation(domain, 1.0, 0.249, 0.251)
+    assert packet.activation.hit_count == 0
+    assert persistent.activation.hit_count == 1
+    for domain in (packet, persistent):
+        domain.activation.clock.threshold = domain.activation.clock.cumulative_hazard + 0.25
+    packet_completion, _ = simulation._advance_activation(packet, 1.0, 0.251, 0.5)
+    persistent_completion, _ = simulation._advance_activation(persistent, 1.0, 0.251, 0.5)
+    assert not packet_completion
+    assert persistent_completion
     simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
 
 

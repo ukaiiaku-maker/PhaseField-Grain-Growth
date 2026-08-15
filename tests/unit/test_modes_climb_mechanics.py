@@ -113,6 +113,20 @@ def test_serial_mean_not_parallel_and_shear_sign():
     assert relaxing.dissipated_energy > 0
 
 
+def test_serial_cycle_uses_distinct_stage_rates_within_one_step():
+    rng = np.random.default_rng(44)
+    completions = []
+    for _ in range(6000):
+        cycle = SerialClimbCycle(rng)
+        cycle.activate(0.0)
+        time = 0.0
+        while not cycle.advance(0.2, time, 2.0, 3.0, 4.0):
+            time += 0.2
+        completions.append(cycle.last_completion_time)
+        assert [stage.value for _, stage, _ in cycle.last_transitions][-1] == "quota_completion"
+    assert np.isclose(np.mean(completions), 1 / 2 + 1 / 3 + 1 / 4, rtol=0.03)
+
+
 def test_tj_closed_burgers_sequence_and_combined_driving():
     from grain_growth_pf.entities.triple_junction import TripleJunction
     tj = TripleJunction((1, 2, 3), (0.0, 0.0))
