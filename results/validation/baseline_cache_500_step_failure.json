@@ -1,0 +1,14 @@
+{
+  "status": "failed",
+  "launch_git_sha": "8df6b86dd6a01e5504394212e2433cde38d83007",
+  "configuration": "configs/production/baseline_production_200.yaml",
+  "reason": "One of five deterministic pre-equilibration trajectories retained 201 grains at the 500-step guard while the target was 200.",
+  "cache_outcomes": {
+    "5101": {"status": "completed", "steps": 469, "active_grains": 200},
+    "5102": {"status": "failed", "steps": 500, "active_grains": 201},
+    "5103": {"status": "completed", "steps": 496, "active_grains": 200},
+    "5104": {"status": "completed", "steps": 472, "active_grains": 200},
+    "5105": {"status": "completed", "steps": 483, "active_grains": 200}
+  },
+  "corrective_action": "Raise the nonphysical safety ceiling to 550 steps for all matched production configurations; retain and migrate the four deterministic completed states unchanged."
+}

@@ -23,7 +23,7 @@ base:
     initial_grains: 267
     equilibration_steps: 20
     equilibrate_to_grains: 200
-    equilibration_max_steps: 500
+    equilibration_max_steps: 550
     compact_after_equilibration: true
     event_domain_length: 12.0
 regimes:
