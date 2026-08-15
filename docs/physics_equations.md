@@ -215,3 +215,13 @@ Runs with zero events therefore contribute exposure rather than being treated
 as zero-duration or silently discarded. An event-level Arrhenius slope is
 reported only when the pooled rate is positive at all temperatures; it remains
 separate from the coarse-grained activation energy fitted from \(K_n(T)\).
+Both event- and growth-level reports retain the global Arrhenius \(R^2\) and
+each adjacent-temperature local slope,
+
+\[
+Q_{app,i}=-k_B\frac{\ln K_{i+1}-\ln K_i}
+{T_{i+1}^{-1}-T_i^{-1}},
+\]
+
+so a mechanism crossover appears explicitly rather than being hidden by one
+global activation energy.

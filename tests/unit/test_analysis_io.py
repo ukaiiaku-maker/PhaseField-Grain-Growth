@@ -4,7 +4,10 @@ import json
 import numpy as np
 import pandas as pd
 
-from grain_growth_pf.analysis.activation_energy import fit_activation_energy
+from grain_growth_pf.analysis.activation_energy import (
+    fit_activation_energy,
+    local_activation_energies,
+)
 from grain_growth_pf.analysis.analytical_models import (
     asymptotic_exponent,
     crossover_radius_prediction,
@@ -60,6 +63,8 @@ def test_growth_and_activation_recover_inputs():
     coefficients = 3e5 * np.exp(-q / (K_B_EV * temps))
     activation = fit_activation_energy(temps, coefficients)
     assert abs(activation.activation_energy_ev - q) < 1e-10
+    _, local_q = local_activation_energies(temps, coefficients)
+    assert np.allclose(local_q, q)
 
     local = _local_exponent(time, radius, half_window=20)
     assert np.allclose(local[np.isfinite(local)], 3.0, atol=0.05)

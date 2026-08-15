@@ -7,7 +7,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from grain_growth_pf.analysis.activation_energy import fit_activation_energy
+from grain_growth_pf.analysis.activation_energy import (
+    fit_activation_energy,
+    local_activation_energies,
+)
 from grain_growth_pf.analysis.analytical_models import fit_crossover_growth
 from grain_growth_pf.analysis.grain_tracks import ensemble_radius, load_tracks
 from grain_growth_pf.analysis.growth_law import (
@@ -538,6 +541,9 @@ def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
         bootstrap_k_array = np.asarray(bootstrap_k)
         n_low, n_high = np.quantile(bootstrap_n, [0.025, 0.975])
         activation = fit_activation_energy(temperatures, common.coefficients)
+        local_temperature, local_q = local_activation_energies(
+            temperatures, common.coefficients
+        )
         q_low, q_high = np.quantile(bootstrap_q, [0.025, 0.975])
         pooled_event_counts = np.asarray([
             sum(observation[0] for observation in observations)
@@ -559,6 +565,12 @@ def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
             np.quantile(bootstrap_event_q, [0.025, 0.975]).tolist()
             if bootstrap_event_q else None
         )
+        if event_activation is not None:
+            event_local_temperature, event_local_q = local_activation_energies(
+                temperatures, pooled_event_rates
+            )
+        else:
+            event_local_temperature = event_local_q = np.asarray([])
         for position, temperature in enumerate(temperatures):
             row_index = subset.index[np.isclose(subset["temperature"], temperature)][0]
             k_low, k_high = np.quantile(bootstrap_k_array[:, position], [0.025, 0.975])
@@ -579,6 +591,10 @@ def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
                 "coefficients": common.coefficients.tolist(),
                 "activation_energy_ev": activation.activation_energy_ev,
                 "activation_energy_95pct": [float(q_low), float(q_high)],
+                "arrhenius_r_squared": activation.r_squared,
+                "arrhenius_standard_error_ev": activation.standard_error_ev,
+                "local_activation_midpoint_temperature": local_temperature.tolist(),
+                "local_activation_energy_ev": local_q.tolist(),
                 "bootstrap_samples": bootstrap_samples,
                 "window_by_temperature": window_metadata,
                 "event_level": {
@@ -590,6 +606,13 @@ def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
                         event_activation.activation_energy_ev if event_activation else None
                     ),
                     "activation_energy_95pct": event_q_interval,
+                    "arrhenius_r_squared": (
+                        event_activation.r_squared if event_activation else None
+                    ),
+                    "local_activation_midpoint_temperature": (
+                        event_local_temperature.tolist()
+                    ),
+                    "local_activation_energy_ev": event_local_q.tolist(),
                     "bootstrap_samples_with_events_at_all_temperatures": len(
                         bootstrap_event_q
                     ),
