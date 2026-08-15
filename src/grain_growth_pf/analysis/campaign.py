@@ -446,7 +446,8 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
     digest = hashlib.sha256(f"{config['regime']}:{config['pf']['temperature']}".encode()).digest()
     rng = np.random.default_rng(int.from_bytes(digest[:8], "little"))
     bootstrap_n, bootstrap_k = [], []
-    for _ in range(bootstrap_samples):
+    bootstrap_iterations = 1 if len(fit_radii) == 1 else bootstrap_samples
+    for _ in range(bootstrap_iterations):
         selection = rng.integers(0, len(fit_radii), len(fit_radii))
         sample_fit = fit_growth_law(time, fit_radii[selection].mean(axis=0), transient_fraction=0.0)
         bootstrap_n.append(sample_fit.exponent)
@@ -487,7 +488,10 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
                          "r_squared": fit.r_squared,
                          "residual_autocorrelation": fit.residual_autocorrelation,
                          "at_search_bound": at_bound},
-        "bootstrap": {"samples": bootstrap_samples, "n_95pct": [float(n_low), float(n_high)],
+        "bootstrap": {"samples": bootstrap_iterations,
+                      "requested_samples": bootstrap_samples,
+                      "degenerate_single_realization": len(fit_radii) == 1,
+                      "n_95pct": [float(n_low), float(n_high)],
                       "K_95pct": [float(k_low), float(k_high)]},
         "profile_scan": {"best_n": float(profile.exponents[profile_best]),
                          "best_normalized_rmse": float(profile.normalized_rmse[profile_best]),

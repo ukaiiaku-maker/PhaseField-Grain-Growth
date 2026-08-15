@@ -14,8 +14,8 @@
 - Mechanism campaign:
   `results/campaigns/20260815T094120Z-af440f638c` (165 conditions; running).
 - Independent 256-square convergence campaign:
-  `results/campaigns/20260815T083416Z-49423c71d0` (running).
-- Current fast suite: 73 tests passed in 38.46 seconds.
+  `results/campaigns/20260815T083416Z-49423c71d0` (completed).
+- Current fast suite: 73 tests passed in 36.27 seconds.
 - Python 3.13.5, NumPy 2.1.3, SciPy 1.15.3.
 
 Every run manifest contains its launch SHA, canonical configuration hash,
@@ -92,8 +92,12 @@ by factors 1.99944--2.00069. Sharp-interface slope error decreases from about
 11.25% at `dx=1` to 2.48% at `dx=0.5`. Surface-energy grid anisotropy is 0.847%,
 and equal-energy TJ angles differ from 120 degrees by at most 4.29 degrees.
 
-The independent 256-square polycrystal convergence result is **pending
-production inference**.
+The independent 256-square case evolved 300 equilibrated grains to 90 at step
+3270. Its fixed-`n=2` coefficient is 1.17534 versus 1.13852 for the 192-square
+20-run ensemble, a 3.23% difference. Its one-realization free fit gives
+`n=2.442`, but gains only 0.00093 in `R²` and has residual autocorrelation 0.997;
+that exponent is retained as sensitivity rather than interpreted as a
+one-sample confidence result. Restart hashes and final plots are audited.
 
 ### Stochastic engine
 
