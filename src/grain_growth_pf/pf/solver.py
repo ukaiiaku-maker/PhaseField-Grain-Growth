@@ -7,7 +7,8 @@ import numpy as np
 from numpy.typing import NDArray
 
 from grain_growth_pf.config import PFConfig
-from .free_energy import free_energy, laplacian
+from .free_energy import free_energy
+from .kernels import pairwise_obstacle_step
 
 Array = NDArray[np.float64]
 DrivingCallback = Callable[[Array, float], Array]
@@ -76,50 +77,25 @@ class MultiphaseFieldSolver:
         cfg = self.config
         requested = cfg.time_step if dt is None else dt
         used_dt = min(requested, self.stable_dt()) if cfg.adaptive_stepping else requested
-        active_indices = np.flatnonzero(self.active_phases)
-        eta_active = self.eta[active_indices]
-        lap = laplacian(eta_active, cfg.grid_spacing, cfg.boundary_conditions)
-        present = eta_active > 1e-14
-        if cfg.boundary_conditions == "periodic":
-            support = (
-                present | np.roll(present, 1, -2) | np.roll(present, -1, -2)
-                | np.roll(present, 1, -1) | np.roll(present, -1, -1)
-            )
-        else:
-            padded = np.pad(present, ((0, 0), (1, 1), (1, 1)), mode="constant")
-            support = (
-                present | padded[:, 2:, 1:-1] | padded[:, :-2, 1:-1]
-                | padded[:, 1:-1, 2:] | padded[:, 1:-1, :-2]
-            )
-        count = np.maximum(support.sum(axis=0, keepdims=True), 1)
-        phase_sum = (eta_active * support).sum(axis=0, keepdims=True)
-        lap_sum = (lap * support).sum(axis=0, keepdims=True)
-        # Match the obstacle coefficient to the discrete Laplacian eigenvalue
-        # of the sampled sinusoidal equilibrium profile.  This tends to the
-        # continuum pi^2/(2 eps^2) as dx/eps -> 0, while keeping an aligned
-        # planar interface stationary at finite resolution.
-        obstacle = 2.0 * np.sin(
-            np.pi * cfg.grid_spacing / (2.0 * cfg.interface_width)
-        ) ** 2 / cfg.grid_spacing**2
-        # Sum_j Gamma [eta_j lap(eta_i) - eta_i lap(eta_j)
-        #                    + pi^2/(2 eps^2) (eta_i - eta_j)].
-        rate = cfg.intrinsic_mobility * cfg.gb_energy * (
-            lap * phase_sum - eta_active * lap_sum
-            + obstacle * (count * eta_active - phase_sum)
-        ) * support
+        external = np.empty((1, 1, 1), dtype=float)
+        use_external = self.driving is not None
         if self.driving is not None:
-            ext = np.asarray(self.driving(self.eta, self.time), dtype=float)
-            if ext.shape != self.eta.shape:
+            external = np.asarray(self.driving(self.eta, self.time), dtype=float)
+            if external.shape != self.eta.shape:
                 raise ValueError("driving callback returned the wrong shape")
-            ext_active = ext[active_indices]
-            ext_active -= (ext_active * support).sum(axis=0, keepdims=True) / count
-            rate += cfg.intrinsic_mobility * ext_active * support
-        rate *= self.mobility_scale[None, :, :]
-        trial = eta_active + used_dt * rate
-        # This is the bound/renormalization step used by the Qiu reference
-        # implementation.  It preserves compact support unlike a smooth tail.
-        np.clip(trial, 0.0, 1.0, out=trial)
-        self.eta[active_indices] = trial / trial.sum(axis=0, keepdims=True)
+        self.eta = pairwise_obstacle_step(
+            self.eta,
+            self.active_phases,
+            self.mobility_scale,
+            external,
+            use_external,
+            used_dt,
+            cfg.intrinsic_mobility,
+            cfg.gb_energy,
+            cfg.interface_width,
+            cfg.grid_spacing,
+            cfg.boundary_conditions == "periodic",
+        )
         extinct = self.active_phases & (
             np.max(self.eta, axis=(1, 2)) < cfg.grain_extinction_threshold
         )

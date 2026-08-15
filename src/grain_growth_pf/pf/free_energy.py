@@ -3,6 +3,8 @@ from __future__ import annotations
 import numpy as np
 from numpy.typing import NDArray
 
+from .kernels import pairwise_free_energy
+
 Array = NDArray[np.float64]
 
 
@@ -61,21 +63,7 @@ def free_energy(eta: Array, gamma: float, width: float, dx: float,
     energy ``gamma`` for the compact sinusoidal profile of total width
     ``width``.
     """
-    if boundary == "periodic":
-        gx = (np.roll(eta, -1, axis=1) - eta) / dx
-        gy = (np.roll(eta, -1, axis=2) - eta) / dx
-    else:
-        gx = np.zeros_like(eta)
-        gy = np.zeros_like(eta)
-        gx[:, :-1] = (eta[:, 1:] - eta[:, :-1]) / dx
-        gy[:, :, :-1] = (eta[:, :, 1:] - eta[:, :, :-1]) / dx
-    phase_sum = eta.sum(axis=0)
-    pair_potential = 0.5 * (phase_sum**2 - np.sum(eta**2, axis=0))
-    pair_gradient = 0.5 * (
-        gx.sum(axis=0) ** 2 + gy.sum(axis=0) ** 2
-        - np.sum(gx**2 + gy**2, axis=0)
+    return float(
+        pairwise_free_energy(eta, gamma, width, dx, boundary == "periodic")
+        + stored_energy
     )
-    density = (4.0 * gamma / width) * (
-        pair_potential - width**2 / np.pi**2 * pair_gradient
-    )
-    return float(density.sum() * dx**2 + stored_energy)

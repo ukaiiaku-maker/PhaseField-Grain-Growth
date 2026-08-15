@@ -141,6 +141,17 @@ D=D_0e^{-Q_D/k_BT},\qquad \tau_{tr}=C_{tr}\ell_{tr}^2/D.
 
 The stochastic production representation is the explicit serial state chain nucleation \(\rightarrow\) exchange \(\rightarrow\) transport \(\rightarrow\) quota completion. Its fixed-rate mean is \(r_{nuc}^{-1}+r_{ex}^{-1}+r_{tr}^{-1}\), never \((r_{nuc}+r_{ex}+r_{tr})^{-1}\).
 
+## Numerical execution
+
+The intrinsic pairwise equation is evaluated by a compiled kernel over the
+compact one-cell support of each active phase. It uses the same nine-point
+stencil, local phase count, clipping, and filling-constraint normalization as
+the algebraic equations above; it changes allocation and loop execution only.
+Regression tests compare periodic and no-flux updates with nonuniform mobility
+and external driving against the vectorized equation at floating-point
+precision. The pairwise energy has an independently checked compiled
+evaluation with the same discrete forward gradients.
+
 ## Analysis
 
 In 2-D \(R_i=\sqrt{A_i/\pi}\), \(R_A=\sqrt{\langle A\rangle/\pi}\). Scaling fits scan/optimize \(n\) in
