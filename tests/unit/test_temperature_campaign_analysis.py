@@ -43,3 +43,8 @@ def test_temperature_campaign_uses_one_common_exponent(tmp_path):
     assert np.allclose(summary["Q_app"], activation_energy, atol=1e-6)
     diagnostics = json.loads((campaign / "mechanism_summary_diagnostics.json").read_text())
     assert all("temperature_series_fit" in detail for detail in diagnostics)
+    assert all(detail["provenance"]["campaign"] == str(campaign) for detail in diagnostics)
+    assert all(
+        detail["provenance"]["simulation_git_shas"] == ["synthetic-sha"]
+        for detail in diagnostics
+    )

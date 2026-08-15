@@ -16,6 +16,7 @@ from grain_growth_pf.analysis.growth_law import (
     scan_growth_exponent,
 )
 from grain_growth_pf.analysis.jerkiness import jerkiness_metrics
+from grain_growth_pf.io.provenance import git_sha
 
 
 SUMMARY_COLUMNS = [
@@ -334,6 +335,15 @@ def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
     rows, diagnostics = [], []
     for paths in grouped.values():
         row, detail = analyze_group(paths, bootstrap_samples=bootstrap_samples)
+        run_manifests = [json.loads((path / "manifest.json").read_text()) for path in paths]
+        detail["provenance"] = {
+            "campaign": str(campaign_dir),
+            "analysis_git_sha": git_sha(),
+            "simulation_git_shas": sorted({item["git_sha"] for item in run_manifests}),
+            "config_sha256s": sorted({
+                item["config_sha256"] for item in run_manifests if item.get("config_sha256")
+            }),
+        }
         rows.append(row)
         diagnostics.append(detail)
     summary = pd.DataFrame(rows, columns=SUMMARY_COLUMNS)

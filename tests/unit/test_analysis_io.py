@@ -18,6 +18,7 @@ from grain_growth_pf.disconnections.mode import K_B_EV
 from grain_growth_pf.io.event_ledger import EVENT_FIELDS, EventLedger
 from grain_growth_pf.io.provenance import write_manifest
 from grain_growth_pf.analysis.jerkiness import jerkiness_metrics
+from grain_growth_pf.analysis.plots import _local_exponent
 
 
 def test_growth_and_activation_recover_inputs():
@@ -46,6 +47,9 @@ def test_growth_and_activation_recover_inputs():
     coefficients = 3e5 * np.exp(-q / (K_B_EV * temps))
     activation = fit_activation_energy(temps, coefficients)
     assert abs(activation.activation_energy_ev - q) < 1e-10
+
+    local = _local_exponent(time, radius, half_window=20)
+    assert np.allclose(local[np.isfinite(local)], 3.0, atol=0.05)
 
 
 def test_ensemble_radius_reports_independent_size_measures():

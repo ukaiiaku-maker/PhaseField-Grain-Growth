@@ -40,11 +40,20 @@ def _aligned_ensemble(paths: list[Path]) -> pd.DataFrame:
     return aligned
 
 
-def _local_exponent(time: np.ndarray, radius: np.ndarray, half_window: int = 5) -> np.ndarray:
-    """Return the best local linearizing power on a bounded profile grid."""
+def _local_exponent(time: np.ndarray, radius: np.ndarray,
+                    half_window: int | None = None) -> np.ndarray:
+    """Return a coarse local exponent without fitting dense-output jitter."""
     result = np.full(len(time), np.nan)
+    half_window = half_window or max(10, len(time) // 10)
+    if 2 * half_window + 1 > len(time):
+        return result
     exponents = np.linspace(1.0, 6.0, 101)
-    for center in range(half_window, len(time) - half_window):
+    centers = np.unique(np.linspace(
+        half_window, len(time) - half_window - 1,
+        min(61, len(time) - 2 * half_window), dtype=int,
+    ))
+    estimates = []
+    for center in centers:
         selection = slice(center - half_window, center + half_window + 1)
         local_time, local_radius = time[selection], radius[selection]
         errors = []
@@ -57,7 +66,10 @@ def _local_exponent(time: np.ndarray, radius: np.ndarray, half_window: int = 5) 
                 np.sqrt(np.mean((local_radius - fitted) ** 2))
                 / max(np.std(local_radius), 1e-15)
             )
-        result[center] = exponents[int(np.argmin(errors))]
+        estimates.append(exponents[int(np.argmin(errors))])
+    result[centers[0]:centers[-1] + 1] = np.interp(
+        np.arange(centers[0], centers[-1] + 1), centers, estimates
+    )
     return result
 
 
@@ -170,11 +182,12 @@ def _event_figure(paths: list[Path], target: Path) -> None:
     _save(fig, target)
 
 
-def plot_campaign(campaign_dir: str | Path, output_dir: str | Path | None = None) -> Path:
+def plot_campaign(campaign_dir: str | Path, output_dir: str | Path | None = None,
+                  summary_path: str | Path | None = None) -> Path:
     campaign_dir = Path(campaign_dir)
     output = Path(output_dir) if output_dir else campaign_dir / "plots"
-    summary_path = campaign_dir / "mechanism_summary.csv"
-    summary = pd.read_csv(summary_path) if summary_path.exists() else analyze_campaign(campaign_dir)
+    summary_file = Path(summary_path) if summary_path else campaign_dir / "mechanism_summary.csv"
+    summary = pd.read_csv(summary_file) if summary_file.exists() else analyze_campaign(campaign_dir)
     campaign = json.loads((campaign_dir / "campaign_manifest.json").read_text())
     grouped: dict[tuple[str, float], list[Path]] = {}
     for raw in campaign["runs"]:

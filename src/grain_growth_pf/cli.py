@@ -38,5 +38,6 @@ def plot_main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("campaign")
     parser.add_argument("--output")
+    parser.add_argument("--summary")
     args = parser.parse_args()
-    print(plot_campaign(args.campaign, args.output))
+    print(plot_campaign(args.campaign, args.output, args.summary))

@@ -1,0 +1,38 @@
+{
+  "status": "passed",
+  "criterion": "The realization-bootstrap 95% interval contains n=2 and the fixed-n=2 comparator has no practically resolvable loss of fit over the objective topology window.",
+  "campaign": "results/campaigns/20260815T071339Z-468298c97b",
+  "simulation_git_sha": "e0b31c5860ca65adcbb26d4f35d671581ee73233",
+  "analysis_git_sha": "17656735da3cfb960b2ada075c18dfcfc4223940",
+  "number_of_realizations": 20,
+  "fit_window": {
+    "selection": "five_pct_loss_to_available_end",
+    "start_time": 3.200000000000002,
+    "end_time": 99.60000000000436,
+    "initial_mean_grain_count": 199.95,
+    "end_mean_grain_count": 68.4
+  },
+  "free_exponent_fit": {
+    "n": 1.915047310565203,
+    "n_95pct": [1.707942721044927, 2.1502911891426417],
+    "K": 0.8930944237886536,
+    "r_squared": 0.9995295842120621,
+    "residual_autocorrelation": 0.994535281907346
+  },
+  "fixed_n2_fit": {
+    "K": 1.1385199064317832,
+    "r_squared": 0.9994974565697379,
+    "delta_r_squared_vs_free_n": -0.000032127642324186745
+  },
+  "independent_radius_exponents": {
+    "area_radius": 1.915047310565203,
+    "number_weighted_mean_radius": 2.0562295701613302,
+    "rms_radius": 1.9150473351135866,
+    "perimeter_radius": 2.0091495796728394,
+    "median_radius_sensitivity": 2.6767562342245195
+  },
+  "preserved_early_transient_failure": "results/validation/baseline_qiu_ensemble20_n1_failure.json",
+  "summary": "results/production_summaries/baseline_qiu_extended_20_summary.csv",
+  "diagnostics": "results/production_summaries/baseline_qiu_extended_20_summary_diagnostics.json",
+  "plots": "results/plots/baseline_qiu_extended_20"
+}

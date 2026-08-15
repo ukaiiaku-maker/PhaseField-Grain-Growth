@@ -33,7 +33,8 @@ PYTHONPATH=src python scripts/run_campaign.py \
   configs/production/mechanism_scaling_200.yaml --processes 10
 PYTHONPATH=src python scripts/analyze_campaign.py results/campaigns/<campaign>
 PYTHONPATH=src python scripts/plot_campaign.py results/campaigns/<campaign> \
-  --output results/plots/<campaign>
+  --output results/plots/<campaign> \
+  --summary results/production_summaries/<campaign>.csv
 ```
 
 Completed runs can be extended without modifying their source trajectories:
