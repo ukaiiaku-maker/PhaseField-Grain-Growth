@@ -101,3 +101,16 @@ def test_extinct_grains_cannot_resurrect():
             assert set(np.unique(solver.labels)).issubset(set(np.flatnonzero(solver.active_phases)))
     assert np.all(np.diff(counts) <= 0)
     assert counts[-1] < counts[0]
+
+
+def test_active_phase_can_advance_one_cell_but_not_nucleate_remotely():
+    eta = np.zeros((3, 8, 8))
+    eta[0, :, :3] = 1.0
+    eta[1, :, 3:6] = 1.0
+    eta[2, :, 6:] = 1.0
+    cfg = PFConfig(shape=(8, 8), interface_width=3, time_step=0.005,
+                   intrinsic_mobility=0.2, boundary_conditions="neumann")
+    solver = MultiphaseFieldSolver(eta, cfg)
+    solver.step()
+    assert solver.eta[2, 4, 5] > 0
+    assert solver.eta[2, 4, 0] == 0

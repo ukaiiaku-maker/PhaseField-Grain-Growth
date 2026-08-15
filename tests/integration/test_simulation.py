@@ -4,6 +4,7 @@ import json
 import numpy as np
 
 from grain_growth_pf.config import ModelConfig, PFConfig
+from grain_growth_pf.pf.initial_conditions import prepare_initial_condition
 from grain_growth_pf.simulation import EventResolvedSimulation
 
 
@@ -213,6 +214,26 @@ def test_target_equilibration_compacts_phases_before_time_zero(tmp_path):
     resumed.run()
     assert resumed.solver.eta.shape[0] == 7
     assert len(resumed.orientations) == 7
+
+
+def test_cached_initial_condition_is_loaded_without_reaging(tmp_path):
+    pf = PFConfig(shape=(24, 24), interface_width=3, time_step=0.04,
+                  intrinsic_mobility=2.0, adaptive_stepping=True)
+    parameters = {"initial_grains": 8, "equilibrate_to_grains": 7,
+                  "equilibration_max_steps": 500}
+    state_path = prepare_initial_condition(pf, 1, parameters, tmp_path / "initial.npz", "test-sha")
+    config = ModelConfig(
+        regime="B0", seed=1, pf=pf, output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={**parameters, "initial_state_file": str(state_path)},
+    )
+    output = tmp_path / "cached-run"
+    simulation = EventResolvedSimulation(config, output)
+    assert simulation.solver.step_number == 0
+    assert simulation.solver.eta.shape[0] == 7
+    simulation.run()
+    manifest = json.loads((output / "manifest.json").read_text())
+    assert manifest["initial_condition_source"] == str(state_path)
+    assert manifest["grains_after_equilibration"] == 7
 
 
 def test_output_cadence_does_not_change_stochastic_trajectory(tmp_path):

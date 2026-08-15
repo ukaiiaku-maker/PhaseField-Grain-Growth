@@ -1,0 +1,15 @@
+{
+  "campaign": "results/campaigns/20260815T014917Z-b7439cd9a2",
+  "git_sha": "108ce4dd2a38fad60f6ab68bb307a17860d3b92e",
+  "runs_completed": 5,
+  "grains_at_time_zero": 75,
+  "final_grains_by_seed": [71, 67, 73, 67, 64],
+  "scientific_scaling_valid": false,
+  "fit_exponent": 5.999999999999745,
+  "fit_r_squared": 0.7522236093537434,
+  "residual_autocorrelation": 0.9741264544165625,
+  "bootstrap_n_95pct": [5.999999999756412, 5.999999999999991],
+  "diagnosis": "The aged population still arrests although it retains 3-, 4-, 5-, 7-, 8-, and 9-neighbor grains. The local eta>0 rate mask prevents a globally active phase from advancing into an adjacent exactly-zero pixel, numerically pinning neighbor switches. This is not accepted as physical stagnation.",
+  "corrective_action": "Dilate each globally active phase's local update support by one finite-difference stencil cell. Retain irreversible global extinction, so the change enables local topology transitions without permitting an extinct grain to nucleate remotely.",
+  "preserved_summary": "results/production_summaries/baseline_stationary_pilot_topology_pinned.csv"
+}

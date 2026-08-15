@@ -14,6 +14,7 @@ import yaml
 
 from grain_growth_pf.config import ModelConfig, PFConfig
 from grain_growth_pf.io.provenance import canonical_hash, git_sha, write_manifest
+from grain_growth_pf.pf.initial_conditions import initial_condition_identity, prepare_initial_condition
 from grain_growth_pf.simulation import EventResolvedSimulation
 
 
@@ -98,6 +99,19 @@ def launch_campaign(spec_path: str | Path, root: str | Path = "results/campaigns
         names = spec.pop("regime_names", list(catalog))
         spec["regimes"] = {name: catalog[name] for name in names}
     configs = enumerate_campaign(spec)
+    code_sha = git_sha()
+    initial_condition_files: dict[int, str] = {}
+    if spec.get("prepare_initial_conditions", False):
+        base = ModelConfig.from_dict(spec.get("base", {}))
+        cache_root = Path(root).parent / "initial_conditions"
+        for seed in sorted({config.seed for config in configs}):
+            identity_hash = initial_condition_identity(base.pf, seed, base.parameters, code_sha)
+            state_path = cache_root / f"seed-{seed}-{identity_hash[:16]}.npz"
+            prepare_initial_condition(base.pf, seed, base.parameters, state_path, code_sha)
+            initial_condition_files[seed] = str(state_path)
+        configs = [replace(
+            config, parameters={**config.parameters, "initial_state_file": initial_condition_files[config.seed]}
+        ) for config in configs]
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     identity = canonical_hash({"runs": [c.to_dict() for c in configs]})[:10]
     campaign_dir = Path(root) / f"{stamp}-{identity}"
@@ -106,7 +120,6 @@ def launch_campaign(spec_path: str | Path, root: str | Path = "results/campaigns
     reused: list[str] = []
     resumed: list[str] = []
     prior, resumable = _run_index(Path(root))
-    code_sha = git_sha()
     for config in configs:
         full_hash = canonical_hash({"config": config.to_dict(), "git_sha": code_sha})
         run_hash = full_hash[:12]
@@ -122,6 +135,7 @@ def launch_campaign(spec_path: str | Path, root: str | Path = "results/campaigns
     (campaign_dir / "campaign_manifest.json").write_text(json.dumps({
         "source_spec": str(spec_path), "runs": reused + [p[1] for p in payloads],
         "specification": submitted_spec,
+        "initial_condition_files": initial_condition_files,
         "reused_completed": reused, "resumed_runs": resumed, "status": "running"
     }, indent=2) + "\n")
     workers = min(processes or max(1, mp.cpu_count() - 1), len(payloads)) if payloads else 0
@@ -137,6 +151,7 @@ def launch_campaign(spec_path: str | Path, root: str | Path = "results/campaigns
     (campaign_dir / "campaign_manifest.json").write_text(json.dumps({
         "source_spec": str(spec_path), "runs": completed,
         "specification": submitted_spec,
+        "initial_condition_files": initial_condition_files,
         "status": "failed" if failures else "completed", "workers": workers,
         "reused_completed": reused, "resumed_runs": resumed, "failed_runs": failures,
     }, indent=2) + "\n")

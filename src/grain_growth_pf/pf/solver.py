@@ -80,7 +80,25 @@ class MultiphaseFieldSolver:
             self.eta, cfg.gb_energy, cfg.interface_width,
             cfg.grid_spacing, cfg.boundary_conditions,
         )
-        active = (self.eta > 1e-12) & self.active_phases[:, None, None]
+        # A globally active phase may advance by one stencil cell beyond its
+        # current diffuse support. Restricting the rate to eta>0 exactly pins
+        # neighbor switches because a phase can never enter a zero-valued
+        # adjacent pixel. The one-cell dilation permits local topology changes
+        # without allowing remote grain nucleation.
+        present = self.eta > 1e-12
+        active = present.copy()
+        for axis in (-2, -1):
+            forward = np.roll(present, 1, axis=axis)
+            backward = np.roll(present, -1, axis=axis)
+            if cfg.boundary_conditions != "periodic":
+                first = [slice(None)] * present.ndim
+                last = [slice(None)] * present.ndim
+                first[axis] = 0
+                last[axis] = -1
+                forward[tuple(first)] = False
+                backward[tuple(last)] = False
+            active |= forward | backward
+        active &= self.active_phases[:, None, None]
         count = np.maximum(active.sum(axis=0, keepdims=True), 1)
         lagrange = (mu * active).sum(axis=0, keepdims=True) / count
         # For the chosen equilibrium profile integral(|grad eta|^2) = 1/(3w).

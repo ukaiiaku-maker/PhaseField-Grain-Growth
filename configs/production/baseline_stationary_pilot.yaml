@@ -15,9 +15,9 @@ base:
   mechanics_backend: none
   compatibility_model: off
   active_modules: []
-  output_cadence: 10
-  max_steps: 1200
-  termination_grains: 60
+  output_cadence: 2
+  max_steps: 500
+  termination_grains: 15
   parameters:
     initial_grains: 100
     equilibration_steps: 40

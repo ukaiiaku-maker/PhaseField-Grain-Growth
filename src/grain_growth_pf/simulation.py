@@ -127,11 +127,23 @@ class EventResolvedSimulation:
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=resume)
         self.sha = git_sha()
-        eta, seeds, orientations = voronoi_polycrystal(
-            config.pf.shape, int(config.parameters.get("initial_grains", 50)), config.seed,
-            width=config.pf.interface_width / 2,
-            periodic=config.pf.boundary_conditions == "periodic",
-        )
+        initial_state_path = config.parameters.get("initial_state_file")
+        used_cached_initial_condition = bool(initial_state_path)
+        if initial_state_path:
+            with np.load(initial_state_path) as state:
+                eta = state["eta"].copy()
+                seeds = state["seed_positions"].copy()
+                orientations = state["orientations"].copy()
+                active_original_ids = state["active_original_ids"].astype(int).copy()
+                equilibration_steps = int(state["equilibration_steps"])
+        else:
+            eta, seeds, orientations = voronoi_polycrystal(
+                config.pf.shape, int(config.parameters.get("initial_grains", 50)), config.seed,
+                width=config.pf.interface_width / 2,
+                periodic=config.pf.boundary_conditions == "periodic",
+            )
+            active_original_ids = np.arange(len(orientations))
+            equilibration_steps = int(config.parameters.get("equilibration_steps", 0))
         self.orientations = orientations
         effective_pf = config.pf
         if "arrhenius_intrinsic" in config.active_modules:
@@ -142,17 +154,16 @@ class EventResolvedSimulation:
             ))
         self.driving_field = np.zeros_like(eta)
         self.solver = MultiphaseFieldSolver(eta, effective_pf, driving=None)
-        equilibration_steps = int(config.parameters.get("equilibration_steps", 0))
-        active_original_ids = np.arange(len(orientations))
         if not resume:
             write_manifest(self.output_dir / "manifest.json", config.to_dict(), "equilibrating", {
                 "initial_seed_positions": seeds.tolist(),
                 "original_orientations": orientations.tolist(),
             }, code_sha=self.sha)
-            for _ in range(equilibration_steps):
-                self.solver.step()
+            if not used_cached_initial_condition:
+                for _ in range(equilibration_steps):
+                    self.solver.step()
             target_grains = config.parameters.get("equilibrate_to_grains")
-            if target_grains is not None:
+            if target_grains is not None and not used_cached_initial_condition:
                 target = int(target_grains)
                 maximum = int(config.parameters.get("equilibration_max_steps", 5000))
                 while np.count_nonzero(self.solver.active_phases) > target and equilibration_steps < maximum:
@@ -170,7 +181,7 @@ class EventResolvedSimulation:
                         f"pre-equilibration retained {np.count_nonzero(self.solver.active_phases)} "
                         f"grains after the configured maximum of {maximum} steps"
                     )
-            if bool(config.parameters.get("compact_after_equilibration", True)):
+            if bool(config.parameters.get("compact_after_equilibration", True)) and not used_cached_initial_condition:
                 active_original_ids = np.flatnonzero(self.solver.active_phases)
                 self.solver.eta = self.solver.eta[active_original_ids].copy()
                 self.solver.active_phases = np.ones(len(active_original_ids), dtype=bool)
@@ -235,6 +246,7 @@ class EventResolvedSimulation:
                 "equilibration_steps_completed_before_time_zero": equilibration_steps,
                 "grains_after_equilibration": len(self.snapshot.grains),
                 "active_original_grain_ids": active_original_ids.tolist(),
+                "initial_condition_source": str(initial_state_path) if initial_state_path else "generated_in_run",
             }, code_sha=self.sha)
             self._write_tracks()
 
