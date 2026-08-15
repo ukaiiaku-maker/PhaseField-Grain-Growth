@@ -15,14 +15,18 @@
   `results/campaigns/20260815T115547Z-af440f638c` (165 conditions; running).
 - Independent 256-square convergence campaign:
   `results/campaigns/20260815T083416Z-49423c71d0` (completed).
-- Current fast suite: 78 tests passed in 20.57 seconds.
+- Current fast suite: 79 tests passed in 63.67 seconds under the live
+  14-worker production load.
 - Python 3.13.5, NumPy 2.1.3, SciPy 1.15.3.
 
 Every run manifest contains its launch SHA, canonical configuration hash,
 software versions, seed, initial-condition provenance, stopping criteria, and
 restart-artifact checksums. Dense checkpoints remain outside Git. Compact
 summaries, validation results, plots, failure records, and manifests are
-versioned.
+versioned. Manifests, checkpoint archives, and their companion JSON metadata
+are replaced atomically. The archive embeds the authoritative metadata generation, so an
+interruption between replacements cannot pair new arrays with stale state on
+resume; legacy split checkpoints remain readable.
 
 ## 2. Architecture implemented
 

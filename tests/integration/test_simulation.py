@@ -366,6 +366,37 @@ def test_event_simulation_checkpoint_restart_is_exact(tmp_path):
     }
 
 
+def test_checkpoint_archive_is_authoritative_if_metadata_replacement_is_interrupted(tmp_path):
+    config = ModelConfig(
+        regime="G1", seed=45,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01,
+                    intrinsic_mobility=0.1, adaptive_stepping=True),
+        compatibility_model="geometric_surrogate",
+        active_modules=("gb_compatibility", "single_hit_poisson"),
+        output_cadence=1, max_steps=3, termination_grains=1,
+        parameters={"initial_grains": 5, "equilibration_steps": 0,
+                    "encounter_density": 2.0, "attempt_frequency": 2.0,
+                    "event_domain_length": 100.0},
+    )
+    output = tmp_path / "interrupted-metadata"
+    simulation = EventResolvedSimulation(config, output)
+    simulation.solver.step()
+    simulation.snapshot = simulation.tracker.update(simulation.solver.labels)
+    simulation._update_physics()
+    simulation._save_checkpoint()
+    saved_eta = simulation.solver.eta.copy()
+    saved_step = simulation.solver.step_number
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+    # Model a process interruption after the archive replacement but before the
+    # companion human-readable metadata replacement.
+    (output / "checkpoint.json").write_text('{"step_number": -1}\n')
+    resumed = EventResolvedSimulation(config, output, resume=True)
+    assert resumed.solver.step_number == saved_step
+    assert np.array_equal(resumed.solver.eta, saved_eta)
+    resumed.ledger.close(); resumed.track_handle.close(); resumed.boundary_handle.close()
+
+
 def test_named_temperature_and_tj_particle_regimes_are_distinct(tmp_path):
     common = dict(shape=(18, 18), interface_width=3, time_step=0.01,
                   intrinsic_mobility=1.0, adaptive_stepping=True)

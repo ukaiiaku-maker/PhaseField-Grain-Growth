@@ -22,6 +22,7 @@ from grain_growth_pf.encounters.geometric_hazard import GeometricEncounterClock
 from grain_growth_pf.entities.gb_segment import GBSegment
 from grain_growth_pf.entities.tracker import EntityTracker
 from grain_growth_pf.io.event_ledger import EventLedger
+from grain_growth_pf.io.checkpoints import atomic_savez_compressed, atomic_write_text
 from grain_growth_pf.io.provenance import file_sha256, git_sha, write_manifest
 from grain_growth_pf.mechanics.local_shear_memory import LocalShearMemory
 from grain_growth_pf.mechanics.qiu_full_field import QiuFullField
@@ -910,15 +911,6 @@ class EventResolvedSimulation:
         self.boundary_handle.flush()
 
     def _save_checkpoint(self) -> None:
-        arrays: dict[str, np.ndarray] = {
-            "eta": self.solver.eta, "mobility_scale": self.solver.mobility_scale,
-            "driving_field": self.driving_field, "active_phases": self.solver.active_phases,
-            "orientations": self.orientations,
-            "previous_entity_eta": self.previous_entity_eta,
-        }
-        if self.full_field is not None:
-            arrays["eigenstrain"] = self.full_field.eigenstrain
-        np.savez_compressed(self.output_dir / "checkpoint.npz", **arrays)
         state = {
             "time": self.solver.time, "step_number": self.solver.step_number,
             "domains": {key: domain.state_dict() for key, domain in self.domains.items()},
@@ -928,11 +920,30 @@ class EventResolvedSimulation:
             "accumulated_volumetric_strain": self.accumulated_volumetric_strain,
             "previous_entity_time": self.previous_entity_time,
         }
-        (self.output_dir / "checkpoint.json").write_text(json.dumps(state, indent=2) + "\n")
+        serialized_state = json.dumps(state, indent=2) + "\n"
+        arrays: dict[str, np.ndarray] = {
+            "eta": self.solver.eta, "mobility_scale": self.solver.mobility_scale,
+            "driving_field": self.driving_field, "active_phases": self.solver.active_phases,
+            "orientations": self.orientations,
+            "previous_entity_eta": self.previous_entity_eta,
+            # The archive is the authoritative checkpoint generation.  Keeping
+            # its metadata here prevents an interruption between the two atomic
+            # replacements from pairing new arrays with stale JSON.
+            "checkpoint_state_json": np.asarray(serialized_state),
+        }
+        if self.full_field is not None:
+            arrays["eigenstrain"] = self.full_field.eigenstrain
+        atomic_savez_compressed(self.output_dir / "checkpoint.npz", **arrays)
+        atomic_write_text(self.output_dir / "checkpoint.json", serialized_state)
 
     def _load_checkpoint(self) -> None:
-        state = json.loads((self.output_dir / "checkpoint.json").read_text())
         with np.load(self.output_dir / "checkpoint.npz") as arrays:
+            if "checkpoint_state_json" in arrays:
+                state = json.loads(str(arrays["checkpoint_state_json"]))
+            else:
+                # Backward compatibility for production runs created before
+                # checkpoint metadata was embedded in the archive.
+                state = json.loads((self.output_dir / "checkpoint.json").read_text())
             self.solver.eta = arrays["eta"].copy()
             self.solver.mobility_scale = arrays["mobility_scale"].copy()
             self.solver.active_phases = arrays["active_phases"].astype(bool).copy()
