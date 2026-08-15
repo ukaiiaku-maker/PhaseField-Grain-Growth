@@ -1,0 +1,12 @@
+{
+  "status": "failed",
+  "launch_git_sha": "d7b36ed",
+  "configuration": "configs/production/baseline_additional_200.yaml",
+  "reason": "Thirteen of fifteen additional baseline caches reached the ~200-grain target, while two slow topology realizations remained above target at the 550-step guard.",
+  "completed_seeds": [5106, 5107, 5108, 5109, 5110, 5111, 5112, 5113, 5114, 5115, 5117, 5119, 5120],
+  "failed_seeds": {
+    "5116": {"steps": 550, "active_grains": 202},
+    "5118": {"steps": 550, "active_grains": 205}
+  },
+  "corrective_action": "Raise the guard to 650 for the expanded intrinsic ensemble only; migrate completed deterministic target states unchanged and regenerate only failed seeds."
+}

@@ -1,0 +1,23 @@
+{
+  "status": "failed",
+  "campaign": "results/campaigns/20260815T034150Z-abf4561330",
+  "launch_git_sha": "94b069fe244366b11fda4e52c04da236a0d2baf7",
+  "reason": "Five complete 200-grain Qiu-pairwise trajectories reached the prescribed 120-grain fit endpoint, but the freely optimized exponent remained at its lower bound despite highly linear R_A^2.",
+  "fit": {
+    "n": 1.0000000000120581,
+    "n_95pct": [1.0000000000000144, 1.4499080503334825],
+    "R_n_r_squared": 0.9978148613629941,
+    "residual_autocorrelation": 0.9786950191794109
+  },
+  "parabolic_cross_check": {
+    "fixed_n": 2.0,
+    "r_squared": 0.9963430209438899,
+    "normalized_rmse": 0.060472961363819716
+  },
+  "physics_cross_check": {
+    "mean_area_rate_vs_neighbor_count_slope": 3.70560414,
+    "six_sided_mean_area_rate": 0.0943918309783741,
+    "interpretation": "Mean individual-grain kinetics obey the von Neumann relation, but extinction-count noise and correlated residuals make the free ensemble exponent inconsistent."
+  },
+  "corrective_action": "Increase the intrinsic baseline to 20 independent realizations before distinguishing a physical scaling failure from finite-ensemble estimator bias."
+}

@@ -1,0 +1,15 @@
+{
+  "campaign": "results/campaigns/20260815T021116Z-07fc47bfe4",
+  "git_sha": "3735f7ac8609bfa145e9775daea1a57e2cc774c8",
+  "runs_completed": 5,
+  "grains_at_time_zero_mean": 49.4,
+  "topology_evolves_without_resurrection": true,
+  "fit_exponent": 1.3136693453717097,
+  "bootstrap_n_95pct": [1.000000000000935, 3.305423520750586],
+  "fit_r_squared": 0.9906145011646974,
+  "residual_autocorrelation": 0.7399293889608844,
+  "scientific_scaling_valid": false,
+  "reason": "The topology correction eliminates arrest and the confidence interval includes parabolic n=2, but 50 grains do not identify n tightly and residuals remain correlated. This is accepted as a corrected small-system pilot only.",
+  "next_action": "Run the matched cached 200-grain production ensemble and a 256x256 convergence realization.",
+  "preserved_summary": "results/production_summaries/baseline_support50_summary.csv"
+}

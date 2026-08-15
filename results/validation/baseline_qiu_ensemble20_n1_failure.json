@@ -1,0 +1,33 @@
+{
+  "status": "failed_scientific_gate_preserved",
+  "reason": "The expanded 20-realization ensemble remains at the lower exponent-search bound over the preregistered 200-to-120-grain fit window; seed sampling is not the cause of the discrepancy.",
+  "campaigns": [
+    "results/campaigns/20260815T034150Z-abf4561330",
+    "results/campaigns/20260815T054029Z-e57c357fb2"
+  ],
+  "git_shas": [
+    "94b069fe244366b11fda4e52c04da236a0d2baf7",
+    "336474d65233cd34256d85ce5c6c9e2e96b5da6e"
+  ],
+  "implementation_equivalence": "The source tree did not change between the two campaign SHAs; their diff contains only the additional campaign configuration and preserved analysis-result files.",
+  "number_of_realizations": 20,
+  "initial_mean_grain_count": 199.95,
+  "fit_end_mean_grain_count": 120.2,
+  "fit_samples": 407,
+  "n": 1.0,
+  "n_bootstrap_95pct": [1.0, 1.449533721981002],
+  "K": 0.06114366940243174,
+  "radius_space_cross_check": {
+    "analysis_git_sha": "c05ba070053016fa982d422ca0a9db70700116fa",
+    "n": 1.0,
+    "n_bootstrap_95pct": [1.0, 1.452938],
+    "all_radius_measures_at_lower_bound": [
+      "R_A",
+      "R_mean",
+      "R_median",
+      "R_rms",
+      "R_perimeter"
+    ]
+  },
+  "action": "Do not launch mechanism production. Preserve this interval and continue copied exact checkpoints to a 60-grain stopping target using the validated equivalent compiled kernel."
+}

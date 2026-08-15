@@ -4,22 +4,37 @@ All scalar energies in event kinetics are in eV, temperature is kelvin, lengths 
 
 ## Multiphase field
 
-For order parameters \(0\leq\eta_i\leq1\), \(\sum_i\eta_i=1\),
+For order parameters \(0\leq\eta_i\leq1\), \(\sum_i\eta_i=1\), the baseline
+uses the pairwise double-obstacle formulation in Qiu et al. (their Eqs. 3--6).
+For isotropic boundaries its implemented interfacial energy is
 
 \[
-F_{\rm int}=\frac12\sum_i\int_\Omega\left[\frac{\kappa_\eta}{2}|\nabla\eta_i|^2+W\eta_i^2(1-\eta_i)^2\right]dA,
-\quad \kappa_\eta=3\gamma w,\quad W=6\gamma/w.
+F_{\rm int}=\frac{2\gamma}{\epsilon}\int_\Omega
+\sum_{i<j}\left[\eta_i\eta_j-rac{\epsilon^2}{\pi^2}
+\nabla\eta_i\cdot\nabla\eta_j\right]dA.
 \]
 
-The isolated equilibrium interface has energy \(\gamma\), profile \(\eta=[1+\tanh(x/w)]/2\), and \(\int(\eta')^2dx=1/(3w)\). The chemical potentials and constrained Allen–Cahn dynamics are
+The isolated equilibrium interface has energy \(\gamma\) and the compact profile
+\(\eta=[1+\sin(\pi x/\epsilon)]/2\) for \(|x|<\epsilon/2\), with pure
+phases outside that interval.  The capillary evolution is
 
 \[
-\mu_i=2W\eta_i(1-\eta_i)(1-2\eta_i)-\kappa_\eta\nabla^2\eta_i,
-\qquad
-\dot\eta_i=-L(\mu_i-\bar\mu)+L f_i,
+\dot\eta_i=\sum_{j\in\mathcal A(\mathbf x)}M_{ij}\Gamma_{ij}
+\left[\eta_j\nabla^2\eta_i-\eta_i\nabla^2\eta_j
+-\frac{\pi^2}{2\epsilon^2}(\eta_j-\eta_i)\right]+M_i f_i,
 \]
 
-where \(\bar\mu\) is the local active-phase mean, \(\sum_i f_i=0\), and \(L=M_0/(3w)\). This normalization yields the sharp-interface limit \(v_n=M_0\gamma\kappa\). A Euclidean simplex projection enforces bounds and filling after each explicit step. Periodic or zero-normal-gradient boundaries are supported.
+where \(\mathcal A(\mathbf x)\) contains phases present at the point plus phases
+present in a neighboring stencil cell.  This local support permits topological
+change without nucleating a grain remotely.  For the isotropic baseline
+\(M_{ij}=M_0\), \(\Gamma_{ij}=\gamma\), giving the sharp-interface limit
+\(v_n=M_0\gamma\kappa\).  A nine-point Laplacian, explicit stepping, clipping,
+and local renormalization follow the audited Qiu implementation.  Extinct phases
+are removed irreversibly.  Periodic or zero-normal-gradient boundaries are supported.
+At finite grid spacing, the obstacle coefficient is evaluated as
+\(2\sin^2(\pi\Delta x/(2\epsilon))/\Delta x^2\), the exact discrete-Laplacian
+eigenvalue of the sampled planar profile; it converges to
+\(\pi^2/(2\epsilon^2)\) and prevents artificial planar-interface relaxation.
 
 ## Disconnection modes and driving
 
@@ -99,6 +114,14 @@ An event records \(\Delta x_n=N_{disc}h_m\), \(\Delta\mathbf u_t=N_{disc}\mathbf
 \Delta\epsilon_v=\frac{Q_m\Omega_{pd}}{V_{RVE}}.
 \]
 
+When the signed hidden normal-displacement ledger reaches
+`pf_release_displacement`, one packet is moved into a persistent release state.
+That state adds a signed pairwise normal pressure on the owning GB domain until
+measured interface displacement consumes the packet. Sub-threshold residuals
+remain in the hidden ledger; both quantities are checkpointed. Thus an atomic
+step is never equated to a grid cell, and a correlated packet produces finite
+PF motion rather than only an event-log row.
+
 ## Excess volume and climb
 
 For GB measure change,
@@ -126,6 +149,17 @@ D=D_0e^{-Q_D/k_BT},\qquad \tau_{tr}=C_{tr}\ell_{tr}^2/D.
 
 The stochastic production representation is the explicit serial state chain nucleation \(\rightarrow\) exchange \(\rightarrow\) transport \(\rightarrow\) quota completion. Its fixed-rate mean is \(r_{nuc}^{-1}+r_{ex}^{-1}+r_{tr}^{-1}\), never \((r_{nuc}+r_{ex}+r_{tr})^{-1}\).
 
+## Numerical execution
+
+The intrinsic pairwise equation is evaluated by a compiled kernel over the
+compact one-cell support of each active phase. It uses the same nine-point
+stencil, local phase count, clipping, and filling-constraint normalization as
+the algebraic equations above; it changes allocation and loop execution only.
+Regression tests compare periodic and no-flux updates with nonuniform mobility
+and external driving against the vectorized equation at floating-point
+precision. The pairwise energy has an independently checked compiled
+evaluation with the same discrete forward gradients.
+
 ## Analysis
 
 In 2-D \(R_i=\sqrt{A_i/\pi}\), \(R_A=\sqrt{\langle A\rangle/\pi}\). Scaling fits scan/optimize \(n\) in
@@ -134,11 +168,16 @@ In 2-D \(R_i=\sqrt{A_i/\pi}\), \(R_A=\sqrt{\langle A\rangle/\pi}\). Scaling fits
 R^n-R_0^n=K_n(t-t_0)
 \]
 
-and report residual autocorrelation, local slopes, and realization bootstrap intervals. Activation fits use per-event units only:
+by minimizing residuals in the directly measured radius rather than comparing
+errors in differently transformed \(R^n\) variables. Reports include area-,
+mean-, median-, RMS-, and perimeter-derived radii, residual autocorrelation,
+local slopes, and realization-bootstrap intervals. A temperature series uses
+one jointly fitted \(n\), with a separate \(K_n(T)\) at each temperature, so
+all coefficients entering the Arrhenius fit have common units. Activation fits
+use per-event units only:
 
 \[
 K_n=K_0e^{-Q_{app}/k_BT},\qquad Q_{app}=-k_B\,d\ln K_n/d(1/T).
 \]
 
 The analytical comparator also implements intrinsic/drag \(dR/dt=K\Gamma(R)/R\), Class-B completion \(\Gamma=P(K,\Lambda(R))\), exchange crossover \(\Gamma=1/(1+R/R_x)\), and series/parallel activity composition.
-

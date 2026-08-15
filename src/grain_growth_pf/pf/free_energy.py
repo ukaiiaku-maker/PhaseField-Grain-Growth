@@ -3,22 +3,35 @@ from __future__ import annotations
 import numpy as np
 from numpy.typing import NDArray
 
+from .kernels import pairwise_free_energy
+
 Array = NDArray[np.float64]
 
 
 def laplacian(field: Array, dx: float, boundary: str = "periodic") -> Array:
-    """Second-order five-point Laplacian."""
+    """Nine-point, second-order isotropic Laplacian used by Qiu et al."""
     if boundary == "periodic":
-        return (
+        cardinal = (
             np.roll(field, 1, -2) + np.roll(field, -1, -2)
-            + np.roll(field, 1, -1) + np.roll(field, -1, -1) - 4.0 * field
-        ) / dx**2
+            + np.roll(field, 1, -1) + np.roll(field, -1, -1)
+        )
+        diagonal = (
+            np.roll(np.roll(field, 1, -2), 1, -1)
+            + np.roll(np.roll(field, 1, -2), -1, -1)
+            + np.roll(np.roll(field, -1, -2), 1, -1)
+            + np.roll(np.roll(field, -1, -2), -1, -1)
+        )
+        return (4.0 * cardinal + diagonal - 20.0 * field) / (6.0 * dx**2)
     padded = np.pad(field, ((0, 0), (1, 1), (1, 1)), mode="edge")
-    return (
+    cardinal = (
         padded[:, 2:, 1:-1] + padded[:, :-2, 1:-1]
         + padded[:, 1:-1, 2:] + padded[:, 1:-1, :-2]
-        - 4.0 * field
-    ) / dx**2
+    )
+    diagonal = (
+        padded[:, 2:, 2:] + padded[:, 2:, :-2]
+        + padded[:, :-2, 2:] + padded[:, :-2, :-2]
+    )
+    return (4.0 * cardinal + diagonal - 20.0 * field) / (6.0 * dx**2)
 
 
 def coefficients(gamma: float, width: float) -> tuple[float, float]:
@@ -41,12 +54,16 @@ def chemical_potential(eta: Array, gamma: float, width: float, dx: float,
 
 
 def free_energy(eta: Array, gamma: float, width: float, dx: float,
-                stored_energy: float = 0.0) -> float:
-    kappa, well = coefficients(gamma, width)
-    gx = (np.roll(eta, -1, axis=1) - eta) / dx
-    gy = (np.roll(eta, -1, axis=2) - eta) / dx
-    density = 0.5 * kappa * (gx * gx + gy * gy) + well * eta**2 * (1.0 - eta)**2
-    # The sum over phases counts both sides of an interface. The 1/2 matches
-    # the pair-interface convention used by the dynamics.
-    return float(0.5 * density.sum() * dx**2 + stored_energy)
+                stored_energy: float = 0.0,
+                boundary: str = "periodic") -> float:
+    """Pairwise double-obstacle interfacial energy.
 
+    The efficient pair sums are algebraically equivalent to summing over
+    ``i < j``.  The normalization gives an isolated equilibrium interface
+    energy ``gamma`` for the compact sinusoidal profile of total width
+    ``width``.
+    """
+    return float(
+        pairwise_free_energy(eta, gamma, width, dx, boundary == "periodic")
+        + stored_energy
+    )

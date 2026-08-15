@@ -4,6 +4,8 @@ import json
 import numpy as np
 
 from grain_growth_pf.config import ModelConfig, PFConfig
+from grain_growth_pf.disconnections.mode import ModeDriving
+from grain_growth_pf.pf.initial_conditions import prepare_initial_condition
 from grain_growth_pf.simulation import EventResolvedSimulation
 
 
@@ -19,10 +21,15 @@ def test_event_resolved_smoke_writes_reproducible_schema(tmp_path):
                     "attempt_frequency": 100.0, "event_domain_length": 100.0},
     )
     output = tmp_path / "run"
-    EventResolvedSimulation(config, output).run()
+    EventResolvedSimulation(config, output, code_sha="captured-launch-sha").run()
     manifest = json.loads((output / "manifest.json").read_text())
     assert manifest["status"] == "completed"
     assert manifest["config"]["seed"] == 17
+    assert manifest["git_sha"] == "captured-launch-sha"
+    assert {item["path"].split("/")[-1] for item in manifest["restart_artifacts"]} == {
+        "checkpoint.npz", "checkpoint.json"
+    }
+    assert all(len(item["sha256"]) == 64 for item in manifest["restart_artifacts"])
     with (output / "grain_tracks.csv").open() as handle:
         tracks = list(csv.DictReader(handle))
     with (output / "events.csv").open() as handle:
@@ -56,6 +63,52 @@ def test_qiu_full_field_backend_smoke(tmp_path):
     with (tmp_path / "qiu" / "events.csv").open() as handle:
         strain_sum = sum(float(row["shear_strain_increment"]) for row in csv.DictReader(handle))
     assert np.isclose(strain_sum, simulation.accumulated_shear_strain)
+
+
+def test_simulation_wires_quenched_barrier_distribution(tmp_path):
+    config = ModelConfig(
+        regime="barrier-disorder", seed=91,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={
+            "initial_grains": 5,
+            "barrier_distribution": "truncated_gaussian",
+            "barrier_mean_ev": 0.55,
+            "barrier_std_ev": 0.2,
+            "barrier_bounds_ev": [0.4, 0.7],
+        },
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "barrier-disorder")
+    barriers = np.asarray([mode.barrier_ev for mode in simulation.modes])
+    assert np.all((barriers >= 0.4) & (barriers <= 0.7))
+    assert np.std(barriers) > 0
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
+def test_accumulated_atomic_step_triggers_finite_pf_release(tmp_path):
+    config = ModelConfig(
+        regime="subgrid-release", seed=92,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01),
+        compatibility_model="explicit_modes", active_modules=("event_modes",),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={
+            "initial_grains": 5, "easy_beta": 0.0,
+            "pf_release_displacement": 0.25, "event_normal_pressure": 1.0,
+        },
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "subgrid-release")
+    segment = next(iter(simulation.snapshot.boundaries.values()))
+    domain = simulation.domains[segment.entity_id]
+    mode = next(mode for mode in simulation.modes if mode.step_height > 0)
+    simulation._record_event(
+        domain, segment, mode, 1.0, ModeDriving(), "test-release", 0.0
+    )
+    assert np.isclose(domain.normal_displacement_ledger, mode.step_height)
+    simulation._update_physics()
+    assert domain.normal_displacement_ledger == 0.0
+    assert np.isclose(domain.normal_release_remaining, 0.25)
+    assert np.any(simulation.driving_field != 0.0)
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
 
 
 def test_continuous_qiu_reference_converts_boundary_motion_to_eigenstrain(tmp_path):
@@ -213,6 +266,26 @@ def test_target_equilibration_compacts_phases_before_time_zero(tmp_path):
     resumed.run()
     assert resumed.solver.eta.shape[0] == 7
     assert len(resumed.orientations) == 7
+
+
+def test_cached_initial_condition_is_loaded_without_reaging(tmp_path):
+    pf = PFConfig(shape=(24, 24), interface_width=3, time_step=0.04,
+                  intrinsic_mobility=2.0, adaptive_stepping=True)
+    parameters = {"initial_grains": 8, "equilibrate_to_grains": 7,
+                  "equilibration_max_steps": 500}
+    state_path = prepare_initial_condition(pf, 1, parameters, tmp_path / "initial.npz", "test-sha")
+    config = ModelConfig(
+        regime="B0", seed=1, pf=pf, output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={**parameters, "initial_state_file": str(state_path)},
+    )
+    output = tmp_path / "cached-run"
+    simulation = EventResolvedSimulation(config, output)
+    assert simulation.solver.step_number == 0
+    assert simulation.solver.eta.shape[0] == 7
+    simulation.run()
+    manifest = json.loads((output / "manifest.json").read_text())
+    assert manifest["initial_condition_source"] == str(state_path)
+    assert manifest["grains_after_equilibration"] == 7
 
 
 def test_output_cadence_does_not_change_stochastic_trajectory(tmp_path):

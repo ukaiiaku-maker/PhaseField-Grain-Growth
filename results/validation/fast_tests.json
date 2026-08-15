@@ -1,12 +1,12 @@
 {
-  "date": "2026-08-14",
+  "date": "2026-08-15",
   "suite": "pytest -q",
-  "passed": 29,
+  "passed": 59,
   "failed": 0,
-  "duration_seconds": 15.71,
-  "python": "3.11.3",
-  "numpy": "2.4.6",
-  "scipy": "1.17.1",
+  "duration_seconds": 14.77,
+  "python": "3.13.5",
+  "numpy": "2.1.3",
+  "scipy": "1.15.3",
   "validation_scope": "component and fast PF validation",
   "production_validated": false
 }

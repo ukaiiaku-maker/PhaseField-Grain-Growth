@@ -7,7 +7,8 @@ import numpy as np
 from numpy.typing import NDArray
 
 from grain_growth_pf.config import PFConfig
-from .free_energy import chemical_potential, free_energy
+from .free_energy import free_energy
+from .kernels import pairwise_obstacle_step
 
 Array = NDArray[np.float64]
 DrivingCallback = Callable[[Array, float], Array]
@@ -37,11 +38,11 @@ class StepDiagnostics:
 
 
 class MultiphaseFieldSolver:
-    """Constrained Allen-Cahn multiphase-field reference solver.
+    """Pairwise constrained multiphase-field solver following Qiu et al.
 
-    The Lagrange multiplier is the local mean chemical potential, ensuring
-    sum(d eta_i/dt)=0 before the bound-preserving simplex projection. External
-    pair physics enters as a zero-sum phase driving field.
+    The capillary force is the published pairwise double-obstacle form.  Only
+    locally present phases and their one-stencil-cell halos participate, which
+    permits neighbor switching without remote phase nucleation.
     """
 
     def __init__(self, eta: Array, config: PFConfig,
@@ -76,31 +77,25 @@ class MultiphaseFieldSolver:
         cfg = self.config
         requested = cfg.time_step if dt is None else dt
         used_dt = min(requested, self.stable_dt()) if cfg.adaptive_stepping else requested
-        mu = chemical_potential(
-            self.eta, cfg.gb_energy, cfg.interface_width,
-            cfg.grid_spacing, cfg.boundary_conditions,
-        )
-        active = (self.eta > 1e-12) & self.active_phases[:, None, None]
-        count = np.maximum(active.sum(axis=0, keepdims=True), 1)
-        lagrange = (mu * active).sum(axis=0, keepdims=True) / count
-        # For the chosen equilibrium profile integral(|grad eta|^2) = 1/(3w).
-        # L=M_sharp/(3w) therefore gives v_n=M_sharp*gamma*kappa.
-        kinetic = cfg.intrinsic_mobility / (3.0 * cfg.interface_width)
-        rate = -kinetic * (mu - lagrange) * active
+        external = np.empty((1, 1, 1), dtype=float)
+        use_external = self.driving is not None
         if self.driving is not None:
-            ext = np.asarray(self.driving(self.eta, self.time), dtype=float)
-            if ext.shape != self.eta.shape:
+            external = np.asarray(self.driving(self.eta, self.time), dtype=float)
+            if external.shape != self.eta.shape:
                 raise ValueError("driving callback returned the wrong shape")
-            ext -= ext.mean(axis=0, keepdims=True)
-            rate += kinetic * ext
-        rate *= self.mobility_scale[None, :, :]
-        trial = self.eta + used_dt * rate
-        if float(trial.min()) >= 0.0 and float(trial.max()) <= 1.0:
-            # The constrained rate has zero local sum. Normalization removes
-            # only roundoff and avoids an O(N log N) simplex sort at every pixel.
-            self.eta = trial / trial.sum(axis=0, keepdims=True)
-        else:
-            self.eta = project_simplex(trial)
+        self.eta = pairwise_obstacle_step(
+            self.eta,
+            self.active_phases,
+            self.mobility_scale,
+            external,
+            use_external,
+            used_dt,
+            cfg.intrinsic_mobility,
+            cfg.gb_energy,
+            cfg.interface_width,
+            cfg.grid_spacing,
+            cfg.boundary_conditions == "periodic",
+        )
         extinct = self.active_phases & (
             np.max(self.eta, axis=(1, 2)) < cfg.grain_extinction_threshold
         )
@@ -112,7 +107,8 @@ class MultiphaseFieldSolver:
         self.step_number += 1
         return StepDiagnostics(
             self.time, self.step_number, used_dt,
-            free_energy(self.eta, cfg.gb_energy, cfg.interface_width, cfg.grid_spacing),
+            free_energy(self.eta, cfg.gb_energy, cfg.interface_width, cfg.grid_spacing,
+                        boundary=cfg.boundary_conditions),
             float(np.max(np.abs(self.eta.sum(axis=0) - 1.0))),
         )
 

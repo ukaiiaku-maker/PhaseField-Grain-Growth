@@ -11,6 +11,7 @@ import numpy as np
 from grain_growth_pf.climb.free_volume import FreeVolumeState
 from grain_growth_pf.climb.serial_cycle import SerialClimbCycle
 from grain_growth_pf.config import ModelConfig
+from grain_growth_pf.disconnections.barriers import assign_barriers
 from grain_growth_pf.disconnections.mode import DisconnectionMode, ModeDriving
 from grain_growth_pf.disconnections.mode import K_B_EV
 from grain_growth_pf.disconnections.shear_coupling import event_shear_increment, event_volumetric_increment
@@ -19,11 +20,12 @@ from grain_growth_pf.encounters.geometric_hazard import GeometricEncounterClock
 from grain_growth_pf.entities.gb_segment import GBSegment
 from grain_growth_pf.entities.tracker import EntityTracker
 from grain_growth_pf.io.event_ledger import EventLedger
-from grain_growth_pf.io.provenance import git_sha, write_manifest
+from grain_growth_pf.io.provenance import file_sha256, git_sha, write_manifest
 from grain_growth_pf.mechanics.local_shear_memory import LocalShearMemory
 from grain_growth_pf.mechanics.qiu_full_field import QiuFullField
 from grain_growth_pf.obstacles.particles import ParticleField
 from grain_growth_pf.pf.geometry import voronoi_polycrystal
+from grain_growth_pf.pf.kinematics import interface_kinematics
 from grain_growth_pf.pf.solver import MultiphaseFieldSolver
 from grain_growth_pf.stochastic.multihit import MultiHitProcess
 
@@ -51,6 +53,7 @@ class DomainPhysics:
     previous_area_j: float = 0.0
     previous_time: float = 0.0
     normal_displacement_ledger: float = 0.0
+    normal_release_remaining: float = 0.0
     event_counter: int = 0
 
     def __post_init__(self) -> None:
@@ -70,7 +73,8 @@ class DomainPhysics:
                            "hit_count": self.activation.hit_count},
             "shear": {"state": self.shear.state, "dissipated_energy": self.shear.dissipated_energy},
             "free_volume": {"required_total": self.free_volume.required_total,
-                            "accommodated_total": self.free_volume.accommodated_total},
+                            "accommodated_total": self.free_volume.accommodated_total,
+                            "dissipated_energy": self.free_volume.dissipated_energy},
             "climb": {"stage": self.climb.stage.value, "required_quota": self.climb.required_quota,
                       "completed_quota": self.climb.completed_quota,
                       "clock_hazard": self.climb.clock.cumulative_hazard,
@@ -81,6 +85,7 @@ class DomainPhysics:
             "previous_area_i": self.previous_area_i, "previous_area_j": self.previous_area_j,
             "previous_time": self.previous_time,
             "normal_displacement_ledger": self.normal_displacement_ledger,
+            "normal_release_remaining": self.normal_release_remaining,
             "event_counter": self.event_counter,
         }
 
@@ -96,6 +101,7 @@ class DomainPhysics:
         self.shear.dissipated_energy = state["shear"]["dissipated_energy"]
         self.free_volume.required_total = state["free_volume"]["required_total"]
         self.free_volume.accommodated_total = state["free_volume"]["accommodated_total"]
+        self.free_volume.dissipated_energy = state["free_volume"].get("dissipated_energy", 0.0)
         self.climb.stage = ClimbStage(state["climb"]["stage"])
         self.climb.required_quota = state["climb"]["required_quota"]
         self.climb.completed_quota = state["climb"]["completed_quota"]
@@ -109,6 +115,7 @@ class DomainPhysics:
         self.previous_area_j = state.get("previous_area_j", 0.0)
         self.previous_time = state.get("previous_time", 0.0)
         self.normal_displacement_ledger = state["normal_displacement_ledger"]
+        self.normal_release_remaining = state.get("normal_release_remaining", 0.0)
         self.event_counter = state["event_counter"]
 
 
@@ -122,16 +129,29 @@ def _child_rng(seed: int, entity_id: str) -> np.random.Generator:
 class EventResolvedSimulation:
     """Couples persistent entity clocks and compatibility state to the PF solver."""
 
-    def __init__(self, config: ModelConfig, output_dir: str | Path, resume: bool = False):
+    def __init__(self, config: ModelConfig, output_dir: str | Path, resume: bool = False,
+                 code_sha: str | None = None):
         self.config = config
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=resume)
-        self.sha = git_sha()
-        eta, seeds, orientations = voronoi_polycrystal(
-            config.pf.shape, int(config.parameters.get("initial_grains", 50)), config.seed,
-            width=config.pf.interface_width / 2,
-            periodic=config.pf.boundary_conditions == "periodic",
-        )
+        self.sha = code_sha or git_sha()
+        initial_state_path = config.parameters.get("initial_state_file")
+        used_cached_initial_condition = bool(initial_state_path)
+        if initial_state_path:
+            with np.load(initial_state_path) as state:
+                eta = state["eta"].copy()
+                seeds = state["seed_positions"].copy()
+                orientations = state["orientations"].copy()
+                active_original_ids = state["active_original_ids"].astype(int).copy()
+                equilibration_steps = int(state["equilibration_steps"])
+        else:
+            eta, seeds, orientations = voronoi_polycrystal(
+                config.pf.shape, int(config.parameters.get("initial_grains", 50)), config.seed,
+                width=config.pf.interface_width / 2,
+                periodic=config.pf.boundary_conditions == "periodic",
+            )
+            active_original_ids = np.arange(len(orientations))
+            equilibration_steps = int(config.parameters.get("equilibration_steps", 0))
         self.orientations = orientations
         effective_pf = config.pf
         if "arrhenius_intrinsic" in config.active_modules:
@@ -142,17 +162,16 @@ class EventResolvedSimulation:
             ))
         self.driving_field = np.zeros_like(eta)
         self.solver = MultiphaseFieldSolver(eta, effective_pf, driving=None)
-        equilibration_steps = int(config.parameters.get("equilibration_steps", 0))
-        active_original_ids = np.arange(len(orientations))
         if not resume:
             write_manifest(self.output_dir / "manifest.json", config.to_dict(), "equilibrating", {
                 "initial_seed_positions": seeds.tolist(),
                 "original_orientations": orientations.tolist(),
             }, code_sha=self.sha)
-            for _ in range(equilibration_steps):
-                self.solver.step()
+            if not used_cached_initial_condition:
+                for _ in range(equilibration_steps):
+                    self.solver.step()
             target_grains = config.parameters.get("equilibrate_to_grains")
-            if target_grains is not None:
+            if target_grains is not None and not used_cached_initial_condition:
                 target = int(target_grains)
                 maximum = int(config.parameters.get("equilibration_max_steps", 5000))
                 while np.count_nonzero(self.solver.active_phases) > target and equilibration_steps < maximum:
@@ -170,7 +189,7 @@ class EventResolvedSimulation:
                         f"pre-equilibration retained {np.count_nonzero(self.solver.active_phases)} "
                         f"grains after the configured maximum of {maximum} steps"
                     )
-            if bool(config.parameters.get("compact_after_equilibration", True)):
+            if bool(config.parameters.get("compact_after_equilibration", True)) and not used_cached_initial_condition:
                 active_original_ids = np.flatnonzero(self.solver.active_phases)
                 self.solver.eta = self.solver.eta[active_original_ids].copy()
                 self.solver.active_phases = np.ones(len(active_original_ids), dtype=bool)
@@ -197,7 +216,20 @@ class EventResolvedSimulation:
             b_power=float(config.parameters.get("b_power", 2.0)),
             attempt_frequency=float(config.parameters.get("attempt_frequency", 1e2)),
             seed=config.seed,
+            disorder_std_ev=float(config.parameters.get("mode_disorder_std_ev", 0.0)),
         )
+        barrier_distribution = config.parameters.get("barrier_distribution")
+        if barrier_distribution and barrier_distribution != "gb_character":
+            raw_bounds = config.parameters.get("barrier_bounds_ev")
+            bounds = tuple(map(float, raw_bounds)) if raw_bounds is not None else None
+            self.modes = assign_barriers(
+                self.modes,
+                str(barrier_distribution),
+                config.seed + 1771,
+                float(config.parameters.get("barrier_mean_ev", 0.5)),
+                float(config.parameters.get("barrier_std_ev", 0.1)),
+                bounds,
+            )
         self.full_field = QiuFullField(config.pf.shape) if config.mechanics_backend == "qiu_full_field" else None
         particle_modules = {"random_spatial_pinning", "particle_zener"}.intersection(config.active_modules)
         self.particles = ParticleField.random(
@@ -225,6 +257,8 @@ class EventResolvedSimulation:
         self.energy_records: list[dict[str, float]] = []
         self.accumulated_shear_strain = 0.0
         self.accumulated_volumetric_strain = 0.0
+        self.previous_entity_eta = self.solver.eta.copy()
+        self.previous_entity_time = self.solver.time
         if resume:
             self._load_checkpoint()
         else:
@@ -235,6 +269,7 @@ class EventResolvedSimulation:
                 "equilibration_steps_completed_before_time_zero": equilibration_steps,
                 "grains_after_equilibration": len(self.snapshot.grains),
                 "active_original_grain_ids": active_original_ids.tolist(),
+                "initial_condition_source": str(initial_state_path) if initial_state_path else "generated_in_run",
             }, code_sha=self.sha)
             self._write_tracks()
 
@@ -258,6 +293,17 @@ class EventResolvedSimulation:
     def _activation_rates(self, domain: DomainPhysics, segment: GBSegment) -> tuple[list[DisconnectionMode], np.ndarray, list[ModeDriving]]:
         capillary = self.config.pf.gb_energy * segment.curvature
         candidates = [m for m in self.modes if (m.family != "easy" if domain.blocked else True)]
+        if self.config.parameters.get("barrier_distribution") == "gb_character":
+            candidates = assign_barriers(
+                candidates,
+                "gb_character",
+                self.config.seed,
+                float(self.config.parameters.get("barrier_mean_ev", 0.5)),
+                misorientation=segment.misorientation,
+                character_coefficient_ev=float(
+                    self.config.parameters.get("barrier_character_coefficient_ev", 0.1)
+                ),
+            )
         if "mixed_shear_climb_event" in self.config.active_modules:
             candidates = [m for m in candidates if m.delta_s > 0 and m.delta_q > 0]
         normal = np.asarray(segment.normal, dtype=float)
@@ -464,6 +510,7 @@ class EventResolvedSimulation:
         cfg, modules = self.config, set(self.config.active_modules)
         mobility = np.ones(cfg.pf.shape)
         self.driving_field.fill(0.0)
+        entity_elapsed = self.solver.time - self.previous_entity_time
         current_ids = set(self.snapshot.boundaries)
         self.domains = {key: state for key, state in self.domains.items() if key in current_ids}
         for key, segment in self.snapshot.boundaries.items():
@@ -483,11 +530,39 @@ class EventResolvedSimulation:
             else:
                 normal_displacement = 0.0
                 segment.velocity = 0.0
+            if domain.normal_release_remaining * normal_displacement > 0.0:
+                consumed = min(
+                    abs(domain.normal_release_remaining), abs(normal_displacement)
+                )
+                domain.normal_release_remaining -= np.sign(
+                    domain.normal_release_remaining
+                ) * consumed
+                if abs(domain.normal_release_remaining) < 1e-12:
+                    domain.normal_release_remaining = 0.0
+            release_distance = float(
+                cfg.parameters.get("pf_release_displacement", cfg.pf.grid_spacing)
+            )
+            if release_distance <= 0:
+                raise ValueError("pf_release_displacement must be positive")
+            if (domain.normal_release_remaining == 0.0
+                    and abs(domain.normal_displacement_ledger) >= release_distance):
+                direction = np.sign(domain.normal_displacement_ledger)
+                domain.normal_release_remaining = direction * release_distance
+                domain.normal_displacement_ledger -= direction * release_distance
             domain.previous_area_i = grain_i.area
             domain.previous_area_j = grain_j.area
             domain.previous_time = self.solver.time
-            ri, rj = grain_i.equivalent_radius, grain_j.equivalent_radius
-            segment.curvature = 0.5 * (1.0 / max(rj, cfg.pf.grid_spacing) - 1.0 / max(ri, cfg.pf.grid_spacing))
+            measured_curvature, measured_velocity, measured_normal = interface_kinematics(
+                self.solver.eta[segment.grain_i],
+                self.previous_entity_eta[segment.grain_i],
+                segment.points,
+                entity_elapsed,
+                cfg.pf.grid_spacing,
+                periodic=cfg.pf.boundary_conditions == "periodic",
+                partner_phase=self.solver.eta[segment.grain_j],
+            )
+            segment.curvature = measured_curvature
+            segment.velocity = measured_velocity
             ci = np.asarray(self.snapshot.grains[segment.grain_i].centroid)
             cj = np.asarray(self.snapshot.grains[segment.grain_j].centroid)
             normal = cj - ci
@@ -495,6 +570,8 @@ class EventResolvedSimulation:
                 box = np.asarray(cfg.pf.shape, dtype=float)
                 normal -= np.round(normal / box) * box
             normal /= max(np.linalg.norm(normal), np.finfo(float).tiny)
+            if np.linalg.norm(measured_normal):
+                normal = np.asarray(measured_normal)
             segment.normal = tuple(normal)
             if "shear_memory" in modules or "shear_feedback" in modules:
                 beta = float(cfg.parameters.get("easy_beta", 0.35))
@@ -555,6 +632,10 @@ class EventResolvedSimulation:
             self._advance_climb(domain, segment, delta_length)
 
             pair_force = float(cfg.parameters.get("easy_beta", 0.35)) * self._boundary_resolved_shear(domain, segment)
+            if domain.normal_release_remaining:
+                pair_force += np.sign(domain.normal_release_remaining) * float(
+                    cfg.parameters.get("event_normal_pressure", 1.0)
+                )
             for yx in segment.points.astype(int):
                 y, x = yx % np.asarray(cfg.pf.shape)
                 if domain.blocked:
@@ -572,6 +653,8 @@ class EventResolvedSimulation:
         self.solver.set_mobility_scale(mobility)
         if self.full_field is not None:
             self.full_field.solve()
+        self.previous_entity_eta = self.solver.eta.copy()
+        self.previous_entity_time = self.solver.time
 
     def _write_tracks(self) -> None:
         for grain in self.snapshot.grains.values():
@@ -600,6 +683,7 @@ class EventResolvedSimulation:
             "eta": self.solver.eta, "mobility_scale": self.solver.mobility_scale,
             "driving_field": self.driving_field, "active_phases": self.solver.active_phases,
             "orientations": self.orientations,
+            "previous_entity_eta": self.previous_entity_eta,
         }
         if self.full_field is not None:
             arrays["eigenstrain"] = self.full_field.eigenstrain
@@ -611,6 +695,7 @@ class EventResolvedSimulation:
             "energy_records": self.energy_records,
             "accumulated_shear_strain": self.accumulated_shear_strain,
             "accumulated_volumetric_strain": self.accumulated_volumetric_strain,
+            "previous_entity_time": self.previous_entity_time,
         }
         (self.output_dir / "checkpoint.json").write_text(json.dumps(state, indent=2) + "\n")
 
@@ -623,10 +708,15 @@ class EventResolvedSimulation:
             if "orientations" in arrays:
                 self.orientations = arrays["orientations"].copy()
             self.driving_field = arrays["driving_field"].copy()
+            self.previous_entity_eta = (
+                arrays["previous_entity_eta"].copy()
+                if "previous_entity_eta" in arrays else arrays["eta"].copy()
+            )
             if self.full_field is not None and "eigenstrain" in arrays:
                 self.full_field.eigenstrain = arrays["eigenstrain"].copy()
         self.solver.time = float(state["time"])
         self.solver.step_number = int(state["step_number"])
+        self.previous_entity_time = float(state.get("previous_entity_time", self.solver.time))
         self.tracker = EntityTracker(
             self.orientations, self.config.pf.grid_spacing,
             float(self.config.parameters.get("event_domain_length", 8.0)),
@@ -659,8 +749,21 @@ class EventResolvedSimulation:
                 if update_entities:
                     self.snapshot = self.tracker.update(self.solver.labels)
                     self._update_physics()
-                stored = sum(d.shear.energy + d.free_volume.energy for d in self.domains.values())
-                self.energy_records.append({"time": diag.time, "interfacial": diag.interfacial_energy, "stored": stored})
+                stored_shear = sum(d.shear.energy for d in self.domains.values())
+                stored_free_volume = sum(d.free_volume.energy for d in self.domains.values())
+                dissipated_shear = sum(d.shear.dissipated_energy for d in self.domains.values())
+                dissipated_free_volume = sum(
+                    d.free_volume.dissipated_energy for d in self.domains.values()
+                )
+                self.energy_records.append({
+                    "time": diag.time,
+                    "interfacial": diag.interfacial_energy,
+                    "stored": stored_shear + stored_free_volume,
+                    "stored_shear": stored_shear,
+                    "stored_free_volume": stored_free_volume,
+                    "dissipated_shear": dissipated_shear,
+                    "dissipated_free_volume": dissipated_free_volume,
+                })
                 if self.solver.step_number % self.config.output_cadence == 0:
                     self._write_tracks()
                     self._save_checkpoint()
@@ -674,11 +777,21 @@ class EventResolvedSimulation:
             self.track_handle.close()
             self.boundary_handle.close()
             (self.output_dir / "energy.json").write_text(json.dumps(self.energy_records, indent=2) + "\n")
+            restart_artifacts = []
+            for name in ("checkpoint.npz", "checkpoint.json"):
+                artifact = self.output_dir / name
+                if artifact.exists():
+                    restart_artifacts.append({
+                        "path": str(artifact),
+                        "sha256": file_sha256(artifact),
+                        "size_bytes": artifact.stat().st_size,
+                    })
             write_manifest(self.output_dir / "manifest.json", self.config.to_dict(),
                            "failed" if failure else "completed", {
                                "failure": failure, "steps_completed": self.solver.step_number,
                                "final_grains": len(self.snapshot.grains),
                                "accumulated_shear_strain": self.accumulated_shear_strain,
                                "accumulated_volumetric_strain": self.accumulated_volumetric_strain,
+                               "restart_artifacts": restart_artifacts,
                            }, code_sha=self.sha)
         return self.output_dir

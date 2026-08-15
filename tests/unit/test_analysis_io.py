@@ -2,13 +2,23 @@ import csv
 import json
 
 import numpy as np
+import pandas as pd
 
 from grain_growth_pf.analysis.activation_energy import fit_activation_energy
 from grain_growth_pf.analysis.analytical_models import asymptotic_exponent, intrinsic_radius, poisson_activity, series_activity
-from grain_growth_pf.analysis.growth_law import fit_growth_law, scan_growth_exponent
+from grain_growth_pf.analysis.growth_law import (
+    fit_common_exponent,
+    fit_growth_law,
+    fit_growth_law_fixed_exponent,
+    scan_growth_exponent,
+)
+from grain_growth_pf.analysis.grain_tracks import ensemble_radius
+from grain_growth_pf.analysis.campaign import _fit_window
 from grain_growth_pf.disconnections.mode import K_B_EV
 from grain_growth_pf.io.event_ledger import EVENT_FIELDS, EventLedger
 from grain_growth_pf.io.provenance import write_manifest
+from grain_growth_pf.analysis.jerkiness import jerkiness_metrics
+from grain_growth_pf.analysis.plots import _local_exponent
 
 
 def test_growth_and_activation_recover_inputs():
@@ -24,11 +34,71 @@ def test_growth_and_activation_recover_inputs():
 
     profile = scan_growth_exponent(time, radius, np.linspace(1.0, 4.0, 301))
     assert abs(profile.exponents[np.argmin(profile.normalized_rmse)] - 3) < 0.02
+    fixed = fit_growth_law_fixed_exponent(time, radius, 3.0)
+    assert abs(fixed.coefficient - 0.7) < 1e-10
+    common = fit_common_exponent(
+        [time, time, time],
+        [(4**3 + coefficient * time) ** (1 / 3) for coefficient in (0.2, 0.7, 1.4)],
+    )
+    assert abs(common.exponent - 3.0) < 1e-7
+    assert np.allclose(common.coefficients, [0.2, 0.7, 1.4], rtol=1e-8)
     temps = np.array([700, 800, 900, 1050, 1200])
     q = 0.65
     coefficients = 3e5 * np.exp(-q / (K_B_EV * temps))
     activation = fit_activation_energy(temps, coefficients)
     assert abs(activation.activation_energy_ev - q) < 1e-10
+
+    local = _local_exponent(time, radius, half_window=20)
+    assert np.allclose(local[np.isfinite(local)], 3.0, atol=0.05)
+
+
+def test_ensemble_radius_reports_independent_size_measures():
+    tracks = pd.DataFrame({
+        "run_id": ["x", "x"], "time": [0.0, 0.0], "step": [0, 0],
+        "grain_id": [1, 2], "area": [np.pi, 9 * np.pi],
+        "radius": [1.0, 3.0], "perimeter": [2 * np.pi, 8 * np.pi],
+    })
+    row = ensemble_radius(tracks).iloc[0]
+    assert np.isclose(row["R_A"], np.sqrt(5.0))
+    assert np.isclose(row["R_mean"], 2.0)
+    assert np.isclose(row["R_median"], 2.0)
+    assert np.isclose(row["R_rms"], np.sqrt(5.0))
+    assert np.isclose(row["R_perimeter"], 2.5)
+
+    resumed = pd.concat([
+        tracks.assign(run_id="restart", time=1.0, step=1),
+        tracks.assign(run_id="original"),
+    ], ignore_index=True)
+    resumed_radius = ensemble_radius(resumed)
+    assert resumed_radius["time"].tolist() == [0.0, 1.0]
+    assert resumed_radius["grain_count"].tolist() == [2, 2]
+
+
+def test_topology_window_uses_broad_post_equilibration_interval():
+    shallow = np.linspace(200, 110, 91)
+    start, end, reason = _fit_window(shallow)
+    assert shallow[start] <= 190
+    assert end == len(shallow)
+    assert reason == "five_pct_loss_to_available_end"
+
+
+def test_jerkiness_reports_motion_concentration_and_stationarity():
+    metrics = jerkiness_metrics(
+        np.arange(6.0), np.array([0.0, 0.0, 0.0, 10.0, 10.0, 10.0]),
+        events=np.array([0, 0, 3, 0, 0]),
+    )
+    assert np.isclose(metrics["stationary_fraction"], 0.8)
+    assert np.isclose(metrics["motion_top_1pct"], 1.0)
+    assert np.isclose(metrics["motion_top_5pct"], 1.0)
+    assert np.isclose(metrics["motion_top_10pct"], 1.0)
+    assert metrics["Fano"] > 1.0
+
+    deep = np.linspace(200, 60, 141)
+    start, end, reason = _fit_window(deep)
+    assert deep[start] <= 190
+    assert deep[start - 1] > 190
+    assert end == len(deep)
+    assert reason == "five_pct_loss_to_available_end"
 
 
 def test_analytical_limits():

@@ -1,0 +1,20 @@
+{
+  "status": "failed",
+  "campaign": "results/campaigns/20260815T022859Z-7bab907109",
+  "launch_git_sha": "70b0bb1481ba730a9504f5f4c5465819210a26b5",
+  "regime": "B0",
+  "temperature": 900.0,
+  "realizations": 5,
+  "initial_mean_grain_count": 199.2,
+  "fit_end_mean_grain_count": 120.2,
+  "fit": {
+    "n": 1.0000000001269713,
+    "n_95pct": [1.0000000000001028, 1.4989800145965342],
+    "K": 0.8760913771523896,
+    "r_squared": 0.9981545334134925,
+    "residual_autocorrelation": 0.7417904764339206,
+    "at_search_bound": true
+  },
+  "reason": "The constrained independent-double-well solver produced an almost constant grain-loss-rate transient rather than conventional parabolic polycrystal coarsening. The result is excluded from mechanism and activation-energy inference.",
+  "corrective_action": "Replace the baseline with the published Qiu pairwise double-obstacle MPF equation, compact local phase support, and width-consistent initial interfaces; rerun all numerical and polycrystal gates before production."
+}

@@ -1,0 +1,20 @@
+{
+  "status": "failed_scientific_gate_preserved",
+  "git_sha": "946c36941b411e7a4f27da6d2e25f5862b0f1788-dirty",
+  "raw_run_directory": "results/runs/qiu-regressions-20260815T074607Z-946c3694",
+  "validation_passed": false,
+  "reason": "Local level-set kinematics correctly rejected the qualitative gate, but its one-cell normal-divergence curvature retained grid-scale and triple-junction noise. The curvature-only polycrystal correlation was 0.316 and its apparent reverse fraction was 0.483, so shear/control comparison is not interpretable.",
+  "four_grain": {
+    "control_correlation": 0.36611029822137003,
+    "shear_correlation": 0.3723401330587778,
+    "control_reverse_fraction": 0.2725958062183659,
+    "shear_reverse_fraction": 0.36984815618221256
+  },
+  "polycrystal": {
+    "control_correlation": 0.3162940532902739,
+    "shear_correlation": 0.3378559589306425,
+    "control_reverse_fraction": 0.48307201332038296,
+    "shear_reverse_fraction": 0.5012855256757696
+  },
+  "corrective_action": "Use a wider direct level-set curvature stencil and exclude non-binary/TJ pixels using the partner phase before rerunning."
+}

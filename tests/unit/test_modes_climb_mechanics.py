@@ -80,7 +80,9 @@ def test_free_volume_conservation_and_scaling():
     q1 = state.require_for_area_change(-10)
     q2 = state.require_for_area_change(-20)
     assert q2 == 2 * q1
+    energy_before = state.energy
     assert state.accommodate(q1 / 2) == q1 / 2
+    assert np.isclose(state.dissipated_energy, energy_before - state.energy)
     assert state.check_balance()
     zero = FreeVolumeState(0, 0.03, 1)
     assert zero.require_for_area_change(20) == 0

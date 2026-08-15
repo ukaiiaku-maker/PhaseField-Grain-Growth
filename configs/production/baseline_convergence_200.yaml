@@ -1,0 +1,32 @@
+prepare_initial_conditions: true
+base:
+  regime: B0
+  seed: 5101
+  pf:
+    shape: [256, 256]
+    grid_spacing: 1.0
+    interface_width: 4.0
+    time_step: 0.04
+    gb_energy: 1.0
+    intrinsic_mobility: 4.0
+    boundary_conditions: periodic
+    temperature: 900.0
+    adaptive_stepping: true
+    grain_extinction_threshold: 0.5
+  mechanics_backend: none
+  compatibility_model: off
+  active_modules: []
+  output_cadence: 2
+  max_steps: 3500
+  termination_grains: 90
+  parameters:
+    initial_grains: 400
+    equilibration_steps: 20
+    equilibrate_to_grains: 300
+    equilibration_max_steps: 900
+    compact_after_equilibration: true
+    event_domain_length: 12.0
+regimes:
+  B0: {}
+temperatures: [900.0]
+seeds: [5101]

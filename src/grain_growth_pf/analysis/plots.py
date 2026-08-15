@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from grain_growth_pf.analysis.campaign import analyze_campaign
+from grain_growth_pf.analysis.campaign import _fit_window, analyze_campaign
 from grain_growth_pf.analysis.grain_tracks import ensemble_radius, load_tracks
 
 
@@ -31,6 +31,7 @@ def _aligned_ensemble(paths: list[Path]) -> pd.DataFrame:
         )
         aligned = data if aligned is None else aligned.merge(data, on="time", how="inner")
     assert aligned is not None
+    aligned = aligned.sort_values("time").reset_index(drop=True)
     r_columns = [column for column in aligned if column.startswith("R_")]
     n_columns = [column for column in aligned if column.startswith("N_")]
     aligned["R_mean"] = aligned[r_columns].mean(axis=1)
@@ -39,19 +40,36 @@ def _aligned_ensemble(paths: list[Path]) -> pd.DataFrame:
     return aligned
 
 
-def _local_exponent(time: np.ndarray, radius: np.ndarray, half_window: int = 5) -> np.ndarray:
-    """Return the best local linearizing power on a bounded profile grid."""
+def _local_exponent(time: np.ndarray, radius: np.ndarray,
+                    half_window: int | None = None) -> np.ndarray:
+    """Return a coarse local exponent without fitting dense-output jitter."""
     result = np.full(len(time), np.nan)
+    half_window = half_window or max(10, len(time) // 10)
+    if 2 * half_window + 1 > len(time):
+        return result
     exponents = np.linspace(1.0, 6.0, 101)
-    for center in range(half_window, len(time) - half_window):
+    centers = np.unique(np.linspace(
+        half_window, len(time) - half_window - 1,
+        min(61, len(time) - 2 * half_window), dtype=int,
+    ))
+    estimates = []
+    for center in centers:
         selection = slice(center - half_window, center + half_window + 1)
         local_time, local_radius = time[selection], radius[selection]
         errors = []
         for exponent in exponents:
             transformed = local_radius**exponent
-            fitted = np.polyval(np.polyfit(local_time, transformed, 1), local_time)
-            errors.append(np.sqrt(np.mean((transformed - fitted) ** 2)) / max(np.std(transformed), 1e-15))
-        result[center] = exponents[int(np.argmin(errors))]
+            fitted = np.maximum(
+                np.polyval(np.polyfit(local_time, transformed, 1), local_time), 1e-30
+            ) ** (1.0 / exponent)
+            errors.append(
+                np.sqrt(np.mean((local_radius - fitted) ** 2))
+                / max(np.std(local_radius), 1e-15)
+            )
+        estimates.append(exponents[int(np.argmin(errors))])
+    result[centers[0]:centers[-1] + 1] = np.interp(
+        np.arange(centers[0], centers[-1] + 1), centers, estimates
+    )
     return result
 
 
@@ -69,10 +87,7 @@ def _kinetics_figure(paths: list[Path], row: pd.Series, target: Path) -> None:
         axis.set_ylabel(label)
     transformed = radius**exponent
     axes[1, 0].plot(time, transformed, color="C1", label=f"n={exponent:.2f}")
-    start_hits = np.flatnonzero(data["N_mean"].to_numpy() <= 0.95 * data["N_mean"].iloc[0])
-    start = int(start_hits[0]) if len(start_hits) else max(1, int(0.1 * len(time)))
-    end_hits = np.flatnonzero(data["N_mean"].to_numpy() < max(20, 0.60 * data["N_mean"].iloc[0]))
-    end = int(end_hits[0]) if len(end_hits) else len(time)
+    start, end, _ = _fit_window(data["N_mean"].to_numpy(float))
     fit_time, fit_values = time[start:end], transformed[start:end]
     coefficient, intercept = np.polyfit(fit_time, fit_values, 1)
     axes[1, 0].plot(fit_time, coefficient * fit_time + intercept, "k--", lw=1, label="fit window")
@@ -160,18 +175,19 @@ def _event_figure(paths: list[Path], target: Path) -> None:
     axes[0].set(xlabel="waiting time", ylabel="density")
     axes[1].hist(sizes[np.isfinite(sizes)], bins=25, color="C1", alpha=0.8)
     axes[1].set(xlabel="packet size", ylabel="count")
-    ordered = np.sort(waits[waits > 0])
+    ordered = np.sort(sizes[np.isfinite(sizes) & (sizes > 0)])
     if len(ordered):
         axes[2].loglog(ordered, 1.0 - np.arange(len(ordered)) / len(ordered), color="C2")
-    axes[2].set(xlabel="waiting time", ylabel="CCDF")
+    axes[2].set(xlabel="event packet/burst size", ylabel="CCDF")
     _save(fig, target)
 
 
-def plot_campaign(campaign_dir: str | Path, output_dir: str | Path | None = None) -> Path:
+def plot_campaign(campaign_dir: str | Path, output_dir: str | Path | None = None,
+                  summary_path: str | Path | None = None) -> Path:
     campaign_dir = Path(campaign_dir)
     output = Path(output_dir) if output_dir else campaign_dir / "plots"
-    summary_path = campaign_dir / "mechanism_summary.csv"
-    summary = pd.read_csv(summary_path) if summary_path.exists() else analyze_campaign(campaign_dir)
+    summary_file = Path(summary_path) if summary_path else campaign_dir / "mechanism_summary.csv"
+    summary = pd.read_csv(summary_file) if summary_file.exists() else analyze_campaign(campaign_dir)
     campaign = json.loads((campaign_dir / "campaign_manifest.json").read_text())
     grouped: dict[tuple[str, float], list[Path]] = {}
     for raw in campaign["runs"]:

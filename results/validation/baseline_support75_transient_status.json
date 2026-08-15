@@ -1,0 +1,14 @@
+{
+  "campaign": "results/campaigns/20260815T020615Z-3a0d3f9086",
+  "git_sha": "1dde65274a0b6e8657cfb71f8fbebb960ec78833",
+  "runs_completed": 5,
+  "grains_at_time_zero_mean": 74.6,
+  "scientific_scaling_valid": false,
+  "fit_exponent": 1.000000092094951,
+  "fit_r_squared": 0.9982846246619317,
+  "residual_autocorrelation": 0.5902266394886235,
+  "bootstrap_n_95pct": [1.0000000000008011, 3.812507565985286],
+  "diagnosis": "The topology fix restores monotone coarsening, but the 75-to-45 grain fit window is still the rapid neighbor-switch recovery transient and selects the lower exponent bound. This run validates removal of artificial arrest but is rejected for steady scaling.",
+  "corrective_action": "Continue pre-coarsening to exactly 50 grains before resetting time and fit the 50-to-30 pre-finite-size interval.",
+  "preserved_summary": "results/production_summaries/baseline_support75_transient.csv"
+}

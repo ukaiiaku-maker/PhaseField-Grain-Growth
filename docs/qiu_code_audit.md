@@ -23,3 +23,14 @@ Audited artifact: Zenodo 15120372 `PF_Codes.zip`, exact local MD5 `6cd49ca72eba8
 
 The original drivers depend on seed data not included in `PF_Codes.zip` and on legacy `numba`/`sparse` combinations. Immutable regression inputs are therefore the published scripts plus recorded hashes. Reproductions use independently specified small geometries with the audited equations. Curvature-only, idealized shear, and polycrystal shear cases are written to `results/validation/qiu_*`; they are not considered passed until their manifests contain quantitative observables and `validation_passed=true`.
 
+The independently implemented regression at commit
+`e6b0d8ea52a3d025d49c876fc60359f542c29024` passes. Its matched geometries
+are equilibrated before physical time. In the 24-grain polycrystal, the
+full-field shear feedback lowers the all-sample velocity-curvature correlation
+from 0.436 to 0.388 and increases reverse-curvature motion among the upper
+quartile of resolved curvature and speed from 12.7% to 30.8%. The four-grain
+case independently increases active reverse motion from 3.09% to 11.38%.
+Finite eigenstrain, nonlocal stress, feedback, and continuous phase-field
+divergence are recorded in `results/validation/qiu_regression_benchmarks.json`;
+the immutable dense runs are listed there. Two rejected proxy/metric attempts
+remain beside it as failure records.

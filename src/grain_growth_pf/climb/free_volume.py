@@ -10,6 +10,7 @@ class FreeVolumeState:
     stiffness: float
     required_total: float = 0.0
     accommodated_total: float = 0.0
+    dissipated_energy: float = 0.0
 
     @property
     def deficit(self) -> float:
@@ -31,10 +32,11 @@ class FreeVolumeState:
         return quota
 
     def accommodate(self, quota: float) -> float:
+        before = self.energy
         accepted = min(max(quota, 0.0), max(self.deficit, 0.0))
         self.accommodated_total += accepted
+        self.dissipated_energy += max(0.0, before - self.energy)
         return accepted
 
     def check_balance(self, tolerance: float = 1e-12) -> bool:
         return abs(self.required_total - self.accommodated_total - self.deficit) <= tolerance
-

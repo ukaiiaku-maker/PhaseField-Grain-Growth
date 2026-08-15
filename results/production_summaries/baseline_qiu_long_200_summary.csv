@@ -1,0 +1,2 @@
+regime,temperature,n,n_ci_low,n_ci_high,K,K_ci,Q_app,Q_app_ci,jerkiness_CV,Fano,burstiness,reverse_motion_fraction,velocity_curvature_R2,pinned_fraction,number_of_events,number_of_realizations,Git_SHA
+B0,900.0,1.0000000000120581,1.0000000000000144,1.4499080503334825,0.055049743169953994,0.0024819535806600984,,,1.642242694465277,,-0.1080818985965587,0.2857139752286065,0.4710611050892418,0.0,0,5,94b069fe244366b11fda4e52c04da236a0d2baf7

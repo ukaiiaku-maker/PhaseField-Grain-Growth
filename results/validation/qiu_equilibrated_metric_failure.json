@@ -1,0 +1,18 @@
+{
+  "status": "failed_metric_definition_preserved",
+  "git_sha": "d0873b6d957c3996735d9cc8eeb43ad0e27d8c54",
+  "raw_run_directory": "results/runs/qiu-regressions-20260815T075317Z-d0873b6d",
+  "validation_passed": false,
+  "reason": "Equilibration produced the expected direction of shear effects, but an all-nonzero reverse-motion fraction counted near-zero grid noise and a label-only morphology check missed subpixel phase-field divergence.",
+  "polycrystal_all_samples": {
+    "control_correlation": 0.4357842905413253,
+    "shear_correlation": 0.38771699694508643,
+    "control_reverse_fraction": 0.42800586510263927,
+    "shear_reverse_fraction": 0.44544117647058823
+  },
+  "polycrystal_top_quartile_active_motion": {
+    "control_reverse_fraction": 0.1269968051118211,
+    "shear_reverse_fraction": 0.30849056603773584
+  },
+  "corrective_action": "Report all-sample correlation, classify reverse motion only above independently computed upper-quartile curvature and speed thresholds, and measure continuous phase-field as well as label divergence."
+}
