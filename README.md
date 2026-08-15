@@ -35,6 +35,9 @@ PYTHONPATH=src python scripts/analyze_campaign.py results/campaigns/<campaign>
 PYTHONPATH=src python scripts/plot_campaign.py results/campaigns/<campaign> \
   --output results/plots/<campaign> \
   --summary results/production_summaries/<campaign>.csv
+PYTHONPATH=src python scripts/pareto_campaign.py \
+  results/production_summaries/<jerkiness-summary>.csv \
+  --output results/production_summaries/<jerkiness-pareto>.csv
 ```
 
 Completed runs can be extended without modifying their source trajectories:
