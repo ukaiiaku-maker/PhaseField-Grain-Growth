@@ -200,6 +200,32 @@ def test_packet_reset_cannot_accumulate_hits_across_renewal_windows(tmp_path):
     simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
 
 
+def test_packet_release_stops_window_at_completion_time(tmp_path):
+    config = ModelConfig(
+        regime="packet-stop", seed=197,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01),
+        active_modules=("multihit_packet_reset",),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={"initial_grains": 5, "required_hits": 1,
+                    "packet_window_time": 1.0},
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "packet-stop")
+    segment = next(iter(simulation.snapshot.boundaries.values()))
+    domain = simulation.domains[segment.entity_id]
+    domain.activation.clock.cumulative_hazard = 0.0
+    domain.activation.clock.threshold = 0.25
+    domain.activation.clock.last_rate = None
+    completions, hits = simulation._advance_activation(
+        domain, rate=10.0, dt=1.0, start_time=4.0,
+        stop_after_completion=True,
+    )
+    assert len(completions) == len(hits) == 1
+    assert np.isclose(completions[0].time, 4.025)
+    assert np.isclose(domain.packet_window_elapsed, 0.025)
+    assert domain.activation.clock.cumulative_hazard == 0.25
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
 def test_accumulated_atomic_step_triggers_finite_pf_release(tmp_path):
     config = ModelConfig(
         regime="subgrid-release", seed=92,

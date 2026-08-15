@@ -31,7 +31,8 @@ class CumulativeHazardClock:
             self.threshold = exponential_threshold(self.rng)
 
     def advance(self, rate: float, dt: float, time: float,
-                previous_rate: float | None = None) -> list[HazardEvent]:
+                previous_rate: float | None = None,
+                maximum_events: int | None = None) -> list[HazardEvent]:
         """Integrate a piecewise-linear rate and return all first passages.
 
         The event time is interpolated in cumulative-hazard space. Carrying an
@@ -40,6 +41,8 @@ class CumulativeHazardClock:
         """
         if rate < 0 or dt < 0 or not np.isfinite(rate):
             raise ValueError("rate must be finite/nonnegative and dt nonnegative")
+        if maximum_events is not None and maximum_events < 1:
+            raise ValueError("maximum_events must be positive when specified")
         r0 = rate if previous_rate is None and self.last_rate is None else (
             self.last_rate if previous_rate is None else previous_rate
         )
@@ -58,6 +61,14 @@ class CumulativeHazardClock:
             start_h = float(self.threshold)
             self.threshold = start_h + exponential_threshold(self.rng)
             elapsed_fraction = fraction
+            if maximum_events is not None and len(events) >= maximum_events:
+                # The caller changed physical state at this passage. Do not
+                # integrate the clock through the now-inapplicable remainder
+                # of the PF step.
+                events[-1].overshoot = 0.0
+                self.cumulative_hazard = start_h
+                self.last_rate = float(rate)
+                return events
         self.cumulative_hazard = end_h
         self.last_rate = float(rate)
         return events
@@ -88,4 +99,3 @@ class ParallelHazardClock:
         for event in base:
             event.channel = int(self.rng.choice(len(rates_array), p=probabilities))
         return base
-

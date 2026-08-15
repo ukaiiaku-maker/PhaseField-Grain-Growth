@@ -303,10 +303,13 @@ class EventResolvedSimulation:
         domain.packet_window_elapsed = 0.0
 
     def _advance_activation(self, domain: DomainPhysics, rate: float, dt: float,
-                            start_time: float) -> tuple[list[CompletionEvent], list[tuple[HazardEvent, int, bool]]]:
+                            start_time: float, stop_after_completion: bool = False,
+                            ) -> tuple[list[CompletionEvent], list[tuple[HazardEvent, int, bool]]]:
         """Advance an activation clock with explicit finite packet renewal windows."""
         if domain.activation.interpretation != "packet_reset":
-            completions = domain.activation.advance(rate, dt, start_time)
+            completions = domain.activation.advance(
+                rate, dt, start_time, stop_after_completion
+            )
             hits = list(zip(domain.activation.last_hit_events,
                             domain.activation.last_hit_counts,
                             domain.activation.last_hit_completions))
@@ -326,14 +329,22 @@ class EventResolvedSimulation:
                 domain.packet_window_elapsed = 0.0
                 available = window_time
             span = min(remaining, available)
-            found = domain.activation.advance(rate, span, current_time)
+            found = domain.activation.advance(
+                rate, span, current_time, stop_after_completion
+            )
             completions.extend(found)
             hits.extend(zip(domain.activation.last_hit_events,
                             domain.activation.last_hit_counts,
                             domain.activation.last_hit_completions))
-            domain.packet_window_elapsed += span
+            consumed = (
+                max(0.0, found[-1].time - current_time)
+                if found and stop_after_completion else span
+            )
+            domain.packet_window_elapsed += consumed
             current_time += span
             remaining -= span
+            if found and stop_after_completion:
+                return completions, hits
             if found:
                 domain.packet_window_elapsed = max(0.0, current_time - found[-1].time)
             elif domain.packet_window_elapsed >= window_time - tolerance:
@@ -618,6 +629,7 @@ class EventResolvedSimulation:
             completions, hits = self._advance_activation(
                 domain, rate, self.config.pf.time_step,
                 self.solver.time - self.config.pf.time_step,
+                stop_after_completion=True,
             )
             self._record_activation_hits(domain, rate, hits, segment=segment)
             complete = bool(completions)
@@ -662,6 +674,7 @@ class EventResolvedSimulation:
                 completions, hits = self._advance_activation(
                     domain, rate, self.config.pf.time_step,
                     self.solver.time - self.config.pf.time_step,
+                    stop_after_completion=True,
                 )
                 self._record_activation_hits(
                     domain, rate, hits,
@@ -802,6 +815,7 @@ class EventResolvedSimulation:
                 completions, hits = self._advance_activation(
                     domain, total_rate, cfg.pf.time_step,
                     self.solver.time - cfg.pf.time_step,
+                    stop_after_completion=True,
                 )
                 self._record_activation_hits(domain, total_rate, hits, segment=segment)
                 if completions:

@@ -13,7 +13,8 @@ class EntityPin:
         self.release = MultiHitProcess(required_hits, rng, interpretation)
 
     def advance(self, rate: float, dt: float, time: float) -> bool:
-        if self.pinned and self.release.advance(rate, dt, time):
+        if self.pinned and self.release.advance(
+            rate, dt, time, stop_after_completion=True
+        ):
             self.pinned = False
         return not self.pinned
-

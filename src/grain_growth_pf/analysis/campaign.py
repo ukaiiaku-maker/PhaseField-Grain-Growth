@@ -620,9 +620,16 @@ def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
     grouped: dict[tuple[str, float], list[Path]] = {}
     for raw_path in manifest["runs"]:
         path = Path(raw_path)
-        run_manifest = json.loads((path / "manifest.json").read_text())
+        run_manifest_path = path / "manifest.json"
+        if not run_manifest_path.exists():
+            if require_completed:
+                raise ValueError(f"run has not started: {path}")
+            continue
+        run_manifest = json.loads(run_manifest_path.read_text())
         if require_completed and run_manifest.get("status") != "completed":
             raise ValueError(f"run is not complete: {path}")
+        if run_manifest.get("status") != "completed":
+            continue
         config = run_manifest["config"]
         key = (config["regime"], float(config["pf"]["temperature"]))
         grouped.setdefault(key, []).append(path)

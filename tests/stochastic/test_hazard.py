@@ -65,6 +65,43 @@ def test_packet_and_persistent_windows_have_distinct_memory():
     assert packet.hit_count == 0
 
 
+def test_multihit_can_stop_exactly_when_physical_state_changes():
+    process = MultiHitProcess(1, np.random.default_rng(101))
+    process.clock.cumulative_hazard = 0.0
+    process.clock.threshold = 0.25
+    process.clock.last_rate = None
+    completions = process.advance(
+        rate=10.0, dt=1.0, time=2.0, stop_after_completion=True
+    )
+    assert len(completions) == 1
+    assert len(process.last_hit_events) == 1
+    assert np.isclose(completions[0].time, 2.025)
+    assert process.last_hit_events[0].overshoot == 0.0
+    assert process.clock.cumulative_hazard == 0.25
+
+    process = MultiHitProcess(3, np.random.default_rng(102))
+    process.hit_count = 2
+    process.clock.cumulative_hazard = 0.0
+    process.clock.threshold = 0.5
+    completions = process.advance(
+        rate=20.0, dt=1.0, time=0.0, stop_after_completion=True
+    )
+    assert len(completions) == 1
+    assert len(process.last_hit_events) == 1
+    assert process.last_hit_counts == [3]
+    assert process.last_hit_completions == [True]
+
+
+def test_continuous_multihit_retains_all_same_step_passages():
+    process = MultiHitProcess(1, np.random.default_rng(103))
+    process.clock.cumulative_hazard = 0.0
+    process.clock.threshold = 0.1
+    completions = process.advance(rate=100.0, dt=1.0, time=0.0)
+    assert len(completions) > 1
+    assert len(completions) == len(process.last_hit_events)
+    assert process.clock.cumulative_hazard == 100.0
+
+
 def test_time_dependent_linear_hazard():
     rng = np.random.default_rng(88)
     a, dt = 0.7, 0.005

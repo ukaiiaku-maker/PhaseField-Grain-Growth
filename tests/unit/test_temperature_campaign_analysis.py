@@ -56,3 +56,11 @@ def test_temperature_campaign_uses_one_common_exponent(tmp_path):
     }))
     with pytest.raises(ValueError, match="campaign is not complete"):
         analyze_campaign(campaign, bootstrap_samples=1)
+    diagnostic_runs = run_paths + [str(campaign / "not-started")]
+    (campaign / "campaign_manifest.json").write_text(json.dumps({
+        "runs": diagnostic_runs, "status": "running",
+    }))
+    diagnostic = analyze_campaign(
+        campaign, bootstrap_samples=1, require_completed=False
+    )
+    assert len(diagnostic) == len(temperatures)

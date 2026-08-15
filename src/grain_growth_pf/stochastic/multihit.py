@@ -42,9 +42,15 @@ class MultiHitProcess:
             self.hit_count = 0
         self.clock.reset()
 
-    def advance(self, rate: float, dt: float, time: float) -> list[CompletionEvent]:
+    def advance(self, rate: float, dt: float, time: float,
+                stop_after_completion: bool = False) -> list[CompletionEvent]:
         completions: list[CompletionEvent] = []
-        self.last_hit_events = self.clock.advance(rate, dt, time)
+        maximum_events = (
+            self.required_hits - self.hit_count if stop_after_completion else None
+        )
+        self.last_hit_events = self.clock.advance(
+            rate, dt, time, maximum_events=maximum_events
+        )
         self.last_hit_counts = []
         self.last_hit_completions = []
         for event in self.last_hit_events:
@@ -55,6 +61,8 @@ class MultiHitProcess:
             if completed:
                 completions.append(CompletionEvent(event.event_time, self.hit_count))
                 self.hit_count = 0
+                if stop_after_completion:
+                    break
         return completions
 
     def close_window(self) -> bool:
