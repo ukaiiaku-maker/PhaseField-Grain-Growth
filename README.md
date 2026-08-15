@@ -31,6 +31,10 @@ PYTHONPATH=src python scripts/run_qiu_regressions.py
 ```bash
 PYTHONPATH=src python scripts/run_campaign.py \
   configs/production/mechanism_scaling_200.yaml --processes 10
+PYTHONPATH=src python scripts/run_campaign.py \
+  configs/production/temperature_selected_200.yaml --processes 10
+PYTHONPATH=src python scripts/run_campaign.py \
+  configs/production/temperature_fully_physical_200.yaml --processes 10
 PYTHONPATH=src python scripts/analyze_campaign.py results/campaigns/<campaign>
 PYTHONPATH=src python scripts/plot_campaign.py results/campaigns/<campaign> \
   --output results/plots/<campaign> \
@@ -39,6 +43,11 @@ PYTHONPATH=src python scripts/pareto_campaign.py \
   results/production_summaries/<jerkiness-summary>.csv \
   --output results/production_summaries/<jerkiness-pareto>.csv
 ```
+
+The selected-temperature command is the mechanism-isolation experiment:
+intrinsic mobility is temperature-independent except in the B1 control. The
+fully physical command lets the selected barriers act together with a 0.45 eV
+Arrhenius easy-mode mobility normalized to the validated 900 K baseline.
 
 Completed runs can be extended without modifying their source trajectories:
 

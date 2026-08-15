@@ -13,7 +13,7 @@ This file is generated/updated by the validation campaign. A production label is
 | Qiu mechanics | quantitative regression passed | `results/validation/qiu_regression_benchmarks.json` |
 | Curvature-only production scaling | quantitative validation passed | `results/production_summaries/baseline_qiu_extended_20_summary.csv` |
 | Mechanism production scaling | authorized; campaign pending | `configs/production/mechanism_scaling_200.yaml` |
-| Activation campaign | blocked until rate-controlling mechanism fits complete | `configs/production/temperature_selected_200.yaml` |
+| Activation campaign | blocked until rate-controlling mechanism fits complete | mechanism-isolation and fully-physical configs in `configs/production/` |
 
 The current fast suite passes **59 tests in 14.77 s** on Python 3.13.5, NumPy 2.1.3, and SciPy 1.15.3. A 33-regime, three-step matrix completed only as a wiring smoke test; its near-zero fitted coefficients are deliberately not scientific scaling results. Component and baseline validation do not imply that the mechanism or temperature campaigns have completed.
 

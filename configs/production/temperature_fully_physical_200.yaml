@@ -1,0 +1,93 @@
+prepare_initial_conditions: true
+temperatures: [800.0, 900.0, 1000.0, 1100.0]
+seeds: [5101, 5102, 5103, 5104, 5105]
+base:
+  regime: FP-G2
+  seed: 5101
+  pf:
+    shape: [192, 192]
+    grid_spacing: 1.0
+    interface_width: 4.0
+    time_step: 0.04
+    gb_energy: 1.0
+    # Prefactor chosen so M(T=900 K) is approximately the validated value 4.
+    intrinsic_mobility: 1325.0
+    boundary_conditions: periodic
+    temperature: 900.0
+    adaptive_stepping: true
+    grain_extinction_threshold: 0.5
+  mechanics_backend: none
+  compatibility_model: off
+  active_modules: []
+  output_cadence: 2
+  max_steps: 3500
+  termination_grains: 60
+  parameters:
+    initial_grains: 267
+    equilibration_steps: 20
+    equilibrate_to_grains: 200
+    equilibration_max_steps: 550
+    compact_after_equilibration: true
+    intrinsic_barrier_ev: 0.45
+    event_domain_length: 12.0
+    encounter_density: 0.20
+    barrier_core_ev: 0.25
+    b_coefficient_ev: 0.02
+    h_coefficient_ev: 0.02
+    attempt_frequency: 10.0
+    packet_size: 2.0
+    pinned_mobility_fraction: 0.0
+    shear_stiffness: 0.20
+    shear_trigger: 0.25
+    easy_beta: 0.35
+    excess_volume_per_area: 0.01
+    point_defect_formation_volume: 0.02
+    free_volume_stiffness: 0.05
+    climb_trigger_quota: 0.25
+    climb_release_quota: 1.0
+    nucleation_prefactor: 1000.0
+    exchange_prefactor: 1000.0
+    transport_prefactor: 1000.0
+    nucleation_barrier_ev: 0.45
+    exchange_barrier_ev: 0.55
+    transport_barrier_ev: 0.65
+    particle_count: 40
+    particle_radius: 1.2
+    tj_barrier_ev: 0.55
+    tj_attempt_frequency: 1000.0
+regimes:
+  FP-G2:
+    modules: [arrhenius_intrinsic, gb_compatibility, multihit_persistent]
+    compatibility_model: geometric_surrogate
+  FP-T2:
+    modules: [arrhenius_intrinsic, tj_compatibility, multihit_persistent]
+    compatibility_model: geometric_surrogate
+  FP-S2:
+    modules: [arrhenius_intrinsic, shear_memory, single_hit_poisson]
+    compatibility_model: geometric_surrogate
+    mechanics_backend: local_memory
+  FP-C2:
+    modules: [arrhenius_intrinsic, free_volume, multihit_nucleation]
+    parameters: {required_hits: 3, nucleation_prefactor: 100000.0, nucleation_barrier_ev: 0.65, exchange_barrier_ev: 0.10, transport_barrier_ev: 0.10}
+  FP-C3:
+    modules: [arrhenius_intrinsic, free_volume, exchange_limited]
+    parameters: {exchange_prefactor: 100000.0, nucleation_barrier_ev: 0.10, exchange_barrier_ev: 0.65, transport_barrier_ev: 0.10}
+  FP-C4:
+    modules: [arrhenius_intrinsic, free_volume, transport_limited]
+    parameters: {transport_prefactor: 100000.0, nucleation_barrier_ev: 0.10, exchange_barrier_ev: 0.10, transport_barrier_ev: 0.65}
+  FP-C5:
+    modules: [arrhenius_intrinsic, free_volume, serial_climb]
+    parameters: {nucleation_prefactor: 100000.0, exchange_prefactor: 100000.0, transport_prefactor: 100000.0, nucleation_barrier_ev: 0.45, exchange_barrier_ev: 0.55, transport_barrier_ev: 0.65}
+  FP-SC3:
+    modules: [arrhenius_intrinsic, parallel_mode_competition, shear_memory, free_volume]
+    compatibility_model: explicit_modes
+    mechanics_backend: qiu_full_field
+  FP-P2:
+    modules: [arrhenius_intrinsic, random_spatial_pinning]
+    parameters: {particle_count: 150, particle_radius: 0.75}
+  FP-P4:
+    modules: [arrhenius_intrinsic, tj_pinning]
+  FP-J2:
+    modules: [arrhenius_intrinsic, tj_burgers_residual]
+    compatibility_model: explicit_modes
+    mechanics_backend: qiu_full_field
