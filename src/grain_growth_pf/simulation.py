@@ -290,7 +290,9 @@ class EventResolvedSimulation:
             float(p.get("point_defect_formation_volume", 0.01)), float(p.get("free_volume_stiffness", 0.05)),
         )
 
-    def _activation_rates(self, domain: DomainPhysics, segment: GBSegment) -> tuple[list[DisconnectionMode], np.ndarray, list[ModeDriving]]:
+    def _activation_rates(self, domain: DomainPhysics, segment: GBSegment) -> tuple[
+        list[DisconnectionMode], np.ndarray, float, np.ndarray, float
+    ]:
         capillary = self.config.pf.gb_energy * segment.curvature
         candidates = [m for m in self.modes if (m.family != "easy" if domain.blocked else True)]
         if self.config.parameters.get("barrier_distribution") == "gb_character":
@@ -313,32 +315,55 @@ class EventResolvedSimulation:
             position = tuple(segment.points[len(segment.points) // 2].astype(int))
             y, x = position[0] % self.config.pf.shape[0], position[1] % self.config.pf.shape[1]
             stress = self.full_field.stress[:, :, y, x]
-        drivings = []
-        for mode in candidates:
-            b = np.asarray(mode.burgers, dtype=float)
-            b_direction = b / max(np.linalg.norm(b), np.finfo(float).tiny)
-            resolved_shear = domain.shear.internal_shear_stress * float(b_direction @ tangent)
-            if stress is not None:
-                resolved_shear += mode.resolved_shear(stress, normal)
-            drivings.append(ModeDriving(
-                normal_pressure=capillary + domain.free_volume.chemical_potential,
-                resolved_shear=resolved_shear,
-                vacancy_chemical_potential=domain.free_volume.chemical_potential,
-            ))
-        rates = np.asarray([
-            mode.rate(self.config.pf.temperature, driving)
-            for mode, driving in zip(candidates, drivings)
-        ])
-        return candidates, rates, drivings
+        burgers = np.asarray([mode.burgers for mode in candidates], dtype=float)
+        magnitudes = np.linalg.norm(burgers, axis=1)
+        directions = burgers / np.maximum(magnitudes[:, None], np.finfo(float).tiny)
+        resolved_shear = domain.shear.internal_shear_stress * (directions @ tangent)
+        if stress is not None:
+            resolved_shear += np.einsum("mi,ij,j->m", directions, stress, normal)
+        normal_pressure = capillary + domain.free_volume.chemical_potential
+        vacancy_mu = domain.free_volume.chemical_potential
+        barriers = np.fromiter((mode.barrier_ev for mode in candidates), dtype=float)
+        prefactors = np.fromiter(
+            (mode.site_multiplicity * mode.attempt_frequency for mode in candidates),
+            dtype=float,
+        )
+        work = (
+            normal_pressure * np.fromiter(
+                (mode.activation_volume_normal for mode in candidates), dtype=float
+            )
+            + resolved_shear * np.fromiter(
+                (mode.activation_volume_shear for mode in candidates), dtype=float
+            )
+            + vacancy_mu * np.fromiter(
+                (mode.activation_vacancies for mode in candidates), dtype=float
+            )
+        )
+        effective_barriers = np.maximum(0.0, barriers - work)
+        rates = prefactors * np.exp(
+            -effective_barriers / (K_B_EV * self.config.pf.temperature)
+        )
+        return candidates, rates, float(normal_pressure), resolved_shear, float(vacancy_mu)
+
+    @staticmethod
+    def _mode_driving(normal_pressure: float, resolved_shear: np.ndarray,
+                      vacancy_mu: float, selected: int) -> ModeDriving:
+        return ModeDriving(normal_pressure, float(resolved_shear[selected]), vacancy_mu)
 
     def _activation_mode(self, domain: DomainPhysics, segment: GBSegment) -> tuple[DisconnectionMode, float, ModeDriving]:
-        candidates, rates, drivings = self._activation_rates(domain, segment)
+        candidates, rates, normal_pressure, resolved_shear, vacancy_mu = self._activation_rates(
+            domain, segment
+        )
         total = float(rates.sum())
         if total == 0:
-            return candidates[0], 0.0, drivings[0]
+            return candidates[0], 0.0, self._mode_driving(
+                normal_pressure, resolved_shear, vacancy_mu, 0
+            )
         mode_rng = domain.rng
         selected = int(mode_rng.choice(len(candidates), p=rates / total))
-        return candidates[selected], total, drivings[selected]
+        return candidates[selected], total, self._mode_driving(
+            normal_pressure, resolved_shear, vacancy_mu, selected
+        )
 
     def _boundary_resolved_shear(self, domain: DomainPhysics, segment: GBSegment) -> float:
         value = domain.shear.internal_shear_stress
@@ -604,28 +629,40 @@ class EventResolvedSimulation:
                 domain.activation.begin_window()
                 domain.climb.activate(self.solver.time)
 
-            candidates, rates, drivings = self._activation_rates(domain, segment)
-            total_rate = float(rates.sum())
             if domain.blocked and self.solver.step_number > 0:
+                candidates, rates, normal_pressure, resolved_shear, vacancy_mu = self._activation_rates(
+                    domain, segment
+                )
+                total_rate = float(rates.sum())
                 completions = domain.activation.advance(total_rate, cfg.pf.time_step, self.solver.time - cfg.pf.time_step)
                 if completions:
                     if total_rate:
                         selected = int(domain.rng.choice(len(candidates), p=rates / total_rate))
                     else:
                         selected = 0
-                    mode, driving = candidates[selected], drivings[selected]
+                    mode = candidates[selected]
+                    driving = self._mode_driving(
+                        normal_pressure, resolved_shear, vacancy_mu, selected
+                    )
                     self._record_event(domain, segment, mode, total_rate, driving,
                                        "compatibility_release", delta_length, completions[0].time)
             elif cfg.compatibility_model == "explicit_modes" and self.solver.step_number > 0:
                 # Event-resolved easy-mode flux; completion changes finite hidden
                 # kinematics even when it does not gate mobility.
+                candidates, rates, normal_pressure, resolved_shear, vacancy_mu = self._activation_rates(
+                    domain, segment
+                )
+                total_rate = float(rates.sum())
                 completions = domain.activation.advance(total_rate, cfg.pf.time_step, self.solver.time - cfg.pf.time_step)
                 for completion in completions:
                     if total_rate:
                         selected = int(domain.rng.choice(len(candidates), p=rates / total_rate))
                     else:
                         selected = 0
-                    mode, driving = candidates[selected], drivings[selected]
+                    mode = candidates[selected]
+                    driving = self._mode_driving(
+                        normal_pressure, resolved_shear, vacancy_mu, selected
+                    )
                     self._record_event(domain, segment, mode, total_rate, driving,
                                        "disconnection_mode", delta_length, completion.time)
 

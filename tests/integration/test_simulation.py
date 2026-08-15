@@ -85,6 +85,29 @@ def test_simulation_wires_quenched_barrier_distribution(tmp_path):
     simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
 
 
+def test_vectorized_mode_rates_match_individual_mode_equations(tmp_path):
+    config = ModelConfig(
+        regime="rate-equivalence", seed=191,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01,
+                    temperature=875.0),
+        compatibility_model="explicit_modes", active_modules=("event_modes",),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={"initial_grains": 5, "event_domain_length": 100.0},
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "rate-equivalence")
+    segment = next(iter(simulation.snapshot.boundaries.values()))
+    domain = simulation.domains[segment.entity_id]
+    domain.shear.state = 0.17
+    domain.free_volume.required_total = 0.31
+    candidates, rates, normal, shear, vacancy = simulation._activation_rates(domain, segment)
+    expected = np.asarray([
+        mode.rate(config.pf.temperature, ModeDriving(normal, shear[index], vacancy))
+        for index, mode in enumerate(candidates)
+    ])
+    assert np.allclose(rates, expected, rtol=3e-14, atol=0.0)
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
 def test_accumulated_atomic_step_triggers_finite_pf_release(tmp_path):
     config = ModelConfig(
         regime="subgrid-release", seed=92,

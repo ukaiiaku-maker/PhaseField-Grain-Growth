@@ -34,6 +34,7 @@ CLASS_B_REGIMES = {
     "P1", "P2", "P3", "P4", "E0", "E1", "E2", "J1", "J2", "J3",
 }
 CLASS_C_REGIMES = {"C3", "C4", "C5"}
+CLASS_D_REGIMES = {"S2", "S3", "SC1", "SC2", "SC3", "SC4", "P5"}
 
 
 def _growth_window_arrays(run_dirs: list[Path], measure: str = "R_A") -> tuple[np.ndarray, np.ndarray, dict]:
@@ -294,10 +295,11 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
     theory_class = (
         "class_b" if regime in CLASS_B_REGIMES else
         "class_c" if regime in CLASS_C_REGIMES else
-        "class_d_or_intrinsic"
+        "class_d" if regime in CLASS_D_REGIMES else
+        "intrinsic_or_unclassified"
     )
     diagnostics["mechanistic_comparators"]["source_theory_class"] = theory_class
-    if theory_class in {"class_b", "class_d_or_intrinsic"}:
+    if theory_class in {"class_b", "class_d"}:
         class_b = fit_crossover_growth(time, fit_radii.mean(axis=0))
         diagnostics["mechanistic_comparators"]["class_b_additive"] = {
             "intrinsic_K": class_b.intrinsic_constant,
@@ -308,7 +310,7 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
             "normalized_rmse": class_b.normalized_rmse,
             "parameter_at_bound": class_b.parameter_at_bound,
         }
-    if theory_class in {"class_c", "class_d_or_intrinsic"}:
+    if theory_class in {"class_c", "class_d"}:
         class_c = fit_crossover_growth(time, fit_radii.mean(axis=0), size_exponent=1.0)
         diagnostics["mechanistic_comparators"]["class_c_exchange"] = {
             "intrinsic_K": class_c.intrinsic_constant,
