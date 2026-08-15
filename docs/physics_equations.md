@@ -70,7 +70,17 @@ Each stochastic clock draws \(E\sim\mathrm{Exp}(1)\) and fires when
 H(t)=\int_0^t r(t')dt'\geq E.
 \]
 
-Piecewise-linear rate integration and hazard-space event-time interpolation are used. Overshoot is retained, allowing multiple events in one PF step. A geometric clock analogously integrates \(dH_{\rm enc}=\lambda\,dQ\), with \(Q\) chosen as GB measure change, TJ path, swept area/volume, or \(|\beta dx_n|\).
+Piecewise-linear rate integration and hazard-space event-time interpolation are
+used. For state-preserving flux, overshoot is retained and every passage in one
+PF step is sampled. If a passage changes the physical admissibility or mobility
+state, integration instead stops at that passage: \(H=E\), with no hazard
+assigned to the now-inapplicable timestep remainder. A geometric clock
+analogously integrates \(dH_{\rm enc}=\lambda\,dQ\), with \(Q\) chosen as GB
+measure change, TJ path, swept area/volume, or \(|\beta dx_n|\). A gated GB/TJ
+encounter stops at the exact first-passage coordinate \(Q_{\rm enc}\); an
+ungated geometric counting process retains all passages. Thus neither an
+activation nor an encounter clock samples events after its own event has
+changed the state whose rate it represents.
 
 Persistent \(K\)-hit completion is the sum of \(K\) exponential passages, so \(T_K\sim\Gamma(K,r)\), \(E[T_K]=K/r\), and \(CV=K^{-1/2}\). Packet-reset completion over hazard \(\Lambda\) obeys
 
