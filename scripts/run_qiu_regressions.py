@@ -46,7 +46,11 @@ def _matched_pair(name: str, shape: tuple[int, int], grains: int, steps: int,
         output_cadence=2,
         max_steps=steps,
         termination_grains=1,
-        parameters={"initial_grains": grains, "easy_beta": 0.8},
+        parameters={
+            "initial_grains": grains,
+            "equilibration_steps": 200,
+            "easy_beta": 0.8,
+        },
     )
     shear = replace(
         common,
