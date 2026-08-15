@@ -67,19 +67,13 @@ def _run_observables(run_dir: Path) -> tuple[dict, pd.DataFrame, pd.DataFrame]:
 def _fit_window(mean_count: np.ndarray) -> tuple[int, int, str]:
     """Choose a recorded topology-based post-transient/pre-finite-size window."""
     initial = float(mean_count[0])
-    deep_coarsening_available = float(mean_count[-1]) <= 0.40 * initial
-    start_fraction = 0.60 if deep_coarsening_available else 0.95
-    start_hits = np.flatnonzero(mean_count <= start_fraction * initial)
+    start_hits = np.flatnonzero(mean_count <= 0.95 * initial)
     start = int(start_hits[0]) if len(start_hits) else max(1, int(0.1 * len(mean_count)))
     end_hits = np.flatnonzero(mean_count < max(20.0, 0.30 * initial))
     end = int(end_hits[0]) if len(end_hits) else len(mean_count)
     if end - start < 8:
         start, end = max(1, int(0.1 * len(mean_count))), len(mean_count)
         reason = "fallback_10pct_to_available_end"
-    elif deep_coarsening_available and not len(end_hits):
-        reason = "asymptotic_sixty_pct_to_available_end"
-    elif deep_coarsening_available:
-        reason = "asymptotic_sixty_to_thirty_pct_population"
     elif not len(end_hits):
         reason = "five_pct_loss_to_available_end"
     else:
@@ -213,6 +207,7 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
                          "normalized_rmse": profile.normalized_rmse.tolist(),
                          "residual_autocorrelation": profile.residual_autocorrelation.tolist()},
         "radius_measure_fits": {},
+        "population_band_sensitivity": [],
     }
     for measure in RADIUS_MEASURES:
         columns = [f"{measure}_{index}" for index in range(len(loaded))]
@@ -224,6 +219,25 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
             "r_squared": measure_fit.r_squared,
             "residual_autocorrelation": measure_fit.residual_autocorrelation,
         }
+    full_time = aligned["time"].to_numpy(float)
+    full_radius = radii.mean(axis=0)
+    initial_count = float(mean_count[0])
+    for upper, lower in ((0.95, 0.75), (0.75, 0.60), (0.60, 0.50), (0.50, 0.40), (0.40, 0.30)):
+        selection = (mean_count <= upper * initial_count) & (mean_count >= lower * initial_count)
+        if np.count_nonzero(selection) < 8:
+            continue
+        band_fit = fit_growth_law(
+            full_time[selection], full_radius[selection], transient_fraction=0.0
+        )
+        diagnostics["population_band_sensitivity"].append({
+            "upper_fraction": upper,
+            "lower_fraction": lower,
+            "samples": int(np.count_nonzero(selection)),
+            "n": band_fit.exponent,
+            "K": band_fit.coefficient,
+            "r_squared": band_fit.r_squared,
+            "residual_autocorrelation": band_fit.residual_autocorrelation,
+        })
     return row, diagnostics
 
 

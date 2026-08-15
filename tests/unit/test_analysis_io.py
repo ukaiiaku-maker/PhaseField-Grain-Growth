@@ -69,7 +69,7 @@ def test_ensemble_radius_reports_independent_size_measures():
     assert resumed_radius["grain_count"].tolist() == [2, 2]
 
 
-def test_topology_window_switches_to_late_stage_when_available():
+def test_topology_window_uses_broad_post_equilibration_interval():
     shallow = np.linspace(200, 110, 91)
     start, end, reason = _fit_window(shallow)
     assert shallow[start] <= 190
@@ -78,10 +78,10 @@ def test_topology_window_switches_to_late_stage_when_available():
 
     deep = np.linspace(200, 60, 141)
     start, end, reason = _fit_window(deep)
-    assert deep[start] <= 120
-    assert deep[start - 1] > 120
+    assert deep[start] <= 190
+    assert deep[start - 1] > 190
     assert end == len(deep)
-    assert reason == "asymptotic_sixty_pct_to_available_end"
+    assert reason == "five_pct_loss_to_available_end"
 
 
 def test_analytical_limits():
