@@ -420,7 +420,7 @@ class EventResolvedSimulation:
     def _save_checkpoint(self) -> None:
         arrays: dict[str, np.ndarray] = {
             "eta": self.solver.eta, "mobility_scale": self.solver.mobility_scale,
-            "driving_field": self.driving_field,
+            "driving_field": self.driving_field, "active_phases": self.solver.active_phases,
         }
         if self.full_field is not None:
             arrays["eigenstrain"] = self.full_field.eigenstrain
@@ -438,6 +438,7 @@ class EventResolvedSimulation:
         with np.load(self.output_dir / "checkpoint.npz") as arrays:
             self.solver.eta = arrays["eta"].copy()
             self.solver.mobility_scale = arrays["mobility_scale"].copy()
+            self.solver.active_phases = arrays["active_phases"].astype(bool).copy()
             self.driving_field = arrays["driving_field"].copy()
             if self.full_field is not None and "eigenstrain" in arrays:
                 self.full_field.eigenstrain = arrays["eigenstrain"].copy()

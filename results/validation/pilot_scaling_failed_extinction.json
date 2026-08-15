@@ -1,0 +1,13 @@
+{
+  "campaign": "results/campaigns/20260814T235014Z-0e963ae65e",
+  "git_sha": "a3baa842b59b96d461c6afb52b5c6fc3654269d4",
+  "conditions": 13,
+  "realizations_per_condition": 5,
+  "runs_completed": 65,
+  "runs_failed_software": 0,
+  "scientific_scaling_valid": false,
+  "diagnosis": "An extinct order parameter could regrow from a residual diffuse tail. Grain count was therefore non-monotone and the short-window generalized exponent collapsed to its lower bound.",
+  "preserved_summary": "results/production_summaries/pilot_scaling_summary_failed_extinction.csv",
+  "corrective_action": "Added persistent active-phase state and one-way deactivation below the configured extinction threshold; added a no-resurrection regression test.",
+  "raw_results_retained": true
+}

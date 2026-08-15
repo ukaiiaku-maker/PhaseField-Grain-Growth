@@ -20,6 +20,7 @@ class PFConfig:
     boundary_conditions: str = "periodic"
     temperature: float = 900.0
     adaptive_stepping: bool = False
+    grain_extinction_threshold: float = 0.5
 
     def __post_init__(self) -> None:
         if self.simulation_dimension != 2:
@@ -30,6 +31,8 @@ class PFConfig:
             raise ValueError("dx, interface width, and dt must be positive")
         if self.boundary_conditions not in {"periodic", "neumann"}:
             raise ValueError("boundary_conditions must be periodic or neumann")
+        if not 0 < self.grain_extinction_threshold < 1:
+            raise ValueError("grain_extinction_threshold must lie in (0,1)")
 
 
 @dataclass(frozen=True)

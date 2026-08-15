@@ -3,6 +3,7 @@ import numpy as np
 from grain_growth_pf.config import PFConfig
 from grain_growth_pf.pf.free_energy import free_energy
 from grain_growth_pf.pf.geometry import circular_grain, equivalent_radius, planar_interface
+from grain_growth_pf.pf.geometry import voronoi_polycrystal
 from grain_growth_pf.pf.solver import MultiphaseFieldSolver
 
 
@@ -66,3 +67,18 @@ def test_restart_is_exact():
     restored.run(18)
     assert np.array_equal(continuous.eta, restored.eta)
     assert continuous.time == restored.time
+
+
+def test_extinct_grains_cannot_resurrect():
+    eta, _, _ = voronoi_polycrystal((32, 32), 18, seed=10, width=2)
+    cfg = PFConfig(shape=(32, 32), interface_width=3, time_step=0.04,
+                   intrinsic_mobility=4.0, adaptive_stepping=True)
+    solver = MultiphaseFieldSolver(eta, cfg)
+    counts = []
+    for step in range(300):
+        solver.step()
+        if step % 10 == 0:
+            counts.append(np.count_nonzero(solver.active_phases))
+            assert set(np.unique(solver.labels)).issubset(set(np.flatnonzero(solver.active_phases)))
+    assert np.all(np.diff(counts) <= 0)
+    assert counts[-1] < counts[0]
