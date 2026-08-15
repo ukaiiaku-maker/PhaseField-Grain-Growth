@@ -118,7 +118,16 @@ def _boundary_metrics(run_dir: Path) -> dict[str, float]:
     curvature = boundaries["curvature"].to_numpy(float)
     velocity = boundaries["normal_velocity"].to_numpy(float)
     valid = np.isfinite(curvature) & np.isfinite(velocity) & (np.abs(curvature) > 1e-12) & (np.abs(velocity) > 1e-12)
-    reverse = float(np.mean(curvature[valid] * velocity[valid] < 0)) if np.any(valid) else np.nan
+    raw_reverse = float(np.mean(curvature[valid] * velocity[valid] < 0)) if np.any(valid) else np.nan
+    if np.any(valid):
+        curvature_threshold = float(np.quantile(np.abs(curvature[valid]), 0.75))
+        velocity_threshold = float(np.quantile(np.abs(velocity[valid]), 0.75))
+        active = valid & (np.abs(curvature) >= curvature_threshold)
+        active &= np.abs(velocity) >= velocity_threshold
+        reverse = float(np.mean(curvature[active] * velocity[active] < 0)) if np.any(active) else np.nan
+    else:
+        active = np.zeros_like(valid)
+        reverse = np.nan
     if np.count_nonzero(valid) > 2:
         correlation = np.corrcoef(curvature[valid], velocity[valid])[0, 1]
         curvature_r2 = float(correlation**2) if np.isfinite(correlation) else np.nan
@@ -127,6 +136,8 @@ def _boundary_metrics(run_dir: Path) -> dict[str, float]:
     pinned = float(np.mean(boundaries["blocked"].to_numpy(float)))
     result = {
         "reverse_motion_fraction": reverse,
+        "raw_reverse_motion_fraction": raw_reverse,
+        "active_boundary_fraction": float(np.mean(active)),
         "velocity_curvature_R2": curvature_r2,
         "pinned_fraction": pinned,
     }
@@ -289,6 +300,12 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
             "neighbor_number_growth_rate": _nanmean_values([
                 _neighbor_growth_correlation(item[1]) for item in loaded
             ]),
+            "raw_reverse_motion_fraction": _nanmean_metric(
+                boundary_metrics, "raw_reverse_motion_fraction"
+            ),
+            "active_boundary_fraction": _nanmean_metric(
+                boundary_metrics, "active_boundary_fraction"
+            ),
         },
     }
     regime = str(config["regime"])

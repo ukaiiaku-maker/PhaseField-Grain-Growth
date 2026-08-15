@@ -20,7 +20,7 @@ from grain_growth_pf.analysis.growth_law import (
     scan_growth_exponent,
 )
 from grain_growth_pf.analysis.grain_tracks import ensemble_radius
-from grain_growth_pf.analysis.campaign import _fit_window
+from grain_growth_pf.analysis.campaign import _boundary_metrics, _fit_window
 from grain_growth_pf.disconnections.mode import K_B_EV
 from grain_growth_pf.io.event_ledger import EVENT_FIELDS, EventLedger
 from grain_growth_pf.io.provenance import write_manifest
@@ -106,6 +106,20 @@ def test_jerkiness_reports_motion_concentration_and_stationarity():
     assert deep[start - 1] > 190
     assert end == len(deep)
     assert reason == "five_pct_loss_to_available_end"
+
+
+def test_boundary_reverse_metric_filters_inactive_diffuse_jitter(tmp_path):
+    values = pd.DataFrame({
+        "curvature": [2.0, 1.8, 0.01, -0.01, 0.01, -0.01, 0.01, -0.01],
+        "normal_velocity": [3.0, -2.5, -0.01, 0.01, -0.01, 0.01, -0.01, 0.01],
+        "blocked": [0] * 8,
+        "resolved_shear": [0.0] * 8,
+        "free_volume_deficit": [0.0] * 8,
+    })
+    values.to_csv(tmp_path / "boundary_tracks.csv", index=False)
+    metrics = _boundary_metrics(tmp_path)
+    assert np.isclose(metrics["raw_reverse_motion_fraction"], 7.0 / 8.0)
+    assert np.isclose(metrics["reverse_motion_fraction"], 0.5)
 
 
 def test_analytical_limits():

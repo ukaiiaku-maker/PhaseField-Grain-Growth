@@ -196,3 +196,9 @@ K(t-t_0)=\frac{R^2-R_0^2}{2}
 \]
 
 Both are inverted numerically and fitted against radius residuals, not against transformed time residuals. Class-D/combined regimes report both comparators rather than selecting one by construction.
+
+Reverse-curvature statistics exclude diffuse-interface jitter by applying the
+same preregistered active-segment definition as the Qiu regression: both
+\(|\kappa|\) and \(|v_n|\) must lie in their run-level top quartile. Reports
+retain the unfiltered sign fraction as a diagnostic, but the machine-readable
+`reverse_motion_fraction` is the active-segment value.
