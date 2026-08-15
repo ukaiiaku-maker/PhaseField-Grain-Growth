@@ -36,6 +36,7 @@ PYTHONPATH=src python scripts/run_campaign.py \
 PYTHONPATH=src python scripts/run_campaign.py \
   configs/production/temperature_fully_physical_200.yaml --processes 10
 PYTHONPATH=src python scripts/analyze_campaign.py results/campaigns/<campaign>
+PYTHONPATH=src python scripts/campaign_status.py results/campaigns/<campaign> --compact
 PYTHONPATH=src python scripts/plot_campaign.py results/campaigns/<campaign> \
   --output results/plots/<campaign> \
   --summary results/production_summaries/<campaign>.csv
