@@ -196,6 +196,9 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
     time = aligned["time"].to_numpy(float)[start:end]
     fit_radii = radii[:, start:end]
     fit = fit_growth_law(time, fit_radii.mean(axis=0), transient_fraction=0.0)
+    parabolic_fit = fit_growth_law_fixed_exponent(
+        time, fit_radii.mean(axis=0), 2.0, transient_fraction=0.0
+    )
     profile = scan_growth_exponent(time, fit_radii.mean(axis=0))
 
     digest = hashlib.sha256(f"{config['regime']}:{config['pf']['temperature']}".encode()).digest()
@@ -249,6 +252,15 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
                          "n_grid": profile.exponents.tolist(),
                          "normalized_rmse": profile.normalized_rmse.tolist(),
                          "residual_autocorrelation": profile.residual_autocorrelation.tolist()},
+        "mechanistic_comparators": {
+            "intrinsic_parabolic_n2": {
+                "K": parabolic_fit.coefficient,
+                "intercept": parabolic_fit.intercept,
+                "r_squared": parabolic_fit.r_squared,
+                "residual_autocorrelation": parabolic_fit.residual_autocorrelation,
+                "delta_r_squared_vs_free_n": parabolic_fit.r_squared - fit.r_squared,
+            }
+        },
         "radius_measure_fits": {},
         "population_band_sensitivity": [],
         "intermittency": {
