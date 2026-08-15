@@ -10,6 +10,7 @@ This file is generated/updated by the validation campaign. A production label is
 | Stochastic engine | quantitative validation passed | `results/validation/stochastic_validation.json` |
 | Mode selection/TJ | fast validation passed | isotropy, discrete minimum Burgers, feasible-combination and TJ persistence tests |
 | Shear/climb | fast validation passed | sign, balance, exchange, transport and serial-time tests |
+| Qiu mechanics | quantitative regression passed | `results/validation/qiu_regression_benchmarks.json` |
 | Production scaling | blocked by validation | campaign manifests |
 | Activation campaign | blocked by scaling validation | campaign manifests |
 
