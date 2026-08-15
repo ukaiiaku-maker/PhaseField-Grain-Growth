@@ -79,7 +79,7 @@ def test_event_simulation_checkpoint_restart_is_exact(tmp_path):
         interrupted.snapshot = interrupted.tracker.update(interrupted.solver.labels)
         interrupted._update_physics()
     interrupted._save_checkpoint()
-    interrupted.ledger.close(); interrupted.track_handle.close()
+    interrupted.ledger.close(); interrupted.track_handle.close(); interrupted.boundary_handle.close()
 
     resumed = EventResolvedSimulation(config, tmp_path / "interrupted", resume=True)
     resumed.run()
@@ -103,7 +103,8 @@ def test_named_temperature_and_tj_particle_regimes_are_distinct(tmp_path):
     high_sim = EventResolvedSimulation(high, tmp_path / "high")
     assert high_sim.solver.config.intrinsic_mobility > low_sim.solver.config.intrinsic_mobility
     low_sim.ledger.close(); low_sim.track_handle.close()
-    high_sim.ledger.close(); high_sim.track_handle.close()
+    low_sim.boundary_handle.close()
+    high_sim.ledger.close(); high_sim.track_handle.close(); high_sim.boundary_handle.close()
 
     tj_config = ModelConfig(
         regime="P5", seed=12, pf=PFConfig(**common, temperature=900),
@@ -161,3 +162,25 @@ def test_target_equilibration_compacts_phases_before_time_zero(tmp_path):
     resumed.run()
     assert resumed.solver.eta.shape[0] == 7
     assert len(resumed.orientations) == 7
+
+
+def test_output_cadence_does_not_change_stochastic_trajectory(tmp_path):
+    common = dict(
+        regime="E0", seed=88,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01,
+                    intrinsic_mobility=0.1, adaptive_stepping=True),
+        compatibility_model="explicit_modes", active_modules=("event_modes",),
+        max_steps=5, termination_grains=1,
+        parameters={"initial_grains": 5, "barrier_core_ev": 0.0,
+                    "b_coefficient_ev": 0.0, "h_coefficient_ev": 0.0,
+                    "attempt_frequency": 10.0},
+    )
+    frequent = EventResolvedSimulation(ModelConfig(**common, output_cadence=1), tmp_path / "frequent")
+    sparse = EventResolvedSimulation(ModelConfig(**common, output_cadence=5), tmp_path / "sparse")
+    frequent.run(); sparse.run()
+    assert np.array_equal(frequent.solver.eta, sparse.solver.eta)
+    with (tmp_path / "frequent" / "events.csv").open() as handle:
+        frequent_events = [{k: v for k, v in row.items() if k != "run_id"} for row in csv.DictReader(handle)]
+    with (tmp_path / "sparse" / "events.csv").open() as handle:
+        sparse_events = [{k: v for k, v in row.items() if k != "run_id"} for row in csv.DictReader(handle)]
+    assert frequent_events == sparse_events

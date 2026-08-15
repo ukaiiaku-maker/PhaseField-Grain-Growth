@@ -43,10 +43,8 @@ def _fit_window(mean_count: np.ndarray) -> tuple[int, int, str]:
     return start, end, reason
 
 
-def _trajectory_metrics(per_grain: pd.DataFrame) -> tuple[float, float, float, float]:
+def _trajectory_metrics(per_grain: pd.DataFrame) -> tuple[float, float]:
     metrics = []
-    reverse, moving = 0, 0
-    curvature_velocity = []
     for _, grain in per_grain.groupby("grain_id"):
         grain = grain.sort_values("time")
         if len(grain) < 3:
@@ -54,22 +52,29 @@ def _trajectory_metrics(per_grain: pd.DataFrame) -> tuple[float, float, float, f
         time = grain["time"].to_numpy(float)
         area = grain["area"].to_numpy(float)
         metrics.append(jerkiness_metrics(time, area))
-        velocity = np.diff(grain["radius"].to_numpy(float)) / np.diff(time)
-        curvature = 1.0 / np.maximum(grain["radius"].to_numpy(float)[:-1], 1e-12)
-        finite = np.isfinite(velocity) & np.isfinite(curvature)
-        reverse += int(np.count_nonzero(velocity[finite] < 0))
-        moving += int(np.count_nonzero(finite))
-        curvature_velocity.extend(zip(curvature[finite], velocity[finite]))
     jerk = float(np.mean([m["jerkiness_CV"] for m in metrics])) if metrics else np.nan
     burst = float(np.mean([m["burstiness"] for m in metrics])) if metrics else np.nan
-    reverse_fraction = float(reverse / moving) if moving else np.nan
-    if len(curvature_velocity) > 2:
-        values = np.asarray(curvature_velocity)
-        correlation = np.corrcoef(values[:, 0], values[:, 1])[0, 1]
+    return jerk, burst
+
+
+def _boundary_metrics(run_dir: Path) -> tuple[float, float, float]:
+    path = run_dir / "boundary_tracks.csv"
+    if not path.exists() or path.stat().st_size == 0:
+        return np.nan, np.nan, np.nan
+    boundaries = pd.read_csv(path)
+    if boundaries.empty:
+        return np.nan, np.nan, np.nan
+    curvature = boundaries["curvature"].to_numpy(float)
+    velocity = boundaries["normal_velocity"].to_numpy(float)
+    valid = np.isfinite(curvature) & np.isfinite(velocity) & (np.abs(curvature) > 1e-12) & (np.abs(velocity) > 1e-12)
+    reverse = float(np.mean(curvature[valid] * velocity[valid] < 0)) if np.any(valid) else np.nan
+    if np.count_nonzero(valid) > 2:
+        correlation = np.corrcoef(curvature[valid], velocity[valid])[0, 1]
         curvature_r2 = float(correlation**2) if np.isfinite(correlation) else np.nan
     else:
         curvature_r2 = np.nan
-    return jerk, burst, reverse_fraction, curvature_r2
+    pinned = float(np.mean(boundaries["blocked"].to_numpy(float)))
+    return reverse, curvature_r2, pinned
 
 
 def _event_statistics(run_dir: Path) -> tuple[int, float]:
@@ -81,7 +86,9 @@ def _event_statistics(run_dir: Path) -> tuple[int, float]:
         return 0, np.nan
     if "time" not in events:
         return len(events), np.nan
-    _, counts = np.unique(np.floor(events["time"].to_numpy(float)), return_counts=True)
+    tracks = pd.read_csv(run_dir / "grain_tracks.csv", usecols=["time"])
+    duration = int(np.ceil(tracks["time"].max())) + 1
+    counts = np.bincount(np.floor(events["time"].to_numpy(float)).astype(int), minlength=duration)
     fano = float(np.var(counts) / np.mean(counts)) if np.mean(counts) else np.nan
     return len(events), fano
 
@@ -118,6 +125,7 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
     k_low, k_high = np.quantile(bootstrap_k, [0.025, 0.975])
 
     trajectory_metrics = [_trajectory_metrics(item[1]) for item in loaded]
+    boundary_metrics = [_boundary_metrics(path) for path in run_dirs]
     event_metrics = [_event_statistics(path) for path in run_dirs]
     profile_best = int(np.argmin(profile.normalized_rmse))
     at_bound = bool(fit.exponent <= 1.01 or fit.exponent >= 5.99)
@@ -129,9 +137,9 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
         "jerkiness_CV": float(np.nanmean([m[0] for m in trajectory_metrics])),
         "Fano": float(np.nanmean([m[1] for m in event_metrics])) if any(np.isfinite(m[1]) for m in event_metrics) else np.nan,
         "burstiness": float(np.nanmean([m[1] for m in trajectory_metrics])),
-        "reverse_motion_fraction": float(np.nanmean([m[2] for m in trajectory_metrics])),
-        "velocity_curvature_R2": float(np.nanmean([m[3] for m in trajectory_metrics])),
-        "pinned_fraction": np.nan,
+        "reverse_motion_fraction": float(np.nanmean([m[0] for m in boundary_metrics])) if any(np.isfinite(m[0]) for m in boundary_metrics) else np.nan,
+        "velocity_curvature_R2": float(np.nanmean([m[1] for m in boundary_metrics])) if any(np.isfinite(m[1]) for m in boundary_metrics) else np.nan,
+        "pinned_fraction": float(np.nanmean([m[2] for m in boundary_metrics])) if any(np.isfinite(m[2]) for m in boundary_metrics) else np.nan,
         "number_of_events": int(sum(m[0] for m in event_metrics)),
         "number_of_realizations": len(run_dirs), "Git_SHA": manifests[0]["git_sha"],
     }

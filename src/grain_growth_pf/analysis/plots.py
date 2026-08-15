@@ -93,11 +93,14 @@ def _representative_figure(path: Path, target: Path) -> None:
     tracks = load_tracks(path / "grain_tracks.csv")
     counts = tracks.groupby("grain_id").size().sort_values(ascending=False)
     selected = counts.head(8).index
-    fig, (area_axis, radius_axis) = plt.subplots(2, 1, figsize=(9, 7), sharex=True)
+    fig, (area_axis, radius_axis, neighbor_axis) = plt.subplots(1, 3, figsize=(13, 4))
     for grain_id in selected:
         grain = tracks[tracks["grain_id"] == grain_id].sort_values("time")
         area_axis.plot(grain["time"], grain["area"], lw=1, label=str(grain_id))
         radius_axis.plot(grain["time"], grain["radius"], lw=1)
+        if len(grain) > 1:
+            rate = np.diff(grain["area"].to_numpy(float)) / np.diff(grain["time"].to_numpy(float))
+            neighbor_axis.scatter(grain["neighbors"].to_numpy(float)[:-1], rate, s=7, alpha=0.35)
     event_path = path / "events.csv"
     if event_path.exists() and event_path.stat().st_size:
         events = pd.read_csv(event_path)
@@ -108,8 +111,33 @@ def _representative_figure(path: Path, target: Path) -> None:
     area_axis.set_ylabel("grain area")
     radius_axis.set_ylabel("equivalent radius")
     radius_axis.set_xlabel("time")
+    neighbor_axis.set(xlabel="neighbor number", ylabel="area growth rate")
     area_axis.legend(title="grain", ncol=4, frameon=False, fontsize=7)
     fig.suptitle(path.name)
+    _save(fig, target)
+
+
+def _boundary_figure(paths: list[Path], target: Path) -> None:
+    frames = []
+    for path in paths:
+        boundary_path = path / "boundary_tracks.csv"
+        if boundary_path.exists() and boundary_path.stat().st_size:
+            frames.append(pd.read_csv(boundary_path))
+    if not frames:
+        return
+    boundaries = pd.concat(frames, ignore_index=True).dropna(subset=["curvature", "normal_velocity"])
+    if boundaries.empty:
+        return
+    if len(boundaries) > 30000:
+        boundaries = boundaries.sample(30000, random_state=1729)
+    fig, axes = plt.subplots(1, 2, figsize=(9, 4))
+    colors = np.where(boundaries["blocked"].to_numpy(bool), "C3", "C0")
+    axes[0].scatter(boundaries["curvature"], boundaries["normal_velocity"], c=colors, s=5, alpha=0.2)
+    axes[0].axhline(0, color="0.5", lw=0.7)
+    axes[0].axvline(0, color="0.5", lw=0.7)
+    axes[0].set(xlabel="signed curvature", ylabel="signed normal velocity")
+    axes[1].hist(boundaries["normal_velocity"], bins=60, color="C0", alpha=0.8)
+    axes[1].set(xlabel="normal velocity", ylabel="count")
     _save(fig, target)
 
 
@@ -156,6 +184,7 @@ def plot_campaign(campaign_dir: str | Path, output_dir: str | Path | None = None
         stem = f"{key[0]}-T{key[1]:g}"
         _kinetics_figure(paths, row, output / f"{stem}-ensemble-kinetics")
         _representative_figure(paths[0], output / f"{stem}-representative-grains")
+        _boundary_figure(paths, output / f"{stem}-velocity-curvature")
         _event_figure(paths, output / f"{stem}-event-statistics")
 
     fig, axis = plt.subplots(figsize=(7, 5))

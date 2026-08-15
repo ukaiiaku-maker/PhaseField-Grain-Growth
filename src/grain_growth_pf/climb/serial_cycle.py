@@ -25,11 +25,13 @@ class SerialClimbCycle:
         self.stage = ClimbStage.INACTIVE
         self.clock = CumulativeHazardClock(rng)
         self.history: list[tuple[float, ClimbStage]] = []
+        self.last_completion_time: float | None = None
 
     def activate(self, time: float) -> None:
         if self.stage in {ClimbStage.INACTIVE, ClimbStage.COMPLETE}:
             self.stage = ClimbStage.NUCLEATION
             self.completed_quota = 0.0
+            self.last_completion_time = None
             self.clock.reset()
             self.history.append((time, self.stage))
 
@@ -51,6 +53,7 @@ class SerialClimbCycle:
             elif self.stage == ClimbStage.TRANSPORT:
                 self.completed_quota = self.required_quota
                 self.stage = ClimbStage.COMPLETE
+                self.last_completion_time = event.event_time
             self.history.append((event.event_time, self.stage))
             self.clock.reset()
             if self.stage == ClimbStage.COMPLETE:
@@ -62,4 +65,3 @@ class SerialClimbCycle:
                              transport_rate: float) -> float:
         values = np.asarray((nucleation_rate, exchange_rate, transport_rate), float)
         return float("inf") if np.any(values <= 0) else float(np.sum(1.0 / values))
-

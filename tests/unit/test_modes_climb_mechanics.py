@@ -105,6 +105,10 @@ def test_serial_mean_not_parallel_and_shear_sign():
     assert memory.internal_shear_stress == -2
     assert memory.normal_velocity(1, capillary_pressure=0.5, beta=1) < 0
     assert memory.release(0.5) > 0
+    relaxing = LocalShearMemory(stiffness=2, relaxation_time=0.5)
+    relaxing.migrate(beta=1.0, normal_displacement=1.0, dt=0.1)
+    assert np.isclose(relaxing.state, 0.8)
+    assert relaxing.dissipated_energy > 0
 
 
 def test_tj_closed_burgers_sequence_and_combined_driving():
