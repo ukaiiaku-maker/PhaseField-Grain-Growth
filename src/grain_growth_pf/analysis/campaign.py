@@ -260,6 +260,26 @@ def _event_statistics(run_dir: Path) -> tuple[int, float]:
     return len(events), fano
 
 
+def _event_rate_observation(run_dir: Path) -> tuple[int, float]:
+    """Return events and integrated GB-domain exposure for censoring-aware rates."""
+    event_path = run_dir / "events.csv"
+    boundary_path = run_dir / "boundary_tracks.csv"
+    if not boundary_path.exists() or boundary_path.stat().st_size == 0:
+        return 0, 0.0
+    times = pd.read_csv(boundary_path, usecols=["time"])["time"]
+    counts = times.value_counts(sort=False).sort_index()
+    if len(counts) < 2:
+        exposure = 0.0
+    else:
+        exposure = float(np.trapezoid(
+            counts.to_numpy(float), counts.index.to_numpy(float)
+        ))
+    if not event_path.exists() or event_path.stat().st_size == 0:
+        return 0, exposure
+    events = pd.read_csv(event_path, usecols=["time"])
+    return len(events), exposure
+
+
 def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[dict[str, object], dict]:
     loaded = [_run_observables(path) for path in run_dirs]
     manifests = [item[0] for item in loaded]
@@ -481,22 +501,29 @@ def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
             continue
         temperatures = np.sort(subset["temperature"].to_numpy(float))
         series_times, series_radii, window_metadata = [], [], []
+        event_observations = []
         for temperature in temperatures:
             time, radii, metadata = _growth_window_arrays(grouped[(regime, temperature)])
             series_times.append(time)
             series_radii.append(radii)
             window_metadata.append(metadata)
+            event_observations.append([
+                _event_rate_observation(path) for path in grouped[(regime, temperature)]
+            ])
         common = fit_common_exponent(
             series_times, [radii.mean(axis=0) for radii in series_radii]
         )
         digest = hashlib.sha256(f"temperature-series:{regime}".encode()).digest()
         rng = np.random.default_rng(int.from_bytes(digest[:8], "little"))
-        bootstrap_n, bootstrap_k, bootstrap_q = [], [], []
+        bootstrap_n, bootstrap_k, bootstrap_q, bootstrap_event_q = [], [], [], []
         for _ in range(bootstrap_samples):
-            sampled_mean_radii = []
-            for radii in series_radii:
+            sampled_mean_radii, sampled_event_rates = [], []
+            for radii, observations in zip(series_radii, event_observations):
                 selection = rng.integers(0, len(radii), len(radii))
                 sampled_mean_radii.append(radii[selection].mean(axis=0))
+                event_count = sum(observations[index][0] for index in selection)
+                exposure = sum(observations[index][1] for index in selection)
+                sampled_event_rates.append(event_count / exposure if exposure > 0 else 0.0)
             sample_fit = fit_common_exponent(series_times, sampled_mean_radii)
             bootstrap_n.append(sample_fit.exponent)
             bootstrap_k.append(sample_fit.coefficients)
@@ -504,10 +531,34 @@ def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
                 bootstrap_q.append(fit_activation_energy(
                     temperatures, sample_fit.coefficients
                 ).activation_energy_ev)
+            if np.all(np.asarray(sampled_event_rates) > 0):
+                bootstrap_event_q.append(fit_activation_energy(
+                    temperatures, np.asarray(sampled_event_rates)
+                ).activation_energy_ev)
         bootstrap_k_array = np.asarray(bootstrap_k)
         n_low, n_high = np.quantile(bootstrap_n, [0.025, 0.975])
         activation = fit_activation_energy(temperatures, common.coefficients)
         q_low, q_high = np.quantile(bootstrap_q, [0.025, 0.975])
+        pooled_event_counts = np.asarray([
+            sum(observation[0] for observation in observations)
+            for observations in event_observations
+        ])
+        pooled_event_exposure = np.asarray([
+            sum(observation[1] for observation in observations)
+            for observations in event_observations
+        ])
+        pooled_event_rates = np.divide(
+            pooled_event_counts, pooled_event_exposure,
+            out=np.zeros_like(pooled_event_exposure), where=pooled_event_exposure > 0,
+        )
+        event_activation = (
+            fit_activation_energy(temperatures, pooled_event_rates)
+            if np.all(pooled_event_rates > 0) else None
+        )
+        event_q_interval = (
+            np.quantile(bootstrap_event_q, [0.025, 0.975]).tolist()
+            if bootstrap_event_q else None
+        )
         for position, temperature in enumerate(temperatures):
             row_index = subset.index[np.isclose(subset["temperature"], temperature)][0]
             k_low, k_high = np.quantile(bootstrap_k_array[:, position], [0.025, 0.975])
@@ -530,6 +581,19 @@ def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
                 "activation_energy_95pct": [float(q_low), float(q_high)],
                 "bootstrap_samples": bootstrap_samples,
                 "window_by_temperature": window_metadata,
+                "event_level": {
+                    "estimator": "event_count_per_integrated_GB_domain_time",
+                    "counts": pooled_event_counts.tolist(),
+                    "domain_time_exposure": pooled_event_exposure.tolist(),
+                    "rates": pooled_event_rates.tolist(),
+                    "activation_energy_ev": (
+                        event_activation.activation_energy_ev if event_activation else None
+                    ),
+                    "activation_energy_95pct": event_q_interval,
+                    "bootstrap_samples_with_events_at_all_temperatures": len(
+                        bootstrap_event_q
+                    ),
+                },
             }
     target = Path(output) if output else campaign_dir / "mechanism_summary.csv"
     summary.to_csv(target, index=False)

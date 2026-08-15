@@ -23,6 +23,7 @@ from grain_growth_pf.analysis.grain_tracks import ensemble_radius
 from grain_growth_pf.analysis.campaign import (
     _boundary_metrics,
     _burst_size_ccdf,
+    _event_rate_observation,
     _fit_window,
     _spatial_motion_correlation,
 )
@@ -143,6 +144,21 @@ def test_spatial_motion_correlation_and_burst_ccdf_are_reported():
     assert ccdf["samples"] == 3
     assert ccdf["probability"][0] == 1.0
     assert np.all(np.diff(ccdf["probability"]) <= 0)
+
+
+def test_event_rate_observation_retains_zero_event_exposure(tmp_path):
+    pd.DataFrame({
+        "time": [0.0, 0.0, 1.0, 1.0, 1.0],
+    }).to_csv(tmp_path / "boundary_tracks.csv", index=False)
+    pd.DataFrame({"time": []}).to_csv(tmp_path / "events.csv", index=False)
+    count, exposure = _event_rate_observation(tmp_path)
+    assert count == 0
+    assert np.isclose(exposure, 2.5)
+
+    pd.DataFrame({"time": [0.2, 0.8]}).to_csv(tmp_path / "events.csv", index=False)
+    count, exposure = _event_rate_observation(tmp_path)
+    assert count == 2
+    assert np.isclose(exposure, 2.5)
 
 
 def test_analytical_limits():

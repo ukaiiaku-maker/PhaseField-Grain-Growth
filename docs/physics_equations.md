@@ -202,3 +202,16 @@ same preregistered active-segment definition as the Qiu regression: both
 \(|\kappa|\) and \(|v_n|\) must lie in their run-level top quartile. Reports
 retain the unfiltered sign fraction as a diagnostic, but the machine-readable
 `reverse_motion_fraction` is the active-segment value.
+
+For a temperature campaign, event-level occurrence rates use the Poisson
+exposure estimator
+
+\[
+\widehat r(T)=\frac{\sum_j N_{events,j}}
+{\sum_j\int N_{GB\ domains,j}(t)\,dt}.
+\]
+
+Runs with zero events therefore contribute exposure rather than being treated
+as zero-duration or silently discarded. An event-level Arrhenius slope is
+reported only when the pooled rate is positive at all temperatures; it remains
+separate from the coarse-grained activation energy fitted from \(K_n(T)\).
