@@ -447,6 +447,7 @@ def analyze_run(run_dir: str | Path) -> dict[str, object]:
 def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
                      bootstrap_samples: int = 500) -> pd.DataFrame:
     campaign_dir = Path(campaign_dir)
+    analysis_sha = git_sha()
     manifest = json.loads((campaign_dir / "campaign_manifest.json").read_text())
     grouped: dict[tuple[str, float], list[Path]] = {}
     for raw_path in manifest["runs"]:
@@ -462,7 +463,7 @@ def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
         run_manifests = [json.loads((path / "manifest.json").read_text()) for path in paths]
         detail["provenance"] = {
             "campaign": str(campaign_dir),
-            "analysis_git_sha": git_sha(),
+            "analysis_git_sha": analysis_sha,
             "simulation_git_shas": sorted({item["git_sha"] for item in run_manifests}),
             "config_sha256s": sorted({
                 item["config_sha256"] for item in run_manifests if item.get("config_sha256")
