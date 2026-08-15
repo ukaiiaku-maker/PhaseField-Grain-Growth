@@ -60,6 +60,14 @@ def test_ensemble_radius_reports_independent_size_measures():
     assert np.isclose(row["R_rms"], np.sqrt(5.0))
     assert np.isclose(row["R_perimeter"], 2.5)
 
+    resumed = pd.concat([
+        tracks.assign(run_id="restart", time=1.0, step=1),
+        tracks.assign(run_id="original"),
+    ], ignore_index=True)
+    resumed_radius = ensemble_radius(resumed)
+    assert resumed_radius["time"].tolist() == [0.0, 1.0]
+    assert resumed_radius["grain_count"].tolist() == [2, 2]
+
 
 def test_topology_window_switches_to_late_stage_when_available():
     shallow = np.linspace(200, 110, 91)

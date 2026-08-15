@@ -12,7 +12,11 @@ def load_tracks(path: str | Path) -> pd.DataFrame:
 
 def ensemble_radius(tracks: pd.DataFrame) -> pd.DataFrame:
     enriched = tracks.assign(radius_squared=tracks["radius"].to_numpy(float) ** 2)
-    grouped = enriched.groupby(["run_id", "time", "step"], as_index=False).agg(
+    # A resumed run receives a new provenance run_id but remains one physical
+    # realization. Group on physical clocks so copied checkpoint trajectories
+    # are not split into lexicographically ordered run-id blocks.
+    grouped = enriched.groupby(["time", "step"], as_index=False).agg(
+        run_id=("run_id", "last"),
         mean_area=("area", "mean"),
         mean_radius=("radius", "mean"),
         median_radius=("radius", "median"),
@@ -25,4 +29,4 @@ def ensemble_radius(tracks: pd.DataFrame) -> pd.DataFrame:
     grouped["R_median"] = grouped["median_radius"]
     grouped["R_rms"] = np.sqrt(grouped["mean_radius_squared"])
     grouped["R_perimeter"] = grouped["mean_perimeter"] / (2.0 * np.pi)
-    return grouped
+    return grouped.sort_values(["time", "step"]).reset_index(drop=True)

@@ -40,6 +40,7 @@ def _growth_window_arrays(run_dirs: list[Path], measure: str = "R_A") -> tuple[n
         })
         aligned = renamed if aligned is None else aligned.merge(renamed, on="time", how="inner")
     assert aligned is not None
+    aligned = aligned.sort_values("time").reset_index(drop=True)
     count_columns = [f"N_{index}" for index in range(len(run_dirs))]
     mean_count = aligned[count_columns].to_numpy(float).mean(axis=1)
     start, end, reason = _fit_window(mean_count)
@@ -149,6 +150,7 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
         renamed = renamed.drop(columns="step")
         aligned = renamed if aligned is None else aligned.merge(renamed, on="time", how="inner")
     assert aligned is not None
+    aligned = aligned.sort_values("time").reset_index(drop=True)
     radius_columns = [f"R_A_{i}" for i in range(len(loaded))]
     count_columns = [f"N_{i}" for i in range(len(loaded))]
     radii = aligned[radius_columns].to_numpy(float).T
