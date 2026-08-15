@@ -60,6 +60,26 @@ def test_qiu_full_field_backend_smoke(tmp_path):
     assert np.isclose(strain_sum, simulation.accumulated_shear_strain)
 
 
+def test_simulation_wires_quenched_barrier_distribution(tmp_path):
+    config = ModelConfig(
+        regime="barrier-disorder", seed=91,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={
+            "initial_grains": 5,
+            "barrier_distribution": "truncated_gaussian",
+            "barrier_mean_ev": 0.55,
+            "barrier_std_ev": 0.2,
+            "barrier_bounds_ev": [0.4, 0.7],
+        },
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "barrier-disorder")
+    barriers = np.asarray([mode.barrier_ev for mode in simulation.modes])
+    assert np.all((barriers >= 0.4) & (barriers <= 0.7))
+    assert np.std(barriers) > 0
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
 def test_continuous_qiu_reference_converts_boundary_motion_to_eigenstrain(tmp_path):
     config = ModelConfig(
         regime="Q1", seed=19,

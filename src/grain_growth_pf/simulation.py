@@ -11,6 +11,7 @@ import numpy as np
 from grain_growth_pf.climb.free_volume import FreeVolumeState
 from grain_growth_pf.climb.serial_cycle import SerialClimbCycle
 from grain_growth_pf.config import ModelConfig
+from grain_growth_pf.disconnections.barriers import assign_barriers
 from grain_growth_pf.disconnections.mode import DisconnectionMode, ModeDriving
 from grain_growth_pf.disconnections.mode import K_B_EV
 from grain_growth_pf.disconnections.shear_coupling import event_shear_increment, event_volumetric_increment
@@ -210,7 +211,20 @@ class EventResolvedSimulation:
             b_power=float(config.parameters.get("b_power", 2.0)),
             attempt_frequency=float(config.parameters.get("attempt_frequency", 1e2)),
             seed=config.seed,
+            disorder_std_ev=float(config.parameters.get("mode_disorder_std_ev", 0.0)),
         )
+        barrier_distribution = config.parameters.get("barrier_distribution")
+        if barrier_distribution and barrier_distribution != "gb_character":
+            raw_bounds = config.parameters.get("barrier_bounds_ev")
+            bounds = tuple(map(float, raw_bounds)) if raw_bounds is not None else None
+            self.modes = assign_barriers(
+                self.modes,
+                str(barrier_distribution),
+                config.seed + 1771,
+                float(config.parameters.get("barrier_mean_ev", 0.5)),
+                float(config.parameters.get("barrier_std_ev", 0.1)),
+                bounds,
+            )
         self.full_field = QiuFullField(config.pf.shape) if config.mechanics_backend == "qiu_full_field" else None
         particle_modules = {"random_spatial_pinning", "particle_zener"}.intersection(config.active_modules)
         self.particles = ParticleField.random(
@@ -274,6 +288,17 @@ class EventResolvedSimulation:
     def _activation_rates(self, domain: DomainPhysics, segment: GBSegment) -> tuple[list[DisconnectionMode], np.ndarray, list[ModeDriving]]:
         capillary = self.config.pf.gb_energy * segment.curvature
         candidates = [m for m in self.modes if (m.family != "easy" if domain.blocked else True)]
+        if self.config.parameters.get("barrier_distribution") == "gb_character":
+            candidates = assign_barriers(
+                candidates,
+                "gb_character",
+                self.config.seed,
+                float(self.config.parameters.get("barrier_mean_ev", 0.5)),
+                misorientation=segment.misorientation,
+                character_coefficient_ev=float(
+                    self.config.parameters.get("barrier_character_coefficient_ev", 0.1)
+                ),
+            )
         if "mixed_shear_climb_event" in self.config.active_modules:
             candidates = [m for m in candidates if m.delta_s > 0 and m.delta_q > 0]
         normal = np.asarray(segment.normal, dtype=float)
