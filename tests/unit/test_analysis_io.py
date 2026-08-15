@@ -13,6 +13,7 @@ from grain_growth_pf.analysis.growth_law import (
     scan_growth_exponent,
 )
 from grain_growth_pf.analysis.grain_tracks import ensemble_radius
+from grain_growth_pf.analysis.campaign import _fit_window
 from grain_growth_pf.disconnections.mode import K_B_EV
 from grain_growth_pf.io.event_ledger import EVENT_FIELDS, EventLedger
 from grain_growth_pf.io.provenance import write_manifest
@@ -58,6 +59,21 @@ def test_ensemble_radius_reports_independent_size_measures():
     assert np.isclose(row["R_median"], 2.0)
     assert np.isclose(row["R_rms"], np.sqrt(5.0))
     assert np.isclose(row["R_perimeter"], 2.5)
+
+
+def test_topology_window_switches_to_late_stage_when_available():
+    shallow = np.linspace(200, 110, 91)
+    start, end, reason = _fit_window(shallow)
+    assert shallow[start] <= 190
+    assert end == len(shallow)
+    assert reason == "five_pct_loss_to_available_end"
+
+    deep = np.linspace(200, 60, 141)
+    start, end, reason = _fit_window(deep)
+    assert deep[start] <= 120
+    assert deep[start - 1] > 120
+    assert end == len(deep)
+    assert reason == "asymptotic_sixty_pct_to_available_end"
 
 
 def test_analytical_limits():

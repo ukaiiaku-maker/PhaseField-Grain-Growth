@@ -66,17 +66,23 @@ def _run_observables(run_dir: Path) -> tuple[dict, pd.DataFrame, pd.DataFrame]:
 def _fit_window(mean_count: np.ndarray) -> tuple[int, int, str]:
     """Choose a recorded topology-based post-transient/pre-finite-size window."""
     initial = float(mean_count[0])
-    start_hits = np.flatnonzero(mean_count <= 0.95 * initial)
+    deep_coarsening_available = float(mean_count[-1]) <= 0.40 * initial
+    start_fraction = 0.60 if deep_coarsening_available else 0.95
+    start_hits = np.flatnonzero(mean_count <= start_fraction * initial)
     start = int(start_hits[0]) if len(start_hits) else max(1, int(0.1 * len(mean_count)))
-    end_hits = np.flatnonzero(mean_count < max(20.0, 0.60 * initial))
+    end_hits = np.flatnonzero(mean_count < max(20.0, 0.30 * initial))
     end = int(end_hits[0]) if len(end_hits) else len(mean_count)
     if end - start < 8:
         start, end = max(1, int(0.1 * len(mean_count))), len(mean_count)
         reason = "fallback_10pct_to_available_end"
+    elif deep_coarsening_available and not len(end_hits):
+        reason = "asymptotic_sixty_pct_to_available_end"
+    elif deep_coarsening_available:
+        reason = "asymptotic_sixty_to_thirty_pct_population"
     elif not len(end_hits):
         reason = "five_pct_loss_to_available_end"
     else:
-        reason = "five_pct_loss_to_sixty_pct_population"
+        reason = "five_pct_loss_to_thirty_pct_population"
     return start, end, reason
 
 
