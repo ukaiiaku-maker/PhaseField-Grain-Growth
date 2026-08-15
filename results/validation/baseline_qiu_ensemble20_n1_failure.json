@@ -17,5 +17,17 @@
   "n": 1.0,
   "n_bootstrap_95pct": [1.0, 1.449533721981002],
   "K": 0.06114366940243174,
+  "radius_space_cross_check": {
+    "analysis_git_sha": "c05ba070053016fa982d422ca0a9db70700116fa",
+    "n": 1.0,
+    "n_bootstrap_95pct": [1.0, 1.452938],
+    "all_radius_measures_at_lower_bound": [
+      "R_A",
+      "R_mean",
+      "R_median",
+      "R_rms",
+      "R_perimeter"
+    ]
+  },
   "action": "Do not launch mechanism production. Preserve this interval and continue copied exact checkpoints to a 60-grain stopping target using the validated equivalent compiled kernel."
 }
