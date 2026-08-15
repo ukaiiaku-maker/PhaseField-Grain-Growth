@@ -11,6 +11,7 @@ def interface_kinematics(
     elapsed: float,
     dx: float,
     periodic: bool = True,
+    partner_phase: NDArray[np.float64] | None = None,
 ) -> tuple[float, float, tuple[float, float]]:
     """Measure signed local curvature and velocity from a diffuse level set.
 
@@ -32,34 +33,51 @@ def interface_kinematics(
     def index(values: NDArray[np.int64], size: int) -> NDArray[np.int64]:
         return values % size if periodic else np.clip(values, 0, size - 1)
 
-    def outward_normal(y_offset: int, x_offset: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        yc = index(y + y_offset, height)
-        xc = index(x + x_offset, width)
-        yp = index(y + y_offset + 1, height)
-        ym = index(y + y_offset - 1, height)
-        xp = index(x + x_offset + 1, width)
-        xm = index(x + x_offset - 1, width)
-        gradient_y = (field[yp, xc] - field[ym, xc]) / (2.0 * dx)
-        gradient_x = (field[yc, xp] - field[yc, xm]) / (2.0 * dx)
-        magnitude = np.hypot(gradient_y, gradient_x)
-        safe = np.maximum(magnitude, 1e-14)
-        return -gradient_y / safe, -gradient_x / safe, magnitude
-
-    normal_y, normal_x, gradient_magnitude = outward_normal(0, 0)
-    normal_y_plus, _, _ = outward_normal(1, 0)
-    normal_y_minus, _, _ = outward_normal(-1, 0)
-    _, normal_x_plus, _ = outward_normal(0, 1)
-    _, normal_x_minus, _ = outward_normal(0, -1)
-    divergence = (
-        normal_y_plus - normal_y_minus + normal_x_plus - normal_x_minus
-    ) / (2.0 * dx)
-    valid = gradient_magnitude > 1e-10
-    if not np.any(valid):
-        return 0.0, 0.0, (0.0, 0.0)
+    # A radius-two stencil suppresses the one-cell lattice oscillation that
+    # otherwise dominates a direct divergence-of-normal estimate.
+    radius = 2
     yc = index(y, height)
     xc = index(x, width)
+    yp = index(y + radius, height)
+    ym = index(y - radius, height)
+    xp = index(x + radius, width)
+    xm = index(x - radius, width)
+    span = 2.0 * radius * dx
+    gradient_y = (field[yp, xc] - field[ym, xc]) / span
+    gradient_x = (field[yc, xp] - field[yc, xm]) / span
+    second_scale = (radius * dx) ** 2
+    second_y = (field[yp, xc] - 2.0 * field[yc, xc] + field[ym, xc]) / second_scale
+    second_x = (field[yc, xp] - 2.0 * field[yc, xc] + field[yc, xm]) / second_scale
+    mixed = (
+        field[yp, xp] - field[yp, xm] - field[ym, xp] + field[ym, xm]
+    ) / (4.0 * second_scale)
+    gradient_magnitude = np.hypot(gradient_y, gradient_x)
+    curvature = (
+        second_y * gradient_x**2
+        - 2.0 * mixed * gradient_y * gradient_x
+        + second_x * gradient_y**2
+    ) / np.maximum(gradient_magnitude**3, 1e-14)
+    normal_y = -gradient_y / np.maximum(gradient_magnitude, 1e-14)
+    normal_x = -gradient_x / np.maximum(gradient_magnitude, 1e-14)
+    valid = gradient_magnitude > 1e-10
+    valid &= (field[yc, xc] > 0.05) & (field[yc, xc] < 0.95)
+    if partner_phase is not None:
+        partner = np.asarray(partner_phase, float)
+        if partner.shape != field.shape:
+            raise ValueError("partner phase has the wrong shape")
+        valid &= field[yc, xc] + partner[yc, xc] > 0.90
+    if not np.any(valid):
+        return 0.0, 0.0, (0.0, 0.0)
+    yp_one = index(y + 1, height)
+    ym_one = index(y - 1, height)
+    xp_one = index(x + 1, width)
+    xm_one = index(x - 1, width)
+    velocity_gradient = np.hypot(
+        (field[yp_one, xc] - field[ym_one, xc]) / (2.0 * dx),
+        (field[yc, xp_one] - field[yc, xm_one]) / (2.0 * dx),
+    )
     velocity = (field[yc, xc] - previous[yc, xc]) / elapsed
-    velocity /= np.maximum(gradient_magnitude, 1e-14)
+    velocity /= np.maximum(velocity_gradient, 1e-14)
     mean_normal = np.array([np.mean(normal_y[valid]), np.mean(normal_x[valid])])
     normal_norm = np.linalg.norm(mean_normal)
     if normal_norm > 1e-6:
@@ -67,7 +85,7 @@ def interface_kinematics(
     else:
         mean_normal[:] = 0.0
     return (
-        float(np.mean(-divergence[valid])),
+        float(np.mean(curvature[valid])),
         float(np.mean(velocity[valid])),
         (float(mean_normal[0]), float(mean_normal[1])),
     )

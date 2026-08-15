@@ -510,6 +510,7 @@ class EventResolvedSimulation:
                 entity_elapsed,
                 cfg.pf.grid_spacing,
                 periodic=cfg.pf.boundary_conditions == "periodic",
+                partner_phase=self.solver.eta[segment.grain_j],
             )
             segment.curvature = measured_curvature
             segment.velocity = measured_velocity
