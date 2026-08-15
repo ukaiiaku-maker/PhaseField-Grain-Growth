@@ -6,8 +6,8 @@
       "expected_slope": -0.2,
       "mobility": 0.1,
       "r_squared": 0.9997309520911393,
-      "relative_error": 0.11277163769800891,
-      "slope_R2": -0.17744567246039822
+      "relative_error": 0.11277163769800658,
+      "slope_R2": -0.1774456724603987
     },
     {
       "dx": 1.0,
@@ -24,8 +24,8 @@
       "expected_slope": -0.2,
       "mobility": 0.1,
       "r_squared": 0.9998014347041474,
-      "relative_error": 0.07019287309259437,
-      "slope_R2": -0.18596142538148114
+      "relative_error": 0.07019287309259326,
+      "slope_R2": -0.18596142538148136
     },
     {
       "dx": 0.75,
@@ -42,8 +42,8 @@
       "expected_slope": -0.2,
       "mobility": 0.1,
       "r_squared": 0.999999519724971,
-      "relative_error": 0.02476347852950933,
-      "slope_R2": -0.19504730429409814
+      "relative_error": 0.02476347852951255,
+      "slope_R2": -0.1950473042940975
     },
     {
       "dx": 0.5,
@@ -55,13 +55,13 @@
       "slope_R2": -0.39008402121345737
     }
   ],
-  "git_sha": "5199f795cfd76bd203b1f7b53e84b8facadbb9bb-dirty",
+  "git_sha": "666fdc7d3718cb4d14638134f674d6666d7c357b",
   "grid_anisotropy_fraction": 0.00846725597167164,
   "mesh_slope_spread_fraction": 0.094198937753866,
   "mobility_slope_ratios": {
-    "0.5": 1.999945718938402,
-    "0.75": 1.9994394535320699,
-    "1.0": 2.000687043160067
+    "0.5": 1.9999457189384084,
+    "0.75": 1.9994394535320674,
+    "1.0": 2.000687043160062
   },
   "passed": true,
   "planar_interfaces": [
@@ -75,14 +75,14 @@
     {
       "angle_degrees": 29.999999999999996,
       "constraint_error": 1.1102230246251565e-16,
-      "energy_change": -0.8008613340072941,
+      "energy_change": -0.8008613340073225,
       "max_field_change": 0.2968785957310449,
       "phase_area_change": -0.016150924883277185
     },
     {
       "angle_degrees": 45.0,
       "constraint_error": 1.1102230246251565e-16,
-      "energy_change": -1.4278989298978928,
+      "energy_change": -1.427898929897978,
       "max_field_change": 0.4261585307535326,
       "phase_area_change": -4.859428080882708
     }
