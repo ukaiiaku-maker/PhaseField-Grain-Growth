@@ -1,0 +1,68 @@
+prepare_initial_conditions: true
+base:
+  regime: JK-L12-K1
+  seed: 5101
+  pf:
+    shape: [192, 192]
+    grid_spacing: 1.0
+    interface_width: 4.0
+    time_step: 0.04
+    gb_energy: 1.0
+    intrinsic_mobility: 4.0
+    boundary_conditions: periodic
+    temperature: 900.0
+    adaptive_stepping: true
+    grain_extinction_threshold: 0.5
+  mechanics_backend: none
+  compatibility_model: geometric_surrogate
+  active_modules: [gb_compatibility, single_hit_poisson]
+  output_cadence: 2
+  max_steps: 3500
+  termination_grains: 60
+  parameters:
+    initial_grains: 267
+    equilibration_steps: 20
+    equilibrate_to_grains: 200
+    equilibration_max_steps: 550
+    compact_after_equilibration: true
+    event_domain_length: 12.0
+    encounter_density: 0.20
+    barrier_core_ev: 0.25
+    b_coefficient_ev: 0.02
+    h_coefficient_ev: 0.02
+    attempt_frequency: 10.0
+    packet_size: 2.0
+    pinned_mobility_fraction: 0.0
+regimes:
+  JK-L6-K1:
+    modules: [gb_compatibility, single_hit_poisson]
+    parameters: {event_domain_length: 6.0, required_hits: 1}
+  JK-L12-K1:
+    modules: [gb_compatibility, single_hit_poisson]
+    parameters: {event_domain_length: 12.0, required_hits: 1}
+  JK-L24-K1:
+    modules: [gb_compatibility, single_hit_poisson]
+    parameters: {event_domain_length: 24.0, required_hits: 1}
+  JK-L12-K3:
+    modules: [gb_compatibility, multihit_persistent]
+    parameters: {event_domain_length: 12.0, required_hits: 3}
+  JK-L24-K3:
+    modules: [gb_compatibility, multihit_persistent]
+    parameters: {event_domain_length: 24.0, required_hits: 3}
+  JK-L24-K5:
+    modules: [gb_compatibility, multihit_persistent]
+    parameters: {event_domain_length: 24.0, required_hits: 5}
+  JK-L24-K3-SPARSE:
+    modules: [gb_compatibility, multihit_persistent]
+    parameters: {event_domain_length: 24.0, required_hits: 3, encounter_density: 0.05}
+  JK-L24-K3-DENSE:
+    modules: [gb_compatibility, multihit_persistent]
+    parameters: {event_domain_length: 24.0, required_hits: 3, encounter_density: 0.40}
+  JK-L24-K3-HIGH:
+    modules: [gb_compatibility, multihit_persistent]
+    parameters: {event_domain_length: 24.0, required_hits: 3, barrier_core_ev: 0.40}
+  JK-L24-K3-PACKET:
+    modules: [gb_compatibility, multihit_packet_reset]
+    parameters: {event_domain_length: 24.0, required_hits: 3, packet_size: 4.0}
+temperatures: [900.0]
+seeds: [5101, 5102, 5103, 5104, 5105]
