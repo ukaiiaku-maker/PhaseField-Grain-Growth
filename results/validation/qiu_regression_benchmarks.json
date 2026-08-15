@@ -1,9 +1,9 @@
 {
-  "git_sha": "22b6a8641a29c6c9a2b3232e498e0c00a5eed10d",
-  "raw_run_directory": "results/runs/qiu-regressions-20260815T095147Z-22b6a864",
+  "git_sha": "c9403c03a2ff414ec8a83788c87608c4e9fe94e3",
+  "raw_run_directory": "results/runs/qiu-regressions-20260815T095344Z-c9403c03",
   "intrinsic_curvature_regression": {
     "source": "results/validation/numerical_validation.json",
-    "source_git_sha": "ce92e092131d2c318e16795e2d965c1a8604b974-dirty",
+    "source_git_sha": "290b77b99faf97bfd772d26d70d65e17628cd414",
     "passed": true,
     "circle_max_relative_error": 0.11277163769800658
   },
