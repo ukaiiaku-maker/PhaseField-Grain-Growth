@@ -1,0 +1,36 @@
+{
+  "status": "rejected_for_same_increment_postencounter_sampling",
+  "audit_time_utc": "2026-08-15T11:55:16Z",
+  "preserved_campaign": "results/campaigns/20260815T114456Z-af440f638c",
+  "simulation_git_sha": "a7e7cdbdff37fd7d96d482f0f8c81d03afd0617d",
+  "corrected_model_git_sha": "f9b3b49be649ad69c5bbf671b171c5ad0d177636",
+  "source_config": "configs/production/mechanism_scaling_200.yaml",
+  "source_config_sha256": "28174d22b8ed4ef6c823ec90b32ffbc695b4c362f655f2f0f255db2436a71273",
+  "workers": 14,
+  "runs_total": 165,
+  "runs_started": 14,
+  "runs_completed": 0,
+  "runs_checkpointed_at_interrupt": 14,
+  "runs_not_started": 151,
+  "checkpoint_step_minimum": 268,
+  "checkpoint_step_mean": 285.85714285714283,
+  "checkpoint_step_maximum": 350,
+  "tracebacks_before_manual_interrupt": 0,
+  "g1_live_qc": {
+    "primitive_activation_hits": 1793,
+    "compatibility_releases": 1793,
+    "postrelease_difference": 0
+  },
+  "root_cause": "GeometricEncounterClock emitted and consumed every Poisson passage across one PF geometry increment, but the GB/TJ caller converted only the first passage into a blocked state. Passages later than the state-changing first encounter were silently discarded even though the physical state no longer admitted continued easy motion.",
+  "corrections": [
+    "GeometricEncounterClock can stop at a caller-declared passage count and retains its hazard and reaction-coordinate state at the exact first encounter.",
+    "GB and TJ compatibility creation request one encounter because the first passage changes mobility state.",
+    "Ungated geometric-process uses retain complete multi-passage sampling.",
+    "An explicit TJ Burgers residual blocks directly without consuming an unrelated geometric encounter."
+  ],
+  "validation": {
+    "focused_geometry_stochastic_integration_tests": "29 passed in 4.37 s",
+    "full_tests": "78 passed in 20.57 s"
+  },
+  "policy": "All partial checkpoints, event ledgers, and trajectories remain in place. They are excluded from final inference, and the full 165-run matrix is relaunched from the corrected tested SHA."
+}
