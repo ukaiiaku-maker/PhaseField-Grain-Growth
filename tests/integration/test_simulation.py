@@ -26,6 +26,10 @@ def test_event_resolved_smoke_writes_reproducible_schema(tmp_path):
     assert manifest["status"] == "completed"
     assert manifest["config"]["seed"] == 17
     assert manifest["git_sha"] == "captured-launch-sha"
+    assert {item["path"].split("/")[-1] for item in manifest["restart_artifacts"]} == {
+        "checkpoint.npz", "checkpoint.json"
+    }
+    assert all(len(item["sha256"]) == 64 for item in manifest["restart_artifacts"])
     with (output / "grain_tracks.csv").open() as handle:
         tracks = list(csv.DictReader(handle))
     with (output / "events.csv").open() as handle:

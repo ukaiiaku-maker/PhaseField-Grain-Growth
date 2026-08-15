@@ -32,6 +32,14 @@ def canonical_hash(data: dict[str, Any]) -> str:
     return hashlib.sha256(payload).hexdigest()
 
 
+def file_sha256(path: str | Path, chunk_size: int = 1024 * 1024) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(chunk_size), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def write_manifest(path: str | Path, config: dict[str, Any], status: str = "started",
                    extra: dict[str, Any] | None = None,
                    code_sha: str | None = None) -> dict[str, Any]:

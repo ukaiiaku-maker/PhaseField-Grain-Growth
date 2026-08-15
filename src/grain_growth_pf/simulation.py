@@ -20,7 +20,7 @@ from grain_growth_pf.encounters.geometric_hazard import GeometricEncounterClock
 from grain_growth_pf.entities.gb_segment import GBSegment
 from grain_growth_pf.entities.tracker import EntityTracker
 from grain_growth_pf.io.event_ledger import EventLedger
-from grain_growth_pf.io.provenance import git_sha, write_manifest
+from grain_growth_pf.io.provenance import file_sha256, git_sha, write_manifest
 from grain_growth_pf.mechanics.local_shear_memory import LocalShearMemory
 from grain_growth_pf.mechanics.qiu_full_field import QiuFullField
 from grain_growth_pf.obstacles.particles import ParticleField
@@ -777,11 +777,21 @@ class EventResolvedSimulation:
             self.track_handle.close()
             self.boundary_handle.close()
             (self.output_dir / "energy.json").write_text(json.dumps(self.energy_records, indent=2) + "\n")
+            restart_artifacts = []
+            for name in ("checkpoint.npz", "checkpoint.json"):
+                artifact = self.output_dir / name
+                if artifact.exists():
+                    restart_artifacts.append({
+                        "path": str(artifact),
+                        "sha256": file_sha256(artifact),
+                        "size_bytes": artifact.stat().st_size,
+                    })
             write_manifest(self.output_dir / "manifest.json", self.config.to_dict(),
                            "failed" if failure else "completed", {
                                "failure": failure, "steps_completed": self.solver.step_number,
                                "final_grains": len(self.snapshot.grains),
                                "accumulated_shear_strain": self.accumulated_shear_strain,
                                "accumulated_volumetric_strain": self.accumulated_volumetric_strain,
+                               "restart_artifacts": restart_artifacts,
                            }, code_sha=self.sha)
         return self.output_dir
