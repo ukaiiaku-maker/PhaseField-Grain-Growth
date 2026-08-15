@@ -3,6 +3,7 @@ import numpy as np
 from grain_growth_pf.config import PFConfig
 from grain_growth_pf.pf.free_energy import free_energy
 from grain_growth_pf.pf.geometry import circular_grain, equivalent_radius, planar_interface
+from grain_growth_pf.pf.geometry import voronoi_polycrystal
 from grain_growth_pf.pf.solver import MultiphaseFieldSolver
 
 
@@ -53,6 +54,25 @@ def test_mobility_scaling_and_energy_decrease():
     assert abs(slopes[1] / slopes[0] - 2) < 0.06
 
 
+def test_high_mobility_time_rescaling_remains_quantitative():
+    cfg = PFConfig(shape=(64, 64), interface_width=4, time_step=0.04,
+                   intrinsic_mobility=4.0, adaptive_stepping=True)
+    solver = MultiphaseFieldSolver(circular_grain(cfg.shape, 15, 4), cfg)
+    times, radius2 = [], []
+    for step in range(250):
+        solver.step()
+        if step % 10 == 0:
+            times.append(solver.time)
+            radius2.append(equivalent_radius(solver.eta[1]) ** 2)
+    slope, intercept = np.polyfit(times[4:-3], radius2[4:-3], 1)
+    fitted = slope * np.asarray(times[4:-3]) + intercept
+    r_squared = 1 - np.sum((np.asarray(radius2[4:-3]) - fitted) ** 2) / np.sum(
+        (np.asarray(radius2[4:-3]) - np.mean(radius2[4:-3])) ** 2
+    )
+    assert abs(slope / (-2 * cfg.intrinsic_mobility * cfg.gb_energy) - 1) < 0.02
+    assert r_squared > 0.9999
+
+
 def test_restart_is_exact():
     cfg = PFConfig(shape=(32, 32), interface_width=4, time_step=0.04, intrinsic_mobility=0.2)
     eta = circular_grain(cfg.shape, 8, 4)
@@ -66,3 +86,18 @@ def test_restart_is_exact():
     restored.run(18)
     assert np.array_equal(continuous.eta, restored.eta)
     assert continuous.time == restored.time
+
+
+def test_extinct_grains_cannot_resurrect():
+    eta, _, _ = voronoi_polycrystal((32, 32), 18, seed=10, width=2)
+    cfg = PFConfig(shape=(32, 32), interface_width=3, time_step=0.04,
+                   intrinsic_mobility=4.0, adaptive_stepping=True)
+    solver = MultiphaseFieldSolver(eta, cfg)
+    counts = []
+    for step in range(300):
+        solver.step()
+        if step % 10 == 0:
+            counts.append(np.count_nonzero(solver.active_phases))
+            assert set(np.unique(solver.labels)).issubset(set(np.flatnonzero(solver.active_phases)))
+    assert np.all(np.diff(counts) <= 0)
+    assert counts[-1] < counts[0]

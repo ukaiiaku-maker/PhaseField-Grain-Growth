@@ -1,0 +1,12 @@
+{
+  "campaign": "results/campaigns/20260815T013626Z-ae889d55f4",
+  "git_sha": "55ea13521a56d4842257b86ac1af70595a6930fd",
+  "status": "failed_as_designed",
+  "attempted_initial_parent_grains": 100,
+  "target_time_zero_grains": 50,
+  "intrinsic_mobility": 4.0,
+  "equilibration_step_ceiling": 1500,
+  "remaining_grains_by_seed": [71, 67, 73, 67, 64],
+  "diagnosis": "Fourfold mobility preserves the validated curvature trajectory but the finite deterministic network approaches a metastable topology above 50 grains. Raising mobility cannot remove a topological arrest because it only rescales time.",
+  "corrective_action": "Use a 25%-coarsened population (100 parent grains to an exact 75-grain t=0 target) as the stationary pilot and stop its fit before the observed 60-grain finite-network range. Use a larger production network for final inference."
+}

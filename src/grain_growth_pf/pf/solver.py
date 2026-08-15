@@ -50,6 +50,9 @@ class MultiphaseFieldSolver:
         if eta.ndim != 3 or eta.shape[1:] != config.shape:
             raise ValueError("eta must have shape (n_grains, *config.shape)")
         self.eta = project_simplex(eta)
+        self.active_phases = np.max(self.eta, axis=(1, 2)) >= config.grain_extinction_threshold
+        if not np.any(self.active_phases):
+            raise ValueError("initial condition contains no active grain")
         self.config = config
         self.driving = driving
         self.mobility_scale = np.ones(config.shape, dtype=float)
@@ -77,7 +80,7 @@ class MultiphaseFieldSolver:
             self.eta, cfg.gb_energy, cfg.interface_width,
             cfg.grid_spacing, cfg.boundary_conditions,
         )
-        active = self.eta > 1e-12
+        active = (self.eta > 1e-12) & self.active_phases[:, None, None]
         count = np.maximum(active.sum(axis=0, keepdims=True), 1)
         lagrange = (mu * active).sum(axis=0, keepdims=True) / count
         # For the chosen equilibrium profile integral(|grad eta|^2) = 1/(3w).
@@ -91,7 +94,20 @@ class MultiphaseFieldSolver:
             ext -= ext.mean(axis=0, keepdims=True)
             rate += kinetic * ext
         rate *= self.mobility_scale[None, :, :]
-        self.eta = project_simplex(self.eta + used_dt * rate)
+        trial = self.eta + used_dt * rate
+        if float(trial.min()) >= 0.0 and float(trial.max()) <= 1.0:
+            # The constrained rate has zero local sum. Normalization removes
+            # only roundoff and avoids an O(N log N) simplex sort at every pixel.
+            self.eta = trial / trial.sum(axis=0, keepdims=True)
+        else:
+            self.eta = project_simplex(trial)
+        extinct = self.active_phases & (
+            np.max(self.eta, axis=(1, 2)) < cfg.grain_extinction_threshold
+        )
+        if np.any(extinct) and np.count_nonzero(self.active_phases) > np.count_nonzero(extinct):
+            self.active_phases[extinct] = False
+            self.eta[extinct] = 0.0
+            self.eta /= self.eta.sum(axis=0, keepdims=True)
         self.time += used_dt
         self.step_number += 1
         return StepDiagnostics(
@@ -119,10 +135,12 @@ class MultiphaseFieldSolver:
 
     def state_dict(self) -> dict[str, object]:
         return {"eta": self.eta.copy(), "time": self.time, "step_number": self.step_number,
-                "mobility_scale": self.mobility_scale.copy()}
+                "mobility_scale": self.mobility_scale.copy(),
+                "active_phases": self.active_phases.copy()}
 
     def load_state_dict(self, state: dict[str, object]) -> None:
         self.eta = np.asarray(state["eta"], dtype=float).copy()
         self.time = float(state["time"])
         self.step_number = int(state["step_number"])
         self.mobility_scale = np.asarray(state.get("mobility_scale", np.ones(self.config.shape)), dtype=float).copy()
+        self.active_phases = np.asarray(state.get("active_phases", np.max(self.eta, axis=(1, 2)) >= self.config.grain_extinction_threshold), dtype=bool).copy()

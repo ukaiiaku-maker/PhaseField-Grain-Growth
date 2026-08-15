@@ -1,0 +1,12 @@
+{
+  "campaign": "results/campaigns/20260815T001442Z-1a63462fc0",
+  "git_sha": "9c51345ebaf7fc707f6989da60af35f98e772b85",
+  "runs_completed": 5,
+  "initial_grains": 50,
+  "final_grains_range": [26, 28],
+  "grain_count_monotone_in_all_runs": true,
+  "extinction_fix_validated": true,
+  "scaling_exponent_accepted": false,
+  "reason": "The 50-grain ensemble enters a finite-statistics slowdown; free exponent and fit window are not jointly identifiable. A 200-grain campaign is required.",
+  "preserved_summary": "results/production_summaries/pilot_baseline_corrected_analysis_unreliable.csv"
+}

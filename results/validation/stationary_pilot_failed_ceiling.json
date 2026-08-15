@@ -1,0 +1,12 @@
+{
+  "campaign": "results/campaigns/20260815T011113Z-9add25554f",
+  "git_sha": "47e0db2590189b76ead63b4f45f4d841b262cd6b",
+  "status": "failed_as_designed",
+  "attempted_initial_parent_grains": 100,
+  "target_time_zero_grains": 50,
+  "intrinsic_mobility": 1.0,
+  "equilibration_step_ceiling": 2500,
+  "remaining_grains_by_seed": [71, 69, 75, 67, 67],
+  "reason": "No seed reached the exact target within the declared ceiling, so physical time and event clocks were never started. The campaign manifest and per-run tracebacks are preserved.",
+  "corrective_action": "Use the quantitatively verified M=4 time rescaling and retain the exact 50-grain target; increase neither physical time nor morphology by an ad hoc partial-start rule."
+}

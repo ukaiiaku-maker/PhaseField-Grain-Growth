@@ -32,3 +32,11 @@ def analyze_main() -> None:
     args = parser.parse_args()
     print(analyze_campaign(args.campaign, args.output).to_string(index=False))
 
+
+def plot_main() -> None:
+    from grain_growth_pf.analysis.plots import plot_campaign
+    parser = argparse.ArgumentParser()
+    parser.add_argument("campaign")
+    parser.add_argument("--output")
+    args = parser.parse_args()
+    print(plot_campaign(args.campaign, args.output))
