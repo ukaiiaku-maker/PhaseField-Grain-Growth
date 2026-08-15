@@ -29,8 +29,11 @@ def analyze_main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("campaign")
     parser.add_argument("--output")
+    parser.add_argument("--allow-incomplete", action="store_true")
     args = parser.parse_args()
-    print(analyze_campaign(args.campaign, args.output).to_string(index=False))
+    print(analyze_campaign(
+        args.campaign, args.output, require_completed=not args.allow_incomplete
+    ).to_string(index=False))
 
 
 def plot_main() -> None:

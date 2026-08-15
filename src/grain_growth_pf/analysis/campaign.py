@@ -603,14 +603,22 @@ def analyze_run(run_dir: str | Path) -> dict[str, object]:
 
 
 def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
-                     bootstrap_samples: int = 500) -> pd.DataFrame:
+                     bootstrap_samples: int = 500,
+                     require_completed: bool = True) -> pd.DataFrame:
     campaign_dir = Path(campaign_dir)
     analysis_sha = git_sha()
     manifest = json.loads((campaign_dir / "campaign_manifest.json").read_text())
+    if require_completed and manifest.get("status") != "completed":
+        raise ValueError(
+            f"campaign is not complete ({manifest.get('status', 'missing status')}): "
+            f"{campaign_dir}; pass require_completed=False only for diagnostic analysis"
+        )
     grouped: dict[tuple[str, float], list[Path]] = {}
     for raw_path in manifest["runs"]:
         path = Path(raw_path)
         run_manifest = json.loads((path / "manifest.json").read_text())
+        if require_completed and run_manifest.get("status") != "completed":
+            raise ValueError(f"run is not complete: {path}")
         config = run_manifest["config"]
         key = (config["regime"], float(config["pf"]["temperature"]))
         grouped.setdefault(key, []).append(path)

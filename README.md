@@ -42,6 +42,12 @@ PYTHONPATH=src python scripts/plot_campaign.py results/campaigns/<campaign> \
 PYTHONPATH=src python scripts/pareto_campaign.py \
   results/production_summaries/<jerkiness-summary>.csv \
   --output results/production_summaries/<jerkiness-pareto>.csv
+PYTHONPATH=src python scripts/aggregate_summaries.py \
+  results/production_summaries/<mechanism>.csv \
+  results/production_summaries/<temperature-isolation>.csv \
+  results/production_summaries/<temperature-physical>.csv \
+  results/production_summaries/<jerkiness>.csv \
+  --output results/final_mechanism_summary.csv
 ```
 
 The selected-temperature command is the mechanism-isolation experiment:
@@ -60,4 +66,5 @@ PYTHONPATH=src python scripts/extend_campaign.py \
 Every run manifest records the exact launch SHA and full configuration. Dense
 checkpoints and raw trajectories remain outside Git under `results/campaigns/`
 or `results/runs/`; compact validation reports, summaries, plots, and failure
-records are versioned.
+records are versioned. Scientific analysis rejects incomplete campaigns by
+default; `--allow-incomplete` exists only for explicitly labeled diagnostics.

@@ -2,6 +2,7 @@ import json
 
 import numpy as np
 import pandas as pd
+import pytest
 
 from grain_growth_pf.analysis.campaign import analyze_campaign
 from grain_growth_pf.config import ModelConfig, PFConfig
@@ -35,7 +36,9 @@ def test_temperature_campaign_uses_one_common_exponent(tmp_path):
             run_paths.append(str(run_dir))
     campaign = tmp_path / "campaign"
     campaign.mkdir()
-    (campaign / "campaign_manifest.json").write_text(json.dumps({"runs": run_paths}))
+    (campaign / "campaign_manifest.json").write_text(json.dumps({
+        "runs": run_paths, "status": "completed",
+    }))
 
     summary = analyze_campaign(campaign, bootstrap_samples=5)
     assert np.allclose(summary["n"], 2.0, atol=1e-6)
@@ -48,3 +51,8 @@ def test_temperature_campaign_uses_one_common_exponent(tmp_path):
         detail["provenance"]["simulation_git_shas"] == ["synthetic-sha"]
         for detail in diagnostics
     )
+    (campaign / "campaign_manifest.json").write_text(json.dumps({
+        "runs": run_paths, "status": "running",
+    }))
+    with pytest.raises(ValueError, match="campaign is not complete"):
+        analyze_campaign(campaign, bootstrap_samples=1)
