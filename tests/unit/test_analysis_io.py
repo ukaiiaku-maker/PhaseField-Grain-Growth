@@ -26,9 +26,11 @@ from grain_growth_pf.analysis.grain_tracks import ensemble_radius
 from grain_growth_pf.analysis.campaign import (
     _boundary_metrics,
     _burst_size_ccdf,
+    _event_diagnostics,
     _event_rate_observation,
     _fit_window,
     _spatial_motion_correlation,
+    _trajectory_distributions,
 )
 from grain_growth_pf.disconnections.mode import K_B_EV
 from grain_growth_pf.io.event_ledger import EVENT_FIELDS, EventLedger
@@ -149,6 +151,9 @@ def test_spatial_motion_correlation_and_burst_ccdf_are_reported():
     assert ccdf["samples"] == 3
     assert ccdf["probability"][0] == 1.0
     assert np.all(np.diff(ccdf["probability"]) <= 0)
+    distributions = _trajectory_distributions([tracks])
+    assert distributions["absolute_area_rate"]["samples"] == 4
+    assert distributions["burst_area_increment"]["samples"] > 0
 
 
 def test_event_rate_observation_retains_zero_event_exposure(tmp_path):
@@ -174,6 +179,28 @@ def test_event_rate_observation_retains_zero_event_exposure(tmp_path):
     assert count == 2
     assert np.isclose(exposure, 2.5)
 
+
+def test_event_diagnostics_separates_primitive_rows_and_climb_resistance(tmp_path):
+    pd.DataFrame({
+        "time": [1.0, 1.0, 2.0, 3.0, 3.0],
+        "entity_id": ["gb", "gb", "gb", "gb", "gb"],
+        "event_type": ["activation_hit", "compatibility_release",
+                       "climb_nucleation", "climb_exchange", "climb_quota_completion"],
+        "instantaneous_rate": [4.0, 4.0, 2.0, 1.0, 1.0],
+        "shear_strain_increment": [0.0, 0.2, 0.0, 0.0, 0.1],
+        "volumetric_strain_increment": [0.0, 0.0, 0.0, 0.0, 0.3],
+    }).to_csv(tmp_path / "events.csv", index=False)
+    detail = _event_diagnostics([tmp_path])
+    assert detail["primitive_event_counts"] == {
+        "activation_hit": 1, "climb_exchange": 1, "climb_nucleation": 1,
+    }
+    assert detail["release_summary_counts"] == {
+        "climb_quota_completion": 1, "compatibility_release": 1,
+    }
+    assert np.isclose(
+        detail["climb_expected_resistance_fraction"]["climb_exchange"], 2 / 3
+    )
+    assert np.isclose(detail["accumulated_event_strain"]["signed_shear"], 0.3)
 
 def test_analytical_limits():
     t = np.arange(4.0)

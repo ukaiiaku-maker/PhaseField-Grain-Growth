@@ -75,6 +75,10 @@ def _growth_window_arrays(run_dirs: list[Path], measure: str = "R_A") -> tuple[n
         "initial_mean_grain_count": float(mean_count[0]),
         "end_mean_grain_count": float(mean_count[end - 1]),
         "samples": len(time),
+        "relative_radius_change": float(
+            (radii[:, -1].mean() - radii[:, 0].mean())
+            / max(radii[:, 0].mean(), np.finfo(float).tiny)
+        ),
     }
     return time, radii, metadata
 
@@ -235,6 +239,46 @@ def _burst_size_ccdf(per_grain_frames: list[pd.DataFrame]) -> dict[str, object]:
     }
 
 
+def _trajectory_distributions(per_grain_frames: list[pd.DataFrame]) -> dict[str, object]:
+    """Compact grain-scale rate, waiting, burst-duration, and burst-size data."""
+    rates, waits, durations, burst_sizes = [], [], [], []
+    for frame in per_grain_frames:
+        for _, grain in frame.groupby("grain_id"):
+            grain = grain.sort_values("time")
+            time = grain["time"].to_numpy(float)
+            area = grain["area"].to_numpy(float)
+            if len(time) < 3:
+                continue
+            dt = np.diff(time)
+            valid = dt > 0
+            if np.count_nonzero(valid) < 2:
+                continue
+            magnitude = np.abs(np.diff(area)[valid] / dt[valid])
+            interval_time = time[1:][valid]
+            interval_dt = dt[valid]
+            increments = np.abs(np.diff(area)[valid])
+            rates.extend(magnitude.tolist())
+            positive = magnitude[magnitude > 1e-12]
+            if not len(positive):
+                continue
+            threshold = float(np.quantile(positive, 0.9))
+            active = magnitude >= threshold
+            starts = np.flatnonzero(active & ~np.r_[False, active[:-1]])
+            ends = np.flatnonzero(active & ~np.r_[active[1:], False])
+            if len(starts) > 1:
+                waits.extend((interval_time[starts[1:]] - interval_time[ends[:-1]]).tolist())
+            for start, end in zip(starts, ends):
+                durations.append(float(interval_dt[start:end + 1].sum()))
+                burst_sizes.append(float(increments[start:end + 1].sum()))
+    return {
+        "absolute_area_rate": _quantiles(rates),
+        "interburst_waiting_time": _quantiles(waits),
+        "burst_duration": _quantiles(durations),
+        "burst_area_increment": _quantiles(burst_sizes),
+        "burst_definition": "contiguous intervals at or above each grain's 90th percentile positive absolute area rate",
+    }
+
+
 def _neighbor_growth_correlation(per_grain: pd.DataFrame) -> float:
     rates, neighbors = [], []
     for _, grain in per_grain.groupby("grain_id"):
@@ -294,6 +338,82 @@ def _event_rate_observation(run_dir: Path) -> tuple[int, float]:
         return 0, exposure
     events = _activation_rows(pd.read_csv(event_path))
     return len(events), exposure
+
+
+def _quantiles(values: list[float] | np.ndarray) -> dict[str, object]:
+    array = np.asarray(values, dtype=float)
+    array = array[np.isfinite(array)]
+    if not len(array):
+        return {"samples": 0, "quantiles": {}}
+    levels = np.asarray([0.0, 0.1, 0.25, 0.5, 0.75, 0.9, 0.99, 1.0])
+    return {
+        "samples": int(len(array)),
+        "quantiles": {
+            f"q{int(level * 100):02d}": float(value)
+            for level, value in zip(levels, np.quantile(array, levels))
+        },
+    }
+
+
+def _event_diagnostics(run_dirs: list[Path]) -> dict[str, object]:
+    """Summarize primitive first passages without mixing independent clocks."""
+    frames = []
+    for run_index, run_dir in enumerate(run_dirs):
+        path = run_dir / "events.csv"
+        if not path.exists() or path.stat().st_size == 0:
+            continue
+        frame = pd.read_csv(path)
+        if frame.empty:
+            continue
+        frame["realization"] = run_index
+        frames.append(frame)
+    if not frames:
+        return {"primitive_event_counts": {}, "waiting_times": _quantiles([])}
+    all_events = pd.concat(frames, ignore_index=True)
+    primitive = _activation_rows(all_events)
+    counts = primitive["event_type"].value_counts().sort_index().to_dict()
+    waiting_times: list[float] = []
+    for _, entity in primitive.groupby(["realization", "entity_id"], dropna=False):
+        differences = np.diff(np.sort(entity["time"].to_numpy(float)))
+        waiting_times.extend(differences[differences > 0].tolist())
+    stage_residence = {}
+    stage_rows = primitive[primitive["event_type"].isin({
+        "climb_nucleation", "climb_exchange", "climb_transport",
+    })]
+    resistance = {}
+    for event_type, rows in stage_rows.groupby("event_type"):
+        rates = pd.to_numeric(rows["instantaneous_rate"], errors="coerce").to_numpy(float)
+        rates = rates[np.isfinite(rates) & (rates > 0)]
+        stage_residence[event_type] = _quantiles(1.0 / rates)
+        resistance[event_type] = float(np.mean(1.0 / rates)) if len(rates) else np.nan
+    finite_resistance = {key: value for key, value in resistance.items() if np.isfinite(value)}
+    total_resistance = sum(finite_resistance.values())
+    resistance_fraction = {
+        key: value / total_resistance for key, value in finite_resistance.items()
+    } if total_resistance else {}
+    shear_increment = (
+        pd.to_numeric(all_events["shear_strain_increment"], errors="coerce")
+        if "shear_strain_increment" in all_events else pd.Series(dtype=float)
+    )
+    volumetric_increment = (
+        pd.to_numeric(all_events["volumetric_strain_increment"], errors="coerce")
+        if "volumetric_strain_increment" in all_events else pd.Series(dtype=float)
+    )
+    return {
+        "primitive_event_counts": {str(key): int(value) for key, value in counts.items()},
+        "waiting_times_by_entity": _quantiles(waiting_times),
+        "climb_expected_stage_residence": stage_residence,
+        "climb_expected_resistance_fraction": resistance_fraction,
+        "release_summary_counts": {
+            str(key): int(value) for key, value in
+            all_events[~all_events.index.isin(primitive.index)]["event_type"]
+            .value_counts().sort_index().items()
+        },
+        "accumulated_event_strain": {
+            "signed_shear": float(shear_increment.fillna(0.0).sum()),
+            "signed_volumetric": float(volumetric_increment.fillna(0.0).sum()),
+        },
+    }
 
 
 def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[dict[str, object], dict]:
@@ -393,6 +513,8 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
             )
         },
         "burst_size_ccdf": _burst_size_ccdf([item[1] for item in loaded]),
+        "trajectory_distributions": _trajectory_distributions([item[1] for item in loaded]),
+        "event_diagnostics": _event_diagnostics(run_dirs),
         "correlations": {
             "velocity_internal_shear": _nanmean_metric(
                 boundary_metrics, "velocity_internal_shear_correlation"
@@ -529,6 +651,11 @@ def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
         common = fit_common_exponent(
             series_times, [radii.mean(axis=0) for radii in series_radii]
         )
+        minimum_relative_growth = 0.02
+        observable = all(
+            metadata["relative_radius_change"] >= minimum_relative_growth
+            for metadata in window_metadata
+        )
         digest = hashlib.sha256(f"temperature-series:{regime}".encode()).digest()
         rng = np.random.default_rng(int.from_bytes(digest[:8], "little"))
         bootstrap_n, bootstrap_k, bootstrap_q, bootstrap_event_q = [], [], [], []
@@ -543,7 +670,7 @@ def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
             sample_fit = fit_common_exponent(series_times, sampled_mean_radii)
             bootstrap_n.append(sample_fit.exponent)
             bootstrap_k.append(sample_fit.coefficients)
-            if np.all(sample_fit.coefficients > 0):
+            if observable and np.all(sample_fit.coefficients > 0):
                 bootstrap_q.append(fit_activation_energy(
                     temperatures, sample_fit.coefficients
                 ).activation_energy_ev)
@@ -553,11 +680,20 @@ def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
                 ).activation_energy_ev)
         bootstrap_k_array = np.asarray(bootstrap_k)
         n_low, n_high = np.quantile(bootstrap_n, [0.025, 0.975])
-        activation = fit_activation_energy(temperatures, common.coefficients)
-        local_temperature, local_q = local_activation_energies(
-            temperatures, common.coefficients
+        activation = (
+            fit_activation_energy(temperatures, common.coefficients)
+            if observable else None
         )
-        q_low, q_high = np.quantile(bootstrap_q, [0.025, 0.975])
+        if activation is not None:
+            local_temperature, local_q = local_activation_energies(
+                temperatures, common.coefficients
+            )
+        else:
+            local_temperature = local_q = np.asarray([])
+        q_interval = (
+            np.quantile(bootstrap_q, [0.025, 0.975]).tolist()
+            if bootstrap_q else None
+        )
         pooled_event_counts = np.asarray([
             sum(observation[0] for observation in observations)
             for observations in event_observations
@@ -594,7 +730,8 @@ def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
                 common.coefficients[position], (k_high - k_low) / 2.0
             ]
             summary.loc[row_index, ["Q_app", "Q_app_ci"]] = [
-                activation.activation_energy_ev, (q_high - q_low) / 2.0
+                activation.activation_energy_ev if activation else np.nan,
+                (q_interval[1] - q_interval[0]) / 2.0 if q_interval else np.nan,
             ]
             detail_by_key[(regime, float(temperature))]["temperature_series_fit"] = {
                 "common_n": common.exponent,
@@ -602,12 +739,18 @@ def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
                 "normalized_rmse": common.normalized_rmse,
                 "temperatures": temperatures.tolist(),
                 "coefficients": common.coefficients.tolist(),
-                "activation_energy_ev": activation.activation_energy_ev,
-                "activation_energy_95pct": [float(q_low), float(q_high)],
-                "arrhenius_r_squared": activation.r_squared,
-                "arrhenius_standard_error_ev": activation.standard_error_ev,
+                "activation_energy_ev": (
+                    activation.activation_energy_ev if activation else None
+                ),
+                "activation_energy_95pct": q_interval,
+                "arrhenius_r_squared": activation.r_squared if activation else None,
+                "arrhenius_standard_error_ev": (
+                    activation.standard_error_ev if activation else None
+                ),
                 "local_activation_midpoint_temperature": local_temperature.tolist(),
                 "local_activation_energy_ev": local_q.tolist(),
+                "kinetically_observable": observable,
+                "minimum_required_relative_radius_change": minimum_relative_growth,
                 "bootstrap_samples": bootstrap_samples,
                 "window_by_temperature": window_metadata,
                 "event_level": {

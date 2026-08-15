@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from grain_growth_pf.analysis.campaign import _fit_window, analyze_campaign
+from grain_growth_pf.analysis.campaign import _activation_rows, _fit_window, analyze_campaign
 from grain_growth_pf.analysis.grain_tracks import ensemble_radius, load_tracks
 
 
@@ -108,24 +108,30 @@ def _representative_figure(path: Path, target: Path) -> None:
     tracks = load_tracks(path / "grain_tracks.csv")
     counts = tracks.groupby("grain_id").size().sort_values(ascending=False)
     selected = counts.head(8).index
-    fig, (area_axis, radius_axis, neighbor_axis) = plt.subplots(1, 3, figsize=(13, 4))
+    fig, axes = plt.subplots(2, 2, figsize=(11, 7))
+    area_axis, radius_axis, rate_axis, neighbor_axis = axes.flat
     for grain_id in selected:
         grain = tracks[tracks["grain_id"] == grain_id].sort_values("time")
         area_axis.plot(grain["time"], grain["area"], lw=1, label=str(grain_id))
         radius_axis.plot(grain["time"], grain["radius"], lw=1)
         if len(grain) > 1:
             rate = np.diff(grain["area"].to_numpy(float)) / np.diff(grain["time"].to_numpy(float))
+            rate_axis.plot(grain["time"].to_numpy(float)[1:], rate, lw=0.8)
             neighbor_axis.scatter(grain["neighbors"].to_numpy(float)[:-1], rate, s=7, alpha=0.35)
     event_path = path / "events.csv"
     if event_path.exists() and event_path.stat().st_size:
-        events = pd.read_csv(event_path)
+        events = _activation_rows(pd.read_csv(event_path))
         if not events.empty and "time" in events:
-            for event_time in events["time"].to_numpy(float)[:200]:
-                area_axis.axvline(event_time, color="k", alpha=0.035, lw=0.6)
-                radius_axis.axvline(event_time, color="k", alpha=0.035, lw=0.6)
+            event_types = sorted(events["event_type"].dropna().unique())
+            colors = {name: f"C{index % 10}" for index, name in enumerate(event_types)}
+            for _, event in events.head(300).iterrows():
+                event_time = float(event["time"])
+                color = colors.get(event.get("event_type"), "k")
+                for axis in (area_axis, radius_axis, rate_axis):
+                    axis.axvline(event_time, color=color, alpha=0.045, lw=0.6)
     area_axis.set_ylabel("grain area")
-    radius_axis.set_ylabel("equivalent radius")
-    radius_axis.set_xlabel("time")
+    radius_axis.set(ylabel="equivalent radius", xlabel="time")
+    rate_axis.set(xlabel="time", ylabel="area growth rate")
     neighbor_axis.set(xlabel="neighbor number", ylabel="area growth rate")
     area_axis.legend(title="grain", ncol=4, frameon=False, fontsize=7)
     fig.suptitle(path.name)
@@ -163,22 +169,35 @@ def _event_figure(paths: list[Path], target: Path) -> None:
         if event_path.exists() and event_path.stat().st_size:
             frame = pd.read_csv(event_path)
             if not frame.empty:
+                frame["realization"] = len(frames)
                 frames.append(frame)
     if not frames:
         return
-    events = pd.concat(frames, ignore_index=True)
-    times = np.sort(events["time"].to_numpy(float))
-    waits = np.diff(times)
-    sizes = events.get("packet_size", pd.Series(np.ones(len(events)))).to_numpy(float)
-    fig, axes = plt.subplots(1, 3, figsize=(12, 3.6))
-    axes[0].hist(waits[waits > 0], bins=35, density=True, color="C0", alpha=0.8)
+    events = _activation_rows(pd.concat(frames, ignore_index=True))
+    waits = []
+    for _, entity in events.groupby(["realization", "entity_id"], dropna=False):
+        differences = np.diff(np.sort(entity["time"].to_numpy(float)))
+        waits.extend(differences[differences > 0].tolist())
+    sizes = []
+    for path in paths:
+        tracks = load_tracks(path / "grain_tracks.csv")
+        for _, grain in tracks.groupby("grain_id"):
+            increments = np.abs(np.diff(grain.sort_values("time")["area"].to_numpy(float)))
+            sizes.extend(increments[increments > 1e-12].tolist())
+    waits, sizes = np.asarray(waits), np.asarray(sizes)
+    fig, axes = plt.subplots(2, 2, figsize=(9, 7))
+    axes = axes.flat
+    axes[0].hist(waits, bins=35, density=True, color="C0", alpha=0.8)
     axes[0].set(xlabel="waiting time", ylabel="density")
-    axes[1].hist(sizes[np.isfinite(sizes)], bins=25, color="C1", alpha=0.8)
-    axes[1].set(xlabel="packet size", ylabel="count")
+    axes[1].hist(sizes, bins=35, color="C1", alpha=0.8)
+    axes[1].set(xlabel="grain burst area increment", ylabel="count")
     ordered = np.sort(sizes[np.isfinite(sizes) & (sizes > 0)])
     if len(ordered):
         axes[2].loglog(ordered, 1.0 - np.arange(len(ordered)) / len(ordered), color="C2")
-    axes[2].set(xlabel="event packet/burst size", ylabel="CCDF")
+    axes[2].set(xlabel="grain burst area increment", ylabel="CCDF")
+    type_counts = events["event_type"].value_counts().sort_index()
+    axes[3].barh(type_counts.index.astype(str), type_counts.to_numpy(), color="C3")
+    axes[3].set(xlabel="primitive event count", ylabel="event type")
     _save(fig, target)
 
 
@@ -188,6 +207,11 @@ def plot_campaign(campaign_dir: str | Path, output_dir: str | Path | None = None
     output = Path(output_dir) if output_dir else campaign_dir / "plots"
     summary_file = Path(summary_path) if summary_path else campaign_dir / "mechanism_summary.csv"
     summary = pd.read_csv(summary_file) if summary_file.exists() else analyze_campaign(campaign_dir)
+    diagnostics_path = summary_file.with_name(f"{summary_file.stem}_diagnostics.json")
+    diagnostics = json.loads(diagnostics_path.read_text()) if diagnostics_path.exists() else []
+    detail_by_key = {
+        (item["regime"], float(item["temperature"])): item for item in diagnostics
+    }
     campaign = json.loads((campaign_dir / "campaign_manifest.json").read_text())
     grouped: dict[tuple[str, float], list[Path]] = {}
     for raw in campaign["runs"]:
@@ -215,9 +239,21 @@ def plot_campaign(campaign_dir: str | Path, output_dir: str | Path | None = None
         if len(group) < 4 or np.any(group["K"] <= 0):
             continue
         ordered = group.sort_values("temperature")
-        fig, axis = plt.subplots(figsize=(6, 4))
-        axis.errorbar(1.0 / ordered["temperature"], np.log(ordered["K"]),
-                      yerr=ordered["K_ci"] / ordered["K"], marker="o", capsize=3)
-        axis.set(xlabel=r"$1/T$ (K$^{-1}$)", ylabel=r"$\ln K_n$", title=f"{regime} Arrhenius scaling")
+        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+        axes[0].errorbar(1.0 / ordered["temperature"], np.log(ordered["K"]),
+                         yerr=ordered["K_ci"] / ordered["K"], marker="o", capsize=3)
+        axes[0].set(xlabel=r"$1/T$ (K$^{-1}$)", ylabel=r"$\ln K_n$",
+                    title="coarse-grained growth")
+        detail = detail_by_key.get((regime, float(ordered["temperature"].iloc[0])), {})
+        temperature_fit = detail.get("temperature_series_fit", {})
+        event_level = temperature_fit.get("event_level", {})
+        event_rates = np.asarray(event_level.get("rates", []), dtype=float)
+        temperatures = np.asarray(temperature_fit.get("temperatures", []), dtype=float)
+        valid = (event_rates > 0) & np.isfinite(event_rates)
+        if len(event_rates) and np.count_nonzero(valid) >= 2:
+            axes[1].plot(1.0 / temperatures[valid], np.log(event_rates[valid]), "o-")
+        axes[1].set(xlabel=r"$1/T$ (K$^{-1}$)", ylabel="ln primitive event rate",
+                    title="event-level activation")
+        fig.suptitle(f"{regime} Arrhenius diagnostics")
         _save(fig, output / f"{regime}-arrhenius")
     return output
