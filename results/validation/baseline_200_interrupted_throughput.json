@@ -1,0 +1,10 @@
+{
+  "campaign": "results/campaigns/20260815T022021Z-0d79469d6a",
+  "launch_git_sha": "8e3c32036a7e1fbf0024e0054dcac78e5f9117ec",
+  "manifest_git_sha": "8e3c32036a7e1fbf0024e0054dcac78e5f9117ec-dirty",
+  "status": "intentionally_interrupted_after_checkpoint",
+  "steps_completed": 65,
+  "grain_counts_by_seed": [126, 123, 122, 115, 121],
+  "reason": "The original 700-step termination estimate was unnecessary: every seed had already crossed or approached the objective 60%-population fit endpoint by step 65. The run also exposed that generated cache metadata made manifests appear dirty despite clean source.",
+  "corrective_action": "Ignore generated initial-condition caches, pass the launch SHA explicitly to workers, compute only globally active phase slices, and terminate the archival rerun after it passes 100 grains."
+}

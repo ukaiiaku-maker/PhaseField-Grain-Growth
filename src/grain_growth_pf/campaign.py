@@ -18,11 +18,11 @@ from grain_growth_pf.pf.initial_conditions import initial_condition_identity, pr
 from grain_growth_pf.simulation import EventResolvedSimulation
 
 
-def _run_one(payload: tuple[dict[str, Any], str, bool]) -> dict[str, str]:
-    data, path, resume = payload
+def _run_one(payload: tuple[dict[str, Any], str, bool, str]) -> dict[str, str]:
+    data, path, resume, code_sha = payload
     try:
         config = ModelConfig.from_dict(data)
-        EventResolvedSimulation(config, path, resume=resume).run()
+        EventResolvedSimulation(config, path, resume=resume, code_sha=code_sha).run()
         return {"path": path, "status": "completed"}
     except Exception:
         Path(path).mkdir(parents=True, exist_ok=True)
@@ -142,10 +142,10 @@ def launch_campaign(spec_path: str | Path, root: str | Path = "results/campaigns
             continue
         if full_hash in resumable:
             resumed.append(resumable[full_hash])
-            payloads.append((config.to_dict(), resumable[full_hash], True))
+            payloads.append((config.to_dict(), resumable[full_hash], True, code_sha))
         else:
             run_dir = campaign_dir / f"{config.regime}-T{config.pf.temperature:g}-s{config.seed}-{run_hash}"
-            payloads.append((config.to_dict(), str(run_dir), False))
+            payloads.append((config.to_dict(), str(run_dir), False, code_sha))
     (campaign_dir / "campaign_manifest.json").write_text(json.dumps({
         "source_spec": str(spec_path), "runs": reused + [p[1] for p in payloads],
         "specification": submitted_spec,

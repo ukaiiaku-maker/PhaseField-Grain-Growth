@@ -20,10 +20,11 @@ def test_event_resolved_smoke_writes_reproducible_schema(tmp_path):
                     "attempt_frequency": 100.0, "event_domain_length": 100.0},
     )
     output = tmp_path / "run"
-    EventResolvedSimulation(config, output).run()
+    EventResolvedSimulation(config, output, code_sha="captured-launch-sha").run()
     manifest = json.loads((output / "manifest.json").read_text())
     assert manifest["status"] == "completed"
     assert manifest["config"]["seed"] == 17
+    assert manifest["git_sha"] == "captured-launch-sha"
     with (output / "grain_tracks.csv").open() as handle:
         tracks = list(csv.DictReader(handle))
     with (output / "events.csv").open() as handle:

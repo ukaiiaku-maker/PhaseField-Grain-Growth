@@ -122,11 +122,12 @@ def _child_rng(seed: int, entity_id: str) -> np.random.Generator:
 class EventResolvedSimulation:
     """Couples persistent entity clocks and compatibility state to the PF solver."""
 
-    def __init__(self, config: ModelConfig, output_dir: str | Path, resume: bool = False):
+    def __init__(self, config: ModelConfig, output_dir: str | Path, resume: bool = False,
+                 code_sha: str | None = None):
         self.config = config
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=resume)
-        self.sha = git_sha()
+        self.sha = code_sha or git_sha()
         initial_state_path = config.parameters.get("initial_state_file")
         used_cached_initial_condition = bool(initial_state_path)
         if initial_state_path:

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from pathlib import Path
 from typing import Any
 
@@ -10,6 +11,14 @@ from grain_growth_pf.config import PFConfig
 from grain_growth_pf.io.provenance import canonical_hash
 from grain_growth_pf.pf.geometry import voronoi_polycrystal
 from grain_growth_pf.pf.solver import MultiphaseFieldSolver
+
+
+def _implementation_digest() -> str:
+    digest = hashlib.sha256()
+    directory = Path(__file__).parent
+    for name in ("initial_conditions.py", "solver.py", "free_energy.py", "geometry.py"):
+        digest.update((directory / name).read_bytes())
+    return digest.hexdigest()
 
 
 def initial_condition_identity(pf: PFConfig, seed: int, parameters: dict[str, Any],
@@ -24,7 +33,7 @@ def initial_condition_identity(pf: PFConfig, seed: int, parameters: dict[str, An
         "equilibration_steps": parameters.get("equilibration_steps", 0),
         "equilibrate_to_grains": parameters.get("equilibrate_to_grains"),
         "equilibration_max_steps": parameters.get("equilibration_max_steps", 5000),
-        "code_sha": code_sha,
+        "implementation_sha256": _implementation_digest(),
     }
     return canonical_hash(controls)
 

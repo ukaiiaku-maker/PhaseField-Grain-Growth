@@ -76,8 +76,10 @@ class MultiphaseFieldSolver:
         cfg = self.config
         requested = cfg.time_step if dt is None else dt
         used_dt = min(requested, self.stable_dt()) if cfg.adaptive_stepping else requested
+        active_indices = np.flatnonzero(self.active_phases)
+        eta_active = self.eta[active_indices]
         mu = chemical_potential(
-            self.eta, cfg.gb_energy, cfg.interface_width,
+            eta_active, cfg.gb_energy, cfg.interface_width,
             cfg.grid_spacing, cfg.boundary_conditions,
         )
         # A globally active phase may advance by one stencil cell beyond its
@@ -85,20 +87,11 @@ class MultiphaseFieldSolver:
         # neighbor switches because a phase can never enter a zero-valued
         # adjacent pixel. The one-cell dilation permits local topology changes
         # without allowing remote grain nucleation.
-        present = self.eta > 1e-12
-        active = present.copy()
-        for axis in (-2, -1):
-            forward = np.roll(present, 1, axis=axis)
-            backward = np.roll(present, -1, axis=axis)
-            if cfg.boundary_conditions != "periodic":
-                first = [slice(None)] * present.ndim
-                last = [slice(None)] * present.ndim
-                first[axis] = 0
-                last[axis] = -1
-                forward[tuple(first)] = False
-                backward[tuple(last)] = False
-            active |= forward | backward
-        active &= self.active_phases[:, None, None]
+        present = eta_active > 1e-12
+        # At eta=0 the bulk derivative vanishes, so mu<0 identifies exactly
+        # those stencil-adjacent cells where gradient energy favors entry.
+        # Reusing mu avoids four large boolean roll temporaries per step.
+        active = present | (mu < -1e-14)
         count = np.maximum(active.sum(axis=0, keepdims=True), 1)
         lagrange = (mu * active).sum(axis=0, keepdims=True) / count
         # For the chosen equilibrium profile integral(|grad eta|^2) = 1/(3w).
@@ -109,16 +102,17 @@ class MultiphaseFieldSolver:
             ext = np.asarray(self.driving(self.eta, self.time), dtype=float)
             if ext.shape != self.eta.shape:
                 raise ValueError("driving callback returned the wrong shape")
-            ext -= ext.mean(axis=0, keepdims=True)
-            rate += kinetic * ext
+            ext_active = ext[active_indices]
+            ext_active -= ext_active.mean(axis=0, keepdims=True)
+            rate += kinetic * ext_active
         rate *= self.mobility_scale[None, :, :]
-        trial = self.eta + used_dt * rate
+        trial = eta_active + used_dt * rate
         if float(trial.min()) >= 0.0 and float(trial.max()) <= 1.0:
             # The constrained rate has zero local sum. Normalization removes
             # only roundoff and avoids an O(N log N) simplex sort at every pixel.
-            self.eta = trial / trial.sum(axis=0, keepdims=True)
+            self.eta[active_indices] = trial / trial.sum(axis=0, keepdims=True)
         else:
-            self.eta = project_simplex(trial)
+            self.eta[active_indices] = project_simplex(trial)
         extinct = self.active_phases & (
             np.max(self.eta, axis=(1, 2)) < cfg.grain_extinction_threshold
         )

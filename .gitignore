@@ -24,7 +24,7 @@ graingrowth_polycrystal_TJ_hazard_gate_RENEWAL_patched_v4 copy.txt
 results/runs/
 results/campaigns/
 results/checkpoints/
+results/initial_conditions/
 *.npz
 *.npy
 *.parquet
-
