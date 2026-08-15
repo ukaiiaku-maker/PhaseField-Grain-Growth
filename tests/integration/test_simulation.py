@@ -226,6 +226,37 @@ def test_packet_release_stops_window_at_completion_time(tmp_path):
     simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
 
 
+def test_single_hit_blocked_gb_ledger_has_one_hit_per_release(tmp_path):
+    config = ModelConfig(
+        regime="single-hit-ledger", seed=198,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01),
+        compatibility_model="geometric_surrogate",
+        active_modules=("gb_compatibility", "single_hit_poisson"),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={
+            "initial_grains": 5, "required_hits": 1,
+            "attempt_frequency": 1e6, "barrier_core_ev": 0.0,
+            "b_coefficient_ev": 0.0, "h_coefficient_ev": 0.0,
+        },
+    )
+    output = tmp_path / "single-hit-ledger"
+    simulation = EventResolvedSimulation(config, output)
+    simulation.solver.step_number = 1
+    simulation.solver.time = config.pf.time_step
+    for domain in simulation.domains.values():
+        domain.blocked = True
+        simulation._begin_activation_window(domain)
+        domain.activation.clock.threshold = 1e-9
+    simulation._update_physics()
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+    with (output / "events.csv").open() as handle:
+        event_types = [row["event_type"] for row in csv.DictReader(handle)]
+    hits = event_types.count("activation_hit")
+    releases = event_types.count("compatibility_release")
+    assert hits == releases
+    assert releases > 0
+
+
 def test_accumulated_atomic_step_triggers_finite_pf_release(tmp_path):
     config = ModelConfig(
         regime="subgrid-release", seed=92,

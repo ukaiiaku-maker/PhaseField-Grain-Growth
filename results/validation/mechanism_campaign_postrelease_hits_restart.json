@@ -1,0 +1,42 @@
+{
+  "status": "rejected_for_same_step_postrelease_hit_sampling",
+  "audit_time_utc": "2026-08-15T11:40:43Z",
+  "preserved_campaign": "results/campaigns/20260815T094120Z-af440f638c",
+  "simulation_git_sha": "0cea3a339b0c295294f3283d31dc4ef6ff32f03c",
+  "source_config": "configs/production/mechanism_scaling_200.yaml",
+  "source_config_sha256": "28174d22b8ed4ef6c823ec90b32ffbc695b4c362f655f2f0f255db2436a71273",
+  "workers": 10,
+  "runs_total": 165,
+  "runs_started": 33,
+  "runs_completed": 23,
+  "runs_checkpointed_at_interrupt": 10,
+  "runs_not_started": 132,
+  "tracebacks_before_manual_interrupt": 0,
+  "g1_five_seed_qc": {
+    "primitive_activation_hits": 98540,
+    "compatibility_releases": 79289,
+    "excess_hits": 19251,
+    "excess_fraction_of_releases": 0.24279610034178585,
+    "free_exponent_n": 1.0,
+    "fixed_n2_K": 0.17973,
+    "fixed_n2_r2_delta_from_free_fit": -0.02895,
+    "jerkiness_cv": 1.326,
+    "fano_factor": 138.27,
+    "pinned_fraction": 0.2374,
+    "active_reversal_fraction": 0.6431
+  },
+  "root_cause": "The cumulative clock integrated the entire PF timestep and emitted multiple first passages even though the first K-hit completion immediately unblocked the domain. The release caller applied one state transition, leaving later same-step hits in the primitive ledger after the applicable blocked state had ended.",
+  "corrections": [
+    "CumulativeHazardClock can stop exactly at a caller-declared maximum passage count without integrating the inapplicable timestep remainder.",
+    "MultiHitProcess can stop at the first completion, including when K-1 hits were accumulated before the call.",
+    "Blocked GB, TJ, nonserial climb, and EntityPin releases use stop-at-completion semantics.",
+    "Unblocked explicit-mode flux retains all same-step passages.",
+    "Packet-reset window age advances only to the physical completion time."
+  ],
+  "corrected_model_git_sha": "98f595c633eb68c72e9cf9f2431d9336575d2f1b",
+  "validation": {
+    "critical_stop_and_ledger_regressions": "4 passed in 1.13 s",
+    "full_tests": "77 passed in 20.16 s"
+  },
+  "policy": "All partial checkpoints, event ledgers, and trajectories remain in place. They are excluded from final inference, and the full 165-run matrix is relaunched from the corrected tested SHA."
+}
