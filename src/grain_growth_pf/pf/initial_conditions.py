@@ -16,7 +16,9 @@ from grain_growth_pf.pf.solver import MultiphaseFieldSolver
 def _implementation_digest() -> str:
     digest = hashlib.sha256()
     directory = Path(__file__).parent
-    for name in ("initial_conditions.py", "solver.py", "free_energy.py", "geometry.py"):
+    for name in (
+        "initial_conditions.py", "solver.py", "kernels.py", "free_energy.py", "geometry.py"
+    ):
         digest.update((directory / name).read_bytes())
     return digest.hexdigest()
 
