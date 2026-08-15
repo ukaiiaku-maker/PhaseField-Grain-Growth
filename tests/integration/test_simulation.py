@@ -127,3 +127,27 @@ def test_equilibration_precedes_physical_time_and_hazard(tmp_path):
     assert any(float(row["time"]) == 0 for row in rows)
     manifest = json.loads((output / "manifest.json").read_text())
     assert manifest["equilibration_steps_completed_before_time_zero"] == 3
+
+
+def test_target_equilibration_compacts_phases_before_time_zero(tmp_path):
+    config = ModelConfig(
+        regime="B0", seed=1,
+        pf=PFConfig(shape=(24, 24), interface_width=3, time_step=0.04,
+                    intrinsic_mobility=2.0, adaptive_stepping=True),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={"initial_grains": 8, "equilibration_steps": 0,
+                    "equilibrate_to_grains": 7, "equilibration_max_steps": 500},
+    )
+    output = tmp_path / "target-equilibrated"
+    simulation = EventResolvedSimulation(config, output)
+    assert simulation.solver.time == 0
+    assert simulation.solver.eta.shape[0] == 7
+    assert len(simulation.orientations) == 7
+    simulation.run()
+    manifest = json.loads((output / "manifest.json").read_text())
+    assert manifest["grains_after_equilibration"] == 7
+    assert manifest["equilibration_steps_completed_before_time_zero"] > 0
+    resumed = EventResolvedSimulation(config, output, resume=True)
+    resumed.run()
+    assert resumed.solver.eta.shape[0] == 7
+    assert len(resumed.orientations) == 7

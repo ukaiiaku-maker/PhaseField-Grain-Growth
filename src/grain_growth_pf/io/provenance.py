@@ -33,8 +33,11 @@ def canonical_hash(data: dict[str, Any]) -> str:
 
 
 def write_manifest(path: str | Path, config: dict[str, Any], status: str = "started",
-                   extra: dict[str, Any] | None = None) -> dict[str, Any]:
-    code_sha = git_sha()
+                   extra: dict[str, Any] | None = None,
+                   code_sha: str | None = None) -> dict[str, Any]:
+    # A long-running job must retain its launch revision even if the checkout
+    # advances before finalization. Callers may therefore pin the captured SHA.
+    code_sha = code_sha or git_sha()
     target = Path(path)
     previous: dict[str, Any] = {}
     if target.exists():

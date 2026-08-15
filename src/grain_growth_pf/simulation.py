@@ -130,13 +130,33 @@ class EventResolvedSimulation:
         self.driving_field = np.zeros_like(eta)
         self.solver = MultiphaseFieldSolver(eta, effective_pf, driving=None)
         equilibration_steps = int(config.parameters.get("equilibration_steps", 0))
-        if not resume and equilibration_steps:
-            self.solver.run(equilibration_steps)
+        active_original_ids = np.arange(len(orientations))
+        if not resume:
+            for _ in range(equilibration_steps):
+                self.solver.step()
+            target_grains = config.parameters.get("equilibrate_to_grains")
+            if target_grains is not None:
+                target = int(target_grains)
+                maximum = int(config.parameters.get("equilibration_max_steps", 5000))
+                while np.count_nonzero(self.solver.active_phases) > target and equilibration_steps < maximum:
+                    self.solver.step()
+                    equilibration_steps += 1
+                if np.count_nonzero(self.solver.active_phases) > target:
+                    raise RuntimeError(
+                        f"pre-equilibration retained {np.count_nonzero(self.solver.active_phases)} "
+                        f"grains after the configured maximum of {maximum} steps"
+                    )
+            if bool(config.parameters.get("compact_after_equilibration", True)):
+                active_original_ids = np.flatnonzero(self.solver.active_phases)
+                self.solver.eta = self.solver.eta[active_original_ids].copy()
+                self.solver.active_phases = np.ones(len(active_original_ids), dtype=bool)
+                self.orientations = orientations[active_original_ids].copy()
             self.solver.time = 0.0
             self.solver.step_number = 0
+            self.driving_field = np.zeros_like(self.solver.eta)
         self.solver.driving = self._driving
         self.tracker = EntityTracker(
-            orientations, config.pf.grid_spacing,
+            self.orientations, config.pf.grid_spacing,
             float(config.parameters.get("event_domain_length", 8.0)),
             periodic=config.pf.boundary_conditions == "periodic",
         )
@@ -176,10 +196,12 @@ class EventResolvedSimulation:
             self._load_checkpoint()
         else:
             write_manifest(self.output_dir / "manifest.json", config.to_dict(), "running", {
-                "initial_seed_positions": seeds.tolist(), "orientations": orientations.tolist(),
+                "initial_seed_positions": seeds.tolist(), "orientations": self.orientations.tolist(),
+                "original_orientations": orientations.tolist(),
                 "equilibration_steps_completed_before_time_zero": equilibration_steps,
                 "grains_after_equilibration": len(self.snapshot.grains),
-            })
+                "active_original_grain_ids": active_original_ids.tolist(),
+            }, code_sha=self.sha)
             self._write_tracks()
 
     def _driving(self, _eta: np.ndarray, _time: float) -> np.ndarray:
@@ -429,6 +451,7 @@ class EventResolvedSimulation:
         arrays: dict[str, np.ndarray] = {
             "eta": self.solver.eta, "mobility_scale": self.solver.mobility_scale,
             "driving_field": self.driving_field, "active_phases": self.solver.active_phases,
+            "orientations": self.orientations,
         }
         if self.full_field is not None:
             arrays["eigenstrain"] = self.full_field.eigenstrain
@@ -447,11 +470,18 @@ class EventResolvedSimulation:
             self.solver.eta = arrays["eta"].copy()
             self.solver.mobility_scale = arrays["mobility_scale"].copy()
             self.solver.active_phases = arrays["active_phases"].astype(bool).copy()
+            if "orientations" in arrays:
+                self.orientations = arrays["orientations"].copy()
             self.driving_field = arrays["driving_field"].copy()
             if self.full_field is not None and "eigenstrain" in arrays:
                 self.full_field.eigenstrain = arrays["eigenstrain"].copy()
         self.solver.time = float(state["time"])
         self.solver.step_number = int(state["step_number"])
+        self.tracker = EntityTracker(
+            self.orientations, self.config.pf.grid_spacing,
+            float(self.config.parameters.get("event_domain_length", 8.0)),
+            periodic=self.config.pf.boundary_conditions == "periodic",
+        )
         self.snapshot = self.tracker.update(self.solver.labels)
         for key, domain_state in state["domains"].items():
             if key in self.snapshot.boundaries:
@@ -495,5 +525,5 @@ class EventResolvedSimulation:
                            "failed" if failure else "completed", {
                                "failure": failure, "steps_completed": self.solver.step_number,
                                "final_grains": len(self.snapshot.grains),
-                           })
+                           }, code_sha=self.sha)
         return self.output_dir

@@ -17,6 +17,34 @@ class GrowthFit:
     fit_end: float
 
 
+@dataclass(frozen=True)
+class GrowthProfile:
+    exponents: np.ndarray
+    normalized_rmse: np.ndarray
+    residual_autocorrelation: np.ndarray
+
+
+def scan_growth_exponent(time: np.ndarray, radius: np.ndarray,
+                         exponents: np.ndarray | None = None) -> GrowthProfile:
+    """Profile the generalized growth law without optimizing an incubation time."""
+    time, radius = np.asarray(time, float), np.asarray(radius, float)
+    valid = np.isfinite(time) & np.isfinite(radius) & (radius > 0)
+    time, radius = time[valid], radius[valid]
+    if len(time) < 3:
+        raise ValueError("at least three samples are required")
+    grid = np.asarray(exponents if exponents is not None else np.linspace(1.0, 6.0, 251), float)
+    errors, autocorrelations = [], []
+    for exponent in grid:
+        _, _, residual = _linear_for_n(time, radius, float(exponent))
+        transformed = radius**exponent
+        errors.append(float(np.sqrt(np.mean(residual**2)) / max(np.std(transformed), 1e-15)))
+        autocorrelations.append(
+            float(np.corrcoef(residual[:-1], residual[1:])[0, 1])
+            if len(residual) > 2 and np.std(residual) else 0.0
+        )
+    return GrowthProfile(grid, np.asarray(errors), np.asarray(autocorrelations))
+
+
 def _linear_for_n(time: np.ndarray, radius: np.ndarray, exponent: float) -> tuple[float, float, np.ndarray]:
     y = radius**exponent
     design = np.column_stack((time, np.ones_like(time)))
@@ -52,11 +80,13 @@ def fit_growth_law(time: np.ndarray, radius: np.ndarray, n_bounds: tuple[float, 
 
 
 def bootstrap_exponent(time: np.ndarray, radii_by_realization: np.ndarray, samples: int,
-                       seed: int) -> tuple[float, float]:
+                       seed: int, transient_fraction: float = 0.2) -> tuple[float, float]:
     rng = np.random.default_rng(seed)
     radii = np.asarray(radii_by_realization, float)
     estimates = []
     for _ in range(samples):
         selection = rng.integers(0, len(radii), len(radii))
-        estimates.append(fit_growth_law(time, radii[selection].mean(axis=0)).exponent)
+        estimates.append(fit_growth_law(
+            time, radii[selection].mean(axis=0), transient_fraction=transient_fraction
+        ).exponent)
     return tuple(np.quantile(estimates, [0.025, 0.975]))
