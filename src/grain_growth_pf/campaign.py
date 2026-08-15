@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import multiprocessing as mp
+import shutil
 import time
 import traceback
 from copy import deepcopy
@@ -29,9 +30,8 @@ def _run_one(payload: tuple[dict[str, Any], str, bool, str]) -> dict[str, str]:
         failure = traceback.format_exc()
         (Path(path) / "traceback.log").write_text(failure)
         manifest_path = Path(path) / "manifest.json"
-        previous = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
         write_manifest(manifest_path, data, "failed", {"failure": failure.splitlines()[-1]},
-                       code_sha=previous.get("git_sha", git_sha()))
+                       code_sha=code_sha)
         return {"path": path, "status": "failed"}
 
 
@@ -168,5 +168,106 @@ def launch_campaign(spec_path: str | Path, root: str | Path = "results/campaigns
         "initial_condition_files": initial_condition_files,
         "status": "failed" if failures else "completed", "workers": workers,
         "reused_completed": reused, "resumed_runs": resumed, "failed_runs": failures,
+    }, indent=2) + "\n")
+    return campaign_dir
+
+
+def extend_campaign(source_campaigns: list[str | Path], max_steps: int,
+                    termination_grains: int, root: str | Path = "results/campaigns",
+                    processes: int | None = None) -> Path:
+    """Copy completed runs and continue their exact checkpoints to a new horizon.
+
+    Source directories remain immutable. Each copied run receives the current
+    code SHA and updated stopping criteria, while campaign- and run-level
+    manifests retain the source checkpoint provenance.
+    """
+    if max_steps <= 0 or termination_grains <= 0:
+        raise ValueError("extension stopping criteria must be positive")
+    sources: list[tuple[Path, dict[str, Any], dict[str, Any]]] = []
+    seen: set[tuple[str, float, int]] = set()
+    for campaign_path in map(Path, source_campaigns):
+        campaign_manifest = json.loads((campaign_path / "campaign_manifest.json").read_text())
+        for raw_path in campaign_manifest["runs"]:
+            run_path = Path(raw_path)
+            manifest = json.loads((run_path / "manifest.json").read_text())
+            config = manifest["config"]
+            key = (config["regime"], float(config["pf"]["temperature"]), int(config["seed"]))
+            if key in seen:
+                raise ValueError(f"duplicate source realization {key}")
+            if manifest.get("status") != "completed":
+                raise ValueError(f"source run is not completed: {run_path}")
+            checkpoint_path = run_path / "checkpoint.json"
+            if not checkpoint_path.exists() or not (run_path / "checkpoint.npz").exists():
+                raise ValueError(f"source run lacks an exact checkpoint: {run_path}")
+            checkpoint = json.loads(checkpoint_path.read_text())
+            if int(checkpoint["step_number"]) >= max_steps:
+                raise ValueError(f"source run already reached requested horizon: {run_path}")
+            sources.append((run_path, manifest, checkpoint))
+            seen.add(key)
+    if not sources:
+        raise ValueError("no source runs were found")
+
+    code_sha = git_sha()
+    identity_payload = {
+        "sources": [str(item[0]) for item in sources],
+        "max_steps": max_steps,
+        "termination_grains": termination_grains,
+        "git_sha": code_sha,
+    }
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    campaign_dir = Path(root) / f"{stamp}-{canonical_hash(identity_payload)[:10]}"
+    campaign_dir.mkdir(parents=True, exist_ok=False)
+    payloads: list[tuple[dict[str, Any], str, bool, str]] = []
+    provenance: dict[str, dict[str, Any]] = {}
+    for source, manifest, checkpoint in sorted(
+        sources, key=lambda item: int(item[1]["config"]["seed"])
+    ):
+        config = ModelConfig.from_dict(manifest["config"])
+        config = replace(config, max_steps=max_steps, termination_grains=termination_grains)
+        full_hash = canonical_hash({"config": config.to_dict(), "git_sha": code_sha})
+        target = campaign_dir / (
+            f"{config.regime}-T{config.pf.temperature:g}-s{config.seed}-{full_hash[:12]}"
+        )
+        shutil.copytree(source, target)
+        target_key = str(target)
+        provenance[target_key] = {
+            "source_run": str(source),
+            "source_git_sha": manifest["git_sha"],
+            "source_config_sha256": manifest["config_sha256"],
+            "checkpoint_step": int(checkpoint["step_number"]),
+            "checkpoint_time": float(checkpoint["time"]),
+        }
+        payloads.append((config.to_dict(), target_key, True, code_sha))
+
+    manifest_path = campaign_dir / "campaign_manifest.json"
+    manifest_path.write_text(json.dumps({
+        "extension_sources": [str(Path(path)) for path in source_campaigns],
+        "runs": [payload[1] for payload in payloads],
+        "max_steps": max_steps,
+        "termination_grains": termination_grains,
+        "restart_provenance": provenance,
+        "status": "running",
+    }, indent=2) + "\n")
+    workers = min(processes or max(1, mp.cpu_count() - 1), len(payloads))
+    if workers == 1:
+        outcomes = [_run_one(payload) for payload in payloads]
+    else:
+        with mp.get_context("spawn").Pool(workers) as pool:
+            outcomes = pool.map(_run_one, payloads)
+    failures = [outcome["path"] for outcome in outcomes if outcome["status"] != "completed"]
+    for outcome in outcomes:
+        run_manifest_path = Path(outcome["path"]) / "manifest.json"
+        run_manifest = json.loads(run_manifest_path.read_text())
+        run_manifest["restart_provenance"] = provenance[outcome["path"]]
+        run_manifest_path.write_text(json.dumps(run_manifest, indent=2) + "\n")
+    manifest_path.write_text(json.dumps({
+        "extension_sources": [str(Path(path)) for path in source_campaigns],
+        "runs": [payload[1] for payload in payloads],
+        "max_steps": max_steps,
+        "termination_grains": termination_grains,
+        "restart_provenance": provenance,
+        "status": "failed" if failures else "completed",
+        "workers": workers,
+        "failed_runs": failures,
     }, indent=2) + "\n")
     return campaign_dir
