@@ -58,6 +58,57 @@ def test_qiu_full_field_backend_smoke(tmp_path):
     assert np.isclose(strain_sum, simulation.accumulated_shear_strain)
 
 
+def test_continuous_qiu_reference_converts_boundary_motion_to_eigenstrain(tmp_path):
+    config = ModelConfig(
+        regime="Q1", seed=19,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01,
+                    intrinsic_mobility=0.1, adaptive_stepping=True),
+        mechanics_backend="qiu_full_field", active_modules=("qiu_reference_shear",),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={"initial_grains": 5, "easy_beta": 0.5},
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "qiu-continuous")
+    for segment in simulation.snapshot.boundaries.values():
+        domain = simulation.domains[segment.entity_id]
+        domain.previous_area_i -= 1.0
+        domain.previous_area_j += 1.0
+        domain.previous_time = -config.pf.time_step
+    simulation.solver.step_number = 1
+    simulation._update_physics()
+    assert simulation.full_field is not None
+    assert np.any(simulation.full_field.eigenstrain != 0)
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
+def test_mixed_event_releases_shear_and_free_volume_together(tmp_path):
+    config = ModelConfig(
+        regime="SC2", seed=23,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01,
+                    intrinsic_mobility=0.1, adaptive_stepping=True),
+        mechanics_backend="local_memory", compatibility_model="explicit_modes",
+        active_modules=("mixed_shear_climb_event",), output_cadence=1,
+        max_steps=1, termination_grains=1,
+        parameters={"initial_grains": 5, "attempt_frequency": 100.0,
+                    "barrier_core_ev": 0.0, "b_coefficient_ev": 0.0,
+                    "h_coefficient_ev": 0.0, "shear_trigger": 0.1,
+                    "climb_trigger_quota": 0.1},
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "mixed")
+    for domain in simulation.domains.values():
+        domain.shear.state = 1.0
+        domain.free_volume.required_total = 1.0
+    simulation.solver.step_number = 1
+    simulation.solver.time = config.pf.time_step
+    simulation._update_physics()
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+    with (tmp_path / "mixed" / "events.csv").open() as handle:
+        events = list(csv.DictReader(handle))
+    assert events
+    assert all(row["barrier_type"] != "easy" for row in events)
+    assert any(float(row["release_Delta_s"]) > 0 and float(row["release_Delta_q"]) > 0
+               for row in events)
+
+
 def test_event_simulation_checkpoint_restart_is_exact(tmp_path):
     config = ModelConfig(
         regime="G2", seed=44,
