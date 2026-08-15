@@ -5,7 +5,14 @@ import numpy as np
 import pandas as pd
 
 from grain_growth_pf.analysis.activation_energy import fit_activation_energy
-from grain_growth_pf.analysis.analytical_models import asymptotic_exponent, intrinsic_radius, poisson_activity, series_activity
+from grain_growth_pf.analysis.analytical_models import (
+    asymptotic_exponent,
+    crossover_radius_prediction,
+    fit_crossover_growth,
+    intrinsic_radius,
+    poisson_activity,
+    series_activity,
+)
 from grain_growth_pf.analysis.growth_law import (
     fit_common_exponent,
     fit_growth_law,
@@ -107,6 +114,22 @@ def test_analytical_limits():
     assert np.isclose(poisson_activity(1, 2), 1 - np.exp(-2))
     assert np.isclose(series_activity(0.5, 0.25), 1 / 6)
     assert asymptotic_exponent(1, 3) == 5
+
+
+def test_additive_mechanistic_growth_fits_recover_class_b_and_c():
+    time = np.linspace(0.0, 100.0, 101)
+    class_b_radius = crossover_radius_prediction(time, 3.0, 0.8, 0.04, 2.0)
+    class_b = fit_crossover_growth(time, class_b_radius)
+    assert np.isclose(class_b.intrinsic_constant, 0.8, rtol=2e-3)
+    assert np.isclose(class_b.crossover_strength, 0.04, rtol=2e-3)
+    assert np.isclose(class_b.size_exponent, 2.0, rtol=2e-3)
+    assert class_b.r_squared > 0.999999
+
+    class_c_radius = crossover_radius_prediction(time, 3.0, 0.6, 0.1, 1.0)
+    class_c = fit_crossover_growth(time, class_c_radius, size_exponent=1.0)
+    assert np.isclose(class_c.intrinsic_constant, 0.6, rtol=2e-3)
+    assert np.isclose(class_c.crossover_strength, 0.1, rtol=2e-3)
+    assert class_c.r_squared > 0.999999
 
 
 def test_event_ledger_schema(tmp_path):

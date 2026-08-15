@@ -180,4 +180,19 @@ use per-event units only:
 K_n=K_0e^{-Q_{app}/k_BT},\qquad Q_{app}=-k_B\,d\ln K_n/d(1/T).
 \]
 
-The analytical comparator also implements intrinsic/drag \(dR/dt=K\Gamma(R)/R\), Class-B completion \(\Gamma=P(K,\Lambda(R))\), exchange crossover \(\Gamma=1/(1+R/R_x)\), and series/parallel activity composition.
+The analytical comparator also implements intrinsic/drag \(dR/dt=K\Gamma(R)/R\), Class-B completion \(\Gamma=P(K,\Lambda(R))\), exchange crossover \(\Gamma=1/(1+R/R_x)\), and series/parallel activity composition. For the manuscript's independent-event power-hazard closure, \(\Lambda=\Pi(R/r_p)^{-p}\), the exact implicit comparator is
+
+\[
+K(t-t_0)=\frac{R^2-R_0^2}{2}
++\frac{c}{p+2}\left(R^{p+2}-R_0^{p+2}\right),
+\qquad c=\Pi^{-1}r_p^{-p}.
+\]
+
+The Class-C exchange law is its fixed-\(p=1\) form,
+
+\[
+K(t-t_0)=\frac{R^2-R_0^2}{2}
++\frac{R^3-R_0^3}{3R_x}.
+\]
+
+Both are inverted numerically and fitted against radius residuals, not against transformed time residuals. Class-D/combined regimes report both comparators rather than selecting one by construction.

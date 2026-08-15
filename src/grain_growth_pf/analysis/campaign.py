@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 
 from grain_growth_pf.analysis.activation_energy import fit_activation_energy
+from grain_growth_pf.analysis.analytical_models import fit_crossover_growth
 from grain_growth_pf.analysis.grain_tracks import ensemble_radius, load_tracks
 from grain_growth_pf.analysis.growth_law import (
     fit_common_exponent,
@@ -27,6 +28,12 @@ SUMMARY_COLUMNS = [
 ]
 
 RADIUS_MEASURES = ("R_A", "R_mean", "R_median", "R_rms", "R_perimeter")
+
+CLASS_B_REGIMES = {
+    "G1", "G2", "G3", "T1", "T2", "T3", "C1", "C2",
+    "P1", "P2", "P3", "P4", "E0", "E1", "E2", "J1", "J2", "J3",
+}
+CLASS_C_REGIMES = {"C3", "C4", "C5"}
 
 
 def _growth_window_arrays(run_dirs: list[Path], measure: str = "R_A") -> tuple[np.ndarray, np.ndarray, dict]:
@@ -283,6 +290,34 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
             ]),
         },
     }
+    regime = str(config["regime"])
+    theory_class = (
+        "class_b" if regime in CLASS_B_REGIMES else
+        "class_c" if regime in CLASS_C_REGIMES else
+        "class_d_or_intrinsic"
+    )
+    diagnostics["mechanistic_comparators"]["source_theory_class"] = theory_class
+    if theory_class in {"class_b", "class_d_or_intrinsic"}:
+        class_b = fit_crossover_growth(time, fit_radii.mean(axis=0))
+        diagnostics["mechanistic_comparators"]["class_b_additive"] = {
+            "intrinsic_K": class_b.intrinsic_constant,
+            "crossover_strength": class_b.crossover_strength,
+            "hazard_size_exponent": class_b.size_exponent,
+            "asymptotic_growth_exponent": class_b.size_exponent + 2.0,
+            "r_squared": class_b.r_squared,
+            "normalized_rmse": class_b.normalized_rmse,
+            "parameter_at_bound": class_b.parameter_at_bound,
+        }
+    if theory_class in {"class_c", "class_d_or_intrinsic"}:
+        class_c = fit_crossover_growth(time, fit_radii.mean(axis=0), size_exponent=1.0)
+        diagnostics["mechanistic_comparators"]["class_c_exchange"] = {
+            "intrinsic_K": class_c.intrinsic_constant,
+            "crossover_strength": class_c.crossover_strength,
+            "crossover_radius": 1.0 / class_c.crossover_strength,
+            "r_squared": class_c.r_squared,
+            "normalized_rmse": class_c.normalized_rmse,
+            "parameter_at_bound": class_c.parameter_at_bound,
+        }
     for measure in RADIUS_MEASURES:
         columns = [f"{measure}_{index}" for index in range(len(loaded))]
         measure_radius = aligned[columns].to_numpy(float).T[:, start:end].mean(axis=0)
