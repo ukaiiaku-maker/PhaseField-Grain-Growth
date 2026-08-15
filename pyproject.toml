@@ -21,6 +21,7 @@ test = ["pytest>=8"]
 ggpf-run = "grain_growth_pf.cli:run_main"
 ggpf-campaign = "grain_growth_pf.cli:campaign_main"
 ggpf-analyze = "grain_growth_pf.cli:analyze_main"
+ggpf-plot = "grain_growth_pf.cli:plot_main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

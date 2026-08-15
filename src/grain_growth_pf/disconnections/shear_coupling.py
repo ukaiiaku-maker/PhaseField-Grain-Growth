@@ -9,6 +9,13 @@ def event_shear_increment(burgers_parallel: float, swept_length: float, rve_area
     return float(burgers_parallel * swept_length / rve_area)
 
 
+def event_volumetric_increment(point_defect_quota: float, formation_volume: float,
+                               rve_volume: float) -> float:
+    if rve_volume <= 0:
+        raise ValueError("RVE volume must be positive")
+    return float(point_defect_quota * formation_volume / rve_volume)
+
+
 def infer_rotation(tangential_displacements: np.ndarray, positions: np.ndarray,
                    centroid: tuple[float, float]) -> float:
     """Least-squares small rotation from spatial event displacements."""
@@ -16,4 +23,3 @@ def infer_rotation(tangential_displacements: np.ndarray, positions: np.ndarray,
     u = np.asarray(tangential_displacements, dtype=float)
     denom = float(np.sum(r * r))
     return 0.0 if denom == 0 else float(np.sum(r[:, 0] * u[:, 1] - r[:, 1] * u[:, 0]) / denom)
-

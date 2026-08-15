@@ -1,6 +1,8 @@
 import csv
 import json
 
+import numpy as np
+
 from grain_growth_pf.config import ModelConfig, PFConfig
 from grain_growth_pf.simulation import EventResolvedSimulation
 
@@ -39,13 +41,21 @@ def test_qiu_full_field_backend_smoke(tmp_path):
         active_modules=("event_modes", "shear_feedback"), output_cadence=1,
         max_steps=2, termination_grains=1,
         parameters={"initial_grains": 5, "equilibration_steps": 0,
-                    "attempt_frequency": 1.0, "event_domain_length": 100.0},
+                    "attempt_frequency": 100.0, "barrier_core_ev": 0.0,
+                    "b_coefficient_ev": 0.0, "h_coefficient_ev": 0.0,
+                    "event_domain_length": 100.0},
     )
     output = tmp_path / "qiu"
     simulation = EventResolvedSimulation(config, output)
     simulation.run()
     assert simulation.full_field is not None
     assert simulation.full_field.stress.shape == (2, 2, 20, 20)
+    assert np.any(simulation.full_field.eigenstrain != 0)
+    assert np.any(simulation.full_field.stress != 0)
+    assert np.any(simulation.driving_field != 0)
+    with (tmp_path / "qiu" / "events.csv").open() as handle:
+        strain_sum = sum(float(row["shear_strain_increment"]) for row in csv.DictReader(handle))
+    assert np.isclose(strain_sum, simulation.accumulated_shear_strain)
 
 
 def test_event_simulation_checkpoint_restart_is_exact(tmp_path):

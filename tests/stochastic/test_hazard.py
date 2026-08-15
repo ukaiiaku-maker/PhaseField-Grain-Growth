@@ -55,6 +55,16 @@ def test_packet_reset_poisson_tail():
     assert abs(measured - poisson_completion_probability(hits, lam)) < 0.01
 
 
+def test_packet_and_persistent_windows_have_distinct_memory():
+    persistent = MultiHitProcess(3, np.random.default_rng(10), "persistent_hits")
+    packet = MultiHitProcess(3, np.random.default_rng(10), "packet_reset")
+    persistent.hit_count = packet.hit_count = 2
+    persistent.begin_window()
+    packet.begin_window()
+    assert persistent.hit_count == 2
+    assert packet.hit_count == 0
+
+
 def test_time_dependent_linear_hazard():
     rng = np.random.default_rng(88)
     a, dt = 0.7, 0.005

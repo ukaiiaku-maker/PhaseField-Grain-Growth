@@ -13,6 +13,7 @@ from grain_growth_pf.climb.serial_cycle import SerialClimbCycle
 from grain_growth_pf.config import ModelConfig
 from grain_growth_pf.disconnections.mode import DisconnectionMode, ModeDriving
 from grain_growth_pf.disconnections.mode import K_B_EV
+from grain_growth_pf.disconnections.shear_coupling import event_shear_increment, event_volumetric_increment
 from grain_growth_pf.disconnections.spectrum import isotropic_surrogate_library
 from grain_growth_pf.encounters.geometric_hazard import GeometricEncounterClock
 from grain_growth_pf.entities.gb_segment import GBSegment
@@ -114,6 +115,7 @@ class EventResolvedSimulation:
         self.config = config
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=resume)
+        self.sha = git_sha()
         eta, seeds, orientations = voronoi_polycrystal(
             config.pf.shape, int(config.parameters.get("initial_grains", 50)), config.seed,
             width=config.pf.interface_width / 2,
@@ -132,6 +134,10 @@ class EventResolvedSimulation:
         equilibration_steps = int(config.parameters.get("equilibration_steps", 0))
         active_original_ids = np.arange(len(orientations))
         if not resume:
+            write_manifest(self.output_dir / "manifest.json", config.to_dict(), "equilibrating", {
+                "initial_seed_positions": seeds.tolist(),
+                "original_orientations": orientations.tolist(),
+            }, code_sha=self.sha)
             for _ in range(equilibration_steps):
                 self.solver.step()
             target_grains = config.parameters.get("equilibrate_to_grains")
@@ -141,6 +147,13 @@ class EventResolvedSimulation:
                 while np.count_nonzero(self.solver.active_phases) > target and equilibration_steps < maximum:
                     self.solver.step()
                     equilibration_steps += 1
+                    if equilibration_steps % 100 == 0:
+                        (self.output_dir / "equilibration_progress.json").write_text(json.dumps({
+                            "steps": equilibration_steps,
+                            "active_grains": int(np.count_nonzero(self.solver.active_phases)),
+                            "target_grains": target,
+                            "git_sha": self.sha,
+                        }, indent=2) + "\n")
                 if np.count_nonzero(self.solver.active_phases) > target:
                     raise RuntimeError(
                         f"pre-equilibration retained {np.count_nonzero(self.solver.active_phases)} "
@@ -174,7 +187,6 @@ class EventResolvedSimulation:
             attempt_frequency=float(config.parameters.get("attempt_frequency", 1e2)),
             seed=config.seed,
         )
-        self.sha = git_sha()
         self.full_field = QiuFullField(config.pf.shape) if config.mechanics_backend == "qiu_full_field" else None
         particle_modules = {"random_spatial_pinning", "particle_zener"}.intersection(config.active_modules)
         self.particles = ParticleField.random(
@@ -192,6 +204,8 @@ class EventResolvedSimulation:
             self.track_writer.writeheader()
         self.run_id = self.output_dir.name
         self.energy_records: list[dict[str, float]] = []
+        self.accumulated_shear_strain = 0.0
+        self.accumulated_volumetric_strain = 0.0
         if resume:
             self._load_checkpoint()
         else:
@@ -221,18 +235,36 @@ class EventResolvedSimulation:
 
     def _activation_mode(self, domain: DomainPhysics, segment: GBSegment) -> tuple[DisconnectionMode, float, ModeDriving]:
         capillary = self.config.pf.gb_energy * segment.curvature
-        driving = ModeDriving(
-            normal_pressure=capillary + domain.free_volume.chemical_potential,
-            resolved_shear=domain.shear.internal_shear_stress,
-            vacancy_chemical_potential=domain.free_volume.chemical_potential,
-        )
         candidates = [m for m in self.modes if (m.family != "easy" if domain.blocked else True)]
-        rates = np.asarray([m.rate(self.config.pf.temperature, driving) for m in candidates])
+        normal = np.asarray(segment.normal, dtype=float)
+        tangent = np.asarray((-normal[1], normal[0]))
+        stress = None
+        if self.full_field is not None and len(segment.points):
+            position = tuple(segment.points[len(segment.points) // 2].astype(int))
+            y, x = position[0] % self.config.pf.shape[0], position[1] % self.config.pf.shape[1]
+            stress = self.full_field.stress[:, :, y, x]
+        drivings = []
+        for mode in candidates:
+            b = np.asarray(mode.burgers, dtype=float)
+            b_direction = b / max(np.linalg.norm(b), np.finfo(float).tiny)
+            resolved_shear = domain.shear.internal_shear_stress * float(b_direction @ tangent)
+            if stress is not None:
+                resolved_shear += mode.resolved_shear(stress, normal)
+            drivings.append(ModeDriving(
+                normal_pressure=capillary + domain.free_volume.chemical_potential,
+                resolved_shear=resolved_shear,
+                vacancy_chemical_potential=domain.free_volume.chemical_potential,
+            ))
+        rates = np.asarray([
+            mode.rate(self.config.pf.temperature, driving)
+            for mode, driving in zip(candidates, drivings)
+        ])
         total = float(rates.sum())
         if total == 0:
-            return candidates[0], 0.0, driving
+            return candidates[0], 0.0, drivings[0]
         mode_rng = domain.rng
-        return candidates[int(mode_rng.choice(len(candidates), p=rates / total))], total, driving
+        selected = int(mode_rng.choice(len(candidates), p=rates / total))
+        return candidates[selected], total, drivings[selected]
 
     def _record_event(self, domain: DomainPhysics, segment: GBSegment, mode: DisconnectionMode,
                       rate: float, driving: ModeDriving, event_type: str, delta_length: float) -> None:
@@ -241,11 +273,19 @@ class EventResolvedSimulation:
         b = np.asarray(mode.burgers) * packet
         h = mode.step_height * packet
         dq = mode.point_defect_quota * packet
+        rve_measure = float(np.prod(self.config.pf.shape) * self.config.pf.grid_spacing**2)
+        shear_strain = event_shear_increment(float(np.linalg.norm(b)), segment.length, rve_measure)
+        volumetric_strain = event_volumetric_increment(dq, domain.formation_volume, rve_measure)
+        self.accumulated_shear_strain += shear_strain
+        self.accumulated_volumetric_strain += volumetric_strain
         domain.normal_displacement_ledger += h
         if self.full_field is not None and len(segment.points):
             position = tuple(segment.points[len(segment.points) // 2].astype(int))
-            shear_increment = np.array([[0.0, b[0]], [b[0], 2.0 * dq * domain.formation_volume]])
-            self.full_field.add_event(position, 0.5 * shear_increment)
+            normal = np.asarray(segment.normal, dtype=float)
+            plastic_distortion = np.outer(b, normal)
+            strain_increment = 0.5 * (plastic_distortion + plastic_distortion.T)
+            strain_increment += dq * domain.formation_volume * np.eye(2)
+            self.full_field.add_event(position, strain_increment)
         for tj in self.snapshot.triple_junctions.values():
             if segment.entity_id in tj.adjoining_boundaries:
                 tj.add_burgers(b)
@@ -275,8 +315,8 @@ class EventResolvedSimulation:
             "GB_area_change": delta_length, "TJ_travel": 0,
             "point_defect_quota": domain.free_volume.deficit,
             "normal_step_h": h, "burgers_vector_b": b.tolist(), "Nv": dq,
-            "shear_strain_increment": float(np.linalg.norm(b) * segment.length / np.prod(self.config.pf.shape)),
-            "volumetric_strain_increment": dq * domain.formation_volume / np.prod(self.config.pf.shape),
+            "shear_strain_increment": shear_strain,
+            "volumetric_strain_increment": volumetric_strain,
             "packet_size": packet, "Git_SHA": self.sha,
         })
         if released >= 0:
@@ -339,9 +379,10 @@ class EventResolvedSimulation:
             delta_path = max(0.0, tj.travel_distance - domain.previous_length)
             domain.previous_length = tj.travel_distance
             explicit_residual = modules.intersection({"tj_burgers_strict", "tj_burgers_residual"}) and np.linalg.norm(tj.residual_burgers) > 1e-10
-            if self.solver.step_number > 0:
+            if self.solver.step_number > 0 and not domain.blocked:
                 if domain.encounter.advance(delta_path) or explicit_residual:
                     domain.blocked = True
+                    domain.activation.begin_window()
             if domain.blocked:
                 rate = float(self.config.parameters.get("tj_attempt_frequency", 1e3)) * np.exp(
                     -float(self.config.parameters.get("tj_barrier_ev", 0.6)) / (K_B_EV * self.config.pf.temperature))
@@ -391,18 +432,34 @@ class EventResolvedSimulation:
             rj = self.snapshot.grains[segment.grain_j].equivalent_radius
             segment.curvature = 0.5 * (1.0 / max(ri, cfg.pf.grid_spacing) - 1.0 / max(rj, cfg.pf.grid_spacing))
             segment.velocity = normal_displacement / cfg.pf.time_step
+            ci = np.asarray(self.snapshot.grains[segment.grain_i].centroid)
+            cj = np.asarray(self.snapshot.grains[segment.grain_j].centroid)
+            normal = cj - ci
+            if cfg.pf.boundary_conditions == "periodic":
+                box = np.asarray(cfg.pf.shape, dtype=float)
+                normal -= np.round(normal / box) * box
+            normal /= max(np.linalg.norm(normal), np.finfo(float).tiny)
+            segment.normal = tuple(normal)
             if "shear_memory" in modules or "shear_feedback" in modules:
                 beta = float(cfg.parameters.get("easy_beta", 0.35))
                 domain.shear.migrate(beta, normal_displacement, cfg.pf.time_step)
+            if "qiu_reference_shear" in modules and self.full_field is not None and normal_displacement:
+                beta = float(cfg.parameters.get("easy_beta", 0.35))
+                tangent = np.asarray((-normal[1], normal[0]))
+                displacement = beta * normal_displacement * tangent
+                strain = 0.5 * (np.outer(displacement, normal) + np.outer(normal, displacement))
+                position = tuple(segment.points[len(segment.points) // 2].astype(int))
+                self.full_field.add_event(position, strain)
             if modules.intersection({"free_volume", "serial_climb", "nucleation_limited", "multihit_nucleation", "exchange_limited", "transport_limited", "mixed_shear_climb_event", "independent_and"}):
                 domain.free_volume.require_for_area_change(delta_length)
 
             encounter_enabled = cfg.compatibility_model == "geometric_surrogate" or bool(
                 modules.intersection({"gb_area_point_defect_pinning", "gb_pinning"})
             )
-            if self.solver.step_number > 0 and encounter_enabled and domain.encounter.advance(delta_length):
+            if (self.solver.step_number > 0 and encounter_enabled and not domain.blocked
+                    and domain.encounter.advance(delta_length)):
                 domain.blocked = True
-                domain.activation.clock.reset()
+                domain.activation.begin_window()
                 domain.climb.activate(self.solver.time)
 
             mode, total_rate, driving = self._activation_mode(domain, segment)
@@ -419,7 +476,7 @@ class EventResolvedSimulation:
 
             self._advance_climb(domain, segment, delta_length)
 
-            pair_force = float(cfg.parameters.get("easy_beta", 0.35)) * domain.shear.internal_shear_stress
+            pair_force = float(cfg.parameters.get("easy_beta", 0.35)) * driving.resolved_shear
             for yx in segment.points.astype(int):
                 y, x = yx % np.asarray(cfg.pf.shape)
                 if domain.blocked:
@@ -461,6 +518,8 @@ class EventResolvedSimulation:
             "domains": {key: domain.state_dict() for key, domain in self.domains.items()},
             "tj_domains": {key: domain.state_dict() for key, domain in self.tj_domains.items()},
             "energy_records": self.energy_records,
+            "accumulated_shear_strain": self.accumulated_shear_strain,
+            "accumulated_volumetric_strain": self.accumulated_volumetric_strain,
         }
         (self.output_dir / "checkpoint.json").write_text(json.dumps(state, indent=2) + "\n")
 
@@ -496,6 +555,8 @@ class EventResolvedSimulation:
                 domain = self._new_domain(fake); domain.entity_id = key
                 domain.load_state_dict(domain_state); self.tj_domains[key] = domain
         self.energy_records = state["energy_records"]
+        self.accumulated_shear_strain = float(state.get("accumulated_shear_strain", 0.0))
+        self.accumulated_volumetric_strain = float(state.get("accumulated_volumetric_strain", 0.0))
 
     def run(self) -> Path:
         failure: str | None = None
@@ -525,5 +586,7 @@ class EventResolvedSimulation:
                            "failed" if failure else "completed", {
                                "failure": failure, "steps_completed": self.solver.step_number,
                                "final_grains": len(self.snapshot.grains),
+                               "accumulated_shear_strain": self.accumulated_shear_strain,
+                               "accumulated_volumetric_strain": self.accumulated_volumetric_strain,
                            }, code_sha=self.sha)
         return self.output_dir

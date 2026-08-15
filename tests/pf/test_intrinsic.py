@@ -54,6 +54,25 @@ def test_mobility_scaling_and_energy_decrease():
     assert abs(slopes[1] / slopes[0] - 2) < 0.06
 
 
+def test_high_mobility_time_rescaling_remains_quantitative():
+    cfg = PFConfig(shape=(64, 64), interface_width=4, time_step=0.04,
+                   intrinsic_mobility=4.0, adaptive_stepping=True)
+    solver = MultiphaseFieldSolver(circular_grain(cfg.shape, 15, 4), cfg)
+    times, radius2 = [], []
+    for step in range(250):
+        solver.step()
+        if step % 10 == 0:
+            times.append(solver.time)
+            radius2.append(equivalent_radius(solver.eta[1]) ** 2)
+    slope, intercept = np.polyfit(times[4:-3], radius2[4:-3], 1)
+    fitted = slope * np.asarray(times[4:-3]) + intercept
+    r_squared = 1 - np.sum((np.asarray(radius2[4:-3]) - fitted) ** 2) / np.sum(
+        (np.asarray(radius2[4:-3]) - np.mean(radius2[4:-3])) ** 2
+    )
+    assert abs(slope / (-2 * cfg.intrinsic_mobility * cfg.gb_energy) - 1) < 0.02
+    assert r_squared > 0.9999
+
+
 def test_restart_is_exact():
     cfg = PFConfig(shape=(32, 32), interface_width=4, time_step=0.04, intrinsic_mobility=0.2)
     eta = circular_grain(cfg.shape, 8, 4)

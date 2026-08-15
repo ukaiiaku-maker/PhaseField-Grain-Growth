@@ -33,6 +33,12 @@ class MultiHitProcess:
         self.hit_count = 0
         self.clock = CumulativeHazardClock(rng)
 
+    def begin_window(self) -> None:
+        """Start an encounter packet while applying its declared memory rule."""
+        if self.interpretation == "packet_reset":
+            self.hit_count = 0
+        self.clock.reset()
+
     def advance(self, rate: float, dt: float, time: float) -> list[CompletionEvent]:
         completions: list[CompletionEvent] = []
         for event in self.clock.advance(rate, dt, time):
@@ -48,4 +54,3 @@ class MultiHitProcess:
             self.hit_count = 0
             self.clock.reset()
         return complete
-

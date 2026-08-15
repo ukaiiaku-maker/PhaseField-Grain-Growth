@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import multiprocessing as mp
 import traceback
+from copy import deepcopy
 from dataclasses import replace
 from datetime import datetime, timezone
 from pathlib import Path
@@ -11,7 +12,7 @@ from typing import Any
 import yaml
 
 from grain_growth_pf.config import ModelConfig, PFConfig
-from grain_growth_pf.io.provenance import canonical_hash, git_sha
+from grain_growth_pf.io.provenance import canonical_hash, git_sha, write_manifest
 from grain_growth_pf.simulation import EventResolvedSimulation
 
 
@@ -23,7 +24,12 @@ def _run_one(payload: tuple[dict[str, Any], str, bool]) -> dict[str, str]:
         return {"path": path, "status": "completed"}
     except Exception:
         Path(path).mkdir(parents=True, exist_ok=True)
-        (Path(path) / "traceback.log").write_text(traceback.format_exc())
+        failure = traceback.format_exc()
+        (Path(path) / "traceback.log").write_text(failure)
+        manifest_path = Path(path) / "manifest.json"
+        previous = json.loads(manifest_path.read_text()) if manifest_path.exists() else {}
+        write_manifest(manifest_path, data, "failed", {"failure": failure.splitlines()[-1]},
+                       code_sha=previous.get("git_sha", git_sha()))
         return {"path": path, "status": "failed"}
 
 
@@ -67,6 +73,7 @@ def launch_campaign(spec_path: str | Path, root: str | Path = "results/campaigns
                     processes: int | None = None) -> Path:
     with Path(spec_path).open(encoding="utf-8") as handle:
         spec = yaml.safe_load(handle)
+    submitted_spec = deepcopy(spec)
     if "regime_catalog" in spec:
         catalog_path = (Path(spec_path).parent / spec["regime_catalog"]).resolve()
         with catalog_path.open(encoding="utf-8") as handle:
@@ -92,6 +99,7 @@ def launch_campaign(spec_path: str | Path, root: str | Path = "results/campaigns
         payloads.append((config.to_dict(), str(run_dir), False))
     (campaign_dir / "campaign_manifest.json").write_text(json.dumps({
         "source_spec": str(spec_path), "runs": reused + [p[1] for p in payloads],
+        "specification": submitted_spec,
         "reused_completed": reused, "status": "running"
     }, indent=2) + "\n")
     workers = min(processes or max(1, mp.cpu_count() - 1), len(payloads)) if payloads else 0
@@ -106,6 +114,7 @@ def launch_campaign(spec_path: str | Path, root: str | Path = "results/campaigns
     failures = [o["path"] for o in outcomes if o["status"] != "completed"]
     (campaign_dir / "campaign_manifest.json").write_text(json.dumps({
         "source_spec": str(spec_path), "runs": completed,
+        "specification": submitted_spec,
         "status": "failed" if failures else "completed", "workers": workers,
         "reused_completed": reused, "failed_runs": failures,
     }, indent=2) + "\n")
