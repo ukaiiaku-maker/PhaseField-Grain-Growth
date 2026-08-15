@@ -1,6 +1,7 @@
 import numpy as np
 
 from grain_growth_pf.encounters.gb_area import point_defect_requirement
+from grain_growth_pf.encounters.geometric_hazard import GeometricEncounterClock
 from grain_growth_pf.encounters.swept_volume import swept_measure
 from grain_growth_pf.encounters.tj_path import periodic_path_increment
 from grain_growth_pf.entities.tracker import EntityTracker
@@ -24,3 +25,20 @@ def test_path_swept_area_and_quota_exact():
     assert swept_measure(8, 0.5, physics_dimension=3, out_of_plane_thickness=2) == 8
     assert point_defect_requirement(-4, 0.2, 0.05) == 16
 
+
+def test_geometric_encounter_stops_at_physical_state_change():
+    stopped = GeometricEncounterClock(2.0, np.random.default_rng(201))
+    stopped.threshold = 0.5
+    events = stopped.advance(10.0, maximum_events=1)
+    assert len(events) == 1
+    assert events[0].overshoot == 0.0
+    assert np.isclose(events[0].measure, 0.25)
+    assert np.isclose(stopped.cumulative_hazard, 0.5)
+    assert np.isclose(stopped.total_measure, 0.25)
+
+    continuous = GeometricEncounterClock(2.0, np.random.default_rng(201))
+    continuous.threshold = 0.5
+    events = continuous.advance(10.0)
+    assert len(events) > 1
+    assert np.isclose(continuous.cumulative_hazard, 20.0)
+    assert np.isclose(continuous.total_measure, 10.0)

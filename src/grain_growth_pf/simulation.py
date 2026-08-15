@@ -663,9 +663,16 @@ class EventResolvedSimulation:
             domain = self.tj_domains[key]
             delta_path = max(0.0, tj.travel_distance - domain.previous_length)
             domain.previous_length = tj.travel_distance
-            explicit_residual = modules.intersection({"tj_burgers_strict", "tj_burgers_residual"}) and np.linalg.norm(tj.residual_burgers) > 1e-10
+            explicit_residual = bool(
+                modules.intersection({"tj_burgers_strict", "tj_burgers_residual"})
+                and np.linalg.norm(tj.residual_burgers) > 1e-10
+            )
             if self.solver.step_number > 0 and not domain.blocked:
-                if domain.encounter.advance(delta_path) or explicit_residual:
+                encounter = (
+                    [] if explicit_residual else
+                    domain.encounter.advance(delta_path, maximum_events=1)
+                )
+                if explicit_residual or encounter:
                     domain.blocked = True
                     self._begin_activation_window(domain)
             if domain.blocked:
@@ -802,7 +809,7 @@ class EventResolvedSimulation:
                 modules.intersection({"gb_area_point_defect_pinning", "gb_pinning"})
             )
             if (self.solver.step_number > 0 and encounter_enabled and not domain.blocked
-                    and domain.encounter.advance(delta_length)):
+                    and domain.encounter.advance(delta_length, maximum_events=1)):
                 domain.blocked = True
                 self._begin_activation_window(domain)
                 domain.climb.activate(self.solver.time)
