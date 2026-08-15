@@ -39,3 +39,36 @@ def test_tj_path_and_burgers_persist():
     assert tj2.travel_distance > 0
     assert np.array_equal(tj2.residual_burgers, [1.0, -0.5])
 
+
+def test_boundary_domain_split_merge_and_tj_reconnection_retire_state():
+    tracker = EntityTracker(
+        np.array([0.0, 0.2, 0.4]), domain_length=100, periodic=False
+    )
+    initial = tracker.update(three_grain_labels())
+    pair_key = next(key for key in initial.boundaries if "0-1" in key)
+    initial.boundaries[pair_key].free_volume_deficit = 4.0
+    old_tj = next(iter(initial.triple_junctions.values()))
+    old_tj.add_burgers(np.array([0.3, -0.2]))
+
+    tracker.domain_length = 2.0
+    split = tracker.update(three_grain_labels())
+    split_keys = sorted(key for key in split.boundaries if "0-1" in key)
+    assert len(split_keys) > 1
+    assert split.boundaries[split_keys[0]].free_volume_deficit == 4.0
+    assert all(
+        split.boundaries[key].free_volume_deficit == 0.0 for key in split_keys[1:]
+    )
+
+    tracker.domain_length = 100.0
+    merged = tracker.update(three_grain_labels())
+    merged_keys = [key for key in merged.boundaries if "0-1" in key]
+    assert merged_keys == [pair_key]
+    assert merged.boundaries[pair_key].free_volume_deficit == 4.0
+
+    without_third = three_grain_labels()
+    without_third[without_third == 2] = 0
+    assert not tracker.update(without_third).triple_junctions
+    reconnected = tracker.update(np.roll(three_grain_labels(), 1, axis=0))
+    new_tj = next(iter(reconnected.triple_junctions.values()))
+    assert np.array_equal(new_tj.residual_burgers, [0.0, 0.0])
+    assert new_tj.travel_distance == 0.0
