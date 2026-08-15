@@ -34,6 +34,7 @@ def campaign_status(campaign: Path) -> dict[str, object]:
             "traceback": (run / "traceback.log").exists(),
         })
     started = [row for row in rows if row["status"] != "queued"]
+    active = [row for row in rows if row["status"] in {"running", "equilibrating"}]
     steps = [row["step"] for row in started]
     return {
         "campaign": str(campaign),
@@ -50,7 +51,7 @@ def campaign_status(campaign: Path) -> dict[str, object]:
             "maximum": max(steps) if steps else 0,
         },
         "oldest_checkpoint_age_seconds": max(
-            (row["checkpoint_age_seconds"] for row in started
+            (row["checkpoint_age_seconds"] for row in active
              if row["checkpoint_age_seconds"] is not None), default=None,
         ),
         "traceback_count": sum(row["traceback"] for row in rows),
