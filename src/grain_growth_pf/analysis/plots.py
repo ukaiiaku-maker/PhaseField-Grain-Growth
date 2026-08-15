@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from grain_growth_pf.analysis.campaign import analyze_campaign
+from grain_growth_pf.analysis.campaign import _fit_window, analyze_campaign
 from grain_growth_pf.analysis.grain_tracks import ensemble_radius, load_tracks
 
 
@@ -31,6 +31,7 @@ def _aligned_ensemble(paths: list[Path]) -> pd.DataFrame:
         )
         aligned = data if aligned is None else aligned.merge(data, on="time", how="inner")
     assert aligned is not None
+    aligned = aligned.sort_values("time").reset_index(drop=True)
     r_columns = [column for column in aligned if column.startswith("R_")]
     n_columns = [column for column in aligned if column.startswith("N_")]
     aligned["R_mean"] = aligned[r_columns].mean(axis=1)
@@ -49,8 +50,13 @@ def _local_exponent(time: np.ndarray, radius: np.ndarray, half_window: int = 5) 
         errors = []
         for exponent in exponents:
             transformed = local_radius**exponent
-            fitted = np.polyval(np.polyfit(local_time, transformed, 1), local_time)
-            errors.append(np.sqrt(np.mean((transformed - fitted) ** 2)) / max(np.std(transformed), 1e-15))
+            fitted = np.maximum(
+                np.polyval(np.polyfit(local_time, transformed, 1), local_time), 1e-30
+            ) ** (1.0 / exponent)
+            errors.append(
+                np.sqrt(np.mean((local_radius - fitted) ** 2))
+                / max(np.std(local_radius), 1e-15)
+            )
         result[center] = exponents[int(np.argmin(errors))]
     return result
 
@@ -69,10 +75,7 @@ def _kinetics_figure(paths: list[Path], row: pd.Series, target: Path) -> None:
         axis.set_ylabel(label)
     transformed = radius**exponent
     axes[1, 0].plot(time, transformed, color="C1", label=f"n={exponent:.2f}")
-    start_hits = np.flatnonzero(data["N_mean"].to_numpy() <= 0.95 * data["N_mean"].iloc[0])
-    start = int(start_hits[0]) if len(start_hits) else max(1, int(0.1 * len(time)))
-    end_hits = np.flatnonzero(data["N_mean"].to_numpy() < max(20, 0.60 * data["N_mean"].iloc[0]))
-    end = int(end_hits[0]) if len(end_hits) else len(time)
+    start, end, _ = _fit_window(data["N_mean"].to_numpy(float))
     fit_time, fit_values = time[start:end], transformed[start:end]
     coefficient, intercept = np.polyfit(fit_time, fit_values, 1)
     axes[1, 0].plot(fit_time, coefficient * fit_time + intercept, "k--", lw=1, label="fit window")
@@ -160,10 +163,10 @@ def _event_figure(paths: list[Path], target: Path) -> None:
     axes[0].set(xlabel="waiting time", ylabel="density")
     axes[1].hist(sizes[np.isfinite(sizes)], bins=25, color="C1", alpha=0.8)
     axes[1].set(xlabel="packet size", ylabel="count")
-    ordered = np.sort(waits[waits > 0])
+    ordered = np.sort(sizes[np.isfinite(sizes) & (sizes > 0)])
     if len(ordered):
         axes[2].loglog(ordered, 1.0 - np.arange(len(ordered)) / len(ordered), color="C2")
-    axes[2].set(xlabel="waiting time", ylabel="CCDF")
+    axes[2].set(xlabel="event packet/burst size", ylabel="CCDF")
     _save(fig, target)
 
 

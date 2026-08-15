@@ -81,7 +81,7 @@ def _fit_window(mean_count: np.ndarray) -> tuple[int, int, str]:
     return start, end, reason
 
 
-def _trajectory_metrics(per_grain: pd.DataFrame) -> tuple[float, float]:
+def _trajectory_metrics(per_grain: pd.DataFrame) -> dict[str, float]:
     metrics = []
     for _, grain in per_grain.groupby("grain_id"):
         grain = grain.sort_values("time")
@@ -90,18 +90,22 @@ def _trajectory_metrics(per_grain: pd.DataFrame) -> tuple[float, float]:
         time = grain["time"].to_numpy(float)
         area = grain["area"].to_numpy(float)
         metrics.append(jerkiness_metrics(time, area))
-    jerk = float(np.mean([m["jerkiness_CV"] for m in metrics])) if metrics else np.nan
-    burst = float(np.mean([m["burstiness"] for m in metrics])) if metrics else np.nan
-    return jerk, burst
+    if not metrics:
+        return {}
+    keys = set().union(*(metric.keys() for metric in metrics))
+    return {
+        key: float(np.mean([metric[key] for metric in metrics if key in metric]))
+        for key in keys
+    }
 
 
-def _boundary_metrics(run_dir: Path) -> tuple[float, float, float]:
+def _boundary_metrics(run_dir: Path) -> dict[str, float]:
     path = run_dir / "boundary_tracks.csv"
     if not path.exists() or path.stat().st_size == 0:
-        return np.nan, np.nan, np.nan
+        return {}
     boundaries = pd.read_csv(path)
     if boundaries.empty:
-        return np.nan, np.nan, np.nan
+        return {}
     curvature = boundaries["curvature"].to_numpy(float)
     velocity = boundaries["normal_velocity"].to_numpy(float)
     valid = np.isfinite(curvature) & np.isfinite(velocity) & (np.abs(curvature) > 1e-12) & (np.abs(velocity) > 1e-12)
@@ -112,7 +116,46 @@ def _boundary_metrics(run_dir: Path) -> tuple[float, float, float]:
     else:
         curvature_r2 = np.nan
     pinned = float(np.mean(boundaries["blocked"].to_numpy(float)))
-    return reverse, curvature_r2, pinned
+    result = {
+        "reverse_motion_fraction": reverse,
+        "velocity_curvature_R2": curvature_r2,
+        "pinned_fraction": pinned,
+    }
+    for column, name in (
+        ("resolved_shear", "velocity_internal_shear_correlation"),
+        ("free_volume_deficit", "velocity_free_volume_correlation"),
+    ):
+        state = boundaries[column].to_numpy(float)
+        state_valid = np.isfinite(state) & np.isfinite(velocity)
+        if np.count_nonzero(state_valid) > 2 and np.std(state[state_valid]) and np.std(velocity[state_valid]):
+            result[name] = float(np.corrcoef(velocity[state_valid], state[state_valid])[0, 1])
+        else:
+            result[name] = np.nan
+    return result
+
+
+def _neighbor_growth_correlation(per_grain: pd.DataFrame) -> float:
+    rates, neighbors = [], []
+    for _, grain in per_grain.groupby("grain_id"):
+        grain = grain.sort_values("time")
+        if len(grain) < 2:
+            continue
+        elapsed = np.diff(grain["time"].to_numpy(float))
+        valid = elapsed > 0
+        rates.extend((np.diff(grain["area"].to_numpy(float))[valid] / elapsed[valid]).tolist())
+        neighbors.extend(grain["neighbors"].to_numpy(float)[:-1][valid].tolist())
+    if len(rates) < 3 or not np.std(rates) or not np.std(neighbors):
+        return np.nan
+    return float(np.corrcoef(rates, neighbors)[0, 1])
+
+
+def _nanmean_metric(metrics: list[dict[str, float]], key: str) -> float:
+    values = [metric.get(key, np.nan) for metric in metrics]
+    return float(np.nanmean(values)) if any(np.isfinite(values)) else np.nan
+
+
+def _nanmean_values(values: list[float]) -> float:
+    return float(np.nanmean(values)) if any(np.isfinite(values)) else np.nan
 
 
 def _event_statistics(run_dir: Path) -> tuple[int, float]:
@@ -181,12 +224,12 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
         "n": fit.exponent, "n_ci_low": float(n_low), "n_ci_high": float(n_high),
         "K": fit.coefficient, "K_ci": float((k_high - k_low) / 2),
         "Q_app": np.nan, "Q_app_ci": np.nan,
-        "jerkiness_CV": float(np.nanmean([m[0] for m in trajectory_metrics])),
+        "jerkiness_CV": _nanmean_metric(trajectory_metrics, "jerkiness_CV"),
         "Fano": float(np.nanmean([m[1] for m in event_metrics])) if any(np.isfinite(m[1]) for m in event_metrics) else np.nan,
-        "burstiness": float(np.nanmean([m[1] for m in trajectory_metrics])),
-        "reverse_motion_fraction": float(np.nanmean([m[0] for m in boundary_metrics])) if any(np.isfinite(m[0]) for m in boundary_metrics) else np.nan,
-        "velocity_curvature_R2": float(np.nanmean([m[1] for m in boundary_metrics])) if any(np.isfinite(m[1]) for m in boundary_metrics) else np.nan,
-        "pinned_fraction": float(np.nanmean([m[2] for m in boundary_metrics])) if any(np.isfinite(m[2]) for m in boundary_metrics) else np.nan,
+        "burstiness": _nanmean_metric(trajectory_metrics, "burstiness"),
+        "reverse_motion_fraction": _nanmean_metric(boundary_metrics, "reverse_motion_fraction"),
+        "velocity_curvature_R2": _nanmean_metric(boundary_metrics, "velocity_curvature_R2"),
+        "pinned_fraction": _nanmean_metric(boundary_metrics, "pinned_fraction"),
         "number_of_events": int(sum(m[0] for m in event_metrics)),
         "number_of_realizations": len(run_dirs), "Git_SHA": manifests[0]["git_sha"],
     }
@@ -208,6 +251,24 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
                          "residual_autocorrelation": profile.residual_autocorrelation.tolist()},
         "radius_measure_fits": {},
         "population_band_sensitivity": [],
+        "intermittency": {
+            key: _nanmean_metric(trajectory_metrics, key)
+            for key in (
+                "jerkiness_CV", "stationary_fraction", "motion_top_1pct",
+                "motion_top_5pct", "motion_top_10pct", "burstiness",
+            )
+        },
+        "correlations": {
+            "velocity_internal_shear": _nanmean_metric(
+                boundary_metrics, "velocity_internal_shear_correlation"
+            ),
+            "velocity_free_volume_deficit": _nanmean_metric(
+                boundary_metrics, "velocity_free_volume_correlation"
+            ),
+            "neighbor_number_growth_rate": _nanmean_values([
+                _neighbor_growth_correlation(item[1]) for item in loaded
+            ]),
+        },
     }
     for measure in RADIUS_MEASURES:
         columns = [f"{measure}_{index}" for index in range(len(loaded))]

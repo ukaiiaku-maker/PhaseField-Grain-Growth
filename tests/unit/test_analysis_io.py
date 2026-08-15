@@ -17,6 +17,7 @@ from grain_growth_pf.analysis.campaign import _fit_window
 from grain_growth_pf.disconnections.mode import K_B_EV
 from grain_growth_pf.io.event_ledger import EVENT_FIELDS, EventLedger
 from grain_growth_pf.io.provenance import write_manifest
+from grain_growth_pf.analysis.jerkiness import jerkiness_metrics
 
 
 def test_growth_and_activation_recover_inputs():
@@ -75,6 +76,18 @@ def test_topology_window_uses_broad_post_equilibration_interval():
     assert shallow[start] <= 190
     assert end == len(shallow)
     assert reason == "five_pct_loss_to_available_end"
+
+
+def test_jerkiness_reports_motion_concentration_and_stationarity():
+    metrics = jerkiness_metrics(
+        np.arange(6.0), np.array([0.0, 0.0, 0.0, 10.0, 10.0, 10.0]),
+        events=np.array([0, 0, 3, 0, 0]),
+    )
+    assert np.isclose(metrics["stationary_fraction"], 0.8)
+    assert np.isclose(metrics["motion_top_1pct"], 1.0)
+    assert np.isclose(metrics["motion_top_5pct"], 1.0)
+    assert np.isclose(metrics["motion_top_10pct"], 1.0)
+    assert metrics["Fano"] > 1.0
 
     deep = np.linspace(200, 60, 141)
     start, end, reason = _fit_window(deep)
