@@ -36,7 +36,10 @@ def fit_growth_law(time: np.ndarray, radius: np.ndarray, n_bounds: tuple[float, 
         raise ValueError("at least three post-transient samples are required")
 
     def objective(x: np.ndarray) -> np.ndarray:
-        return _linear_for_n(time, radius, float(x[0]))[2] / max(np.mean(radius**x[0]), 1e-15)
+        transformed = radius ** float(x[0])
+        # Normalize by signal variation, not its mean. Mean normalization
+        # spuriously rewards n->1 whenever R is large compared with Delta R.
+        return _linear_for_n(time, radius, float(x[0]))[2] / max(np.std(transformed), 1e-15)
 
     result = least_squares(objective, x0=np.array([2.0]), bounds=n_bounds)
     exponent = float(result.x[0])
@@ -57,4 +60,3 @@ def bootstrap_exponent(time: np.ndarray, radii_by_realization: np.ndarray, sampl
         selection = rng.integers(0, len(radii), len(radii))
         estimates.append(fit_growth_law(time, radii[selection].mean(axis=0)).exponent)
     return tuple(np.quantile(estimates, [0.025, 0.975]))
-

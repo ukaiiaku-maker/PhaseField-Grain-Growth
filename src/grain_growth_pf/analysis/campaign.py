@@ -25,7 +25,12 @@ def analyze_run(run_dir: str | Path) -> dict[str, object]:
     manifest = json.loads((run_dir / "manifest.json").read_text())
     config = manifest["config"]
     tracks = ensemble_radius(load_tracks(run_dir / "grain_tracks.csv"))
-    fit = fit_growth_law(tracks["time"].to_numpy(), tracks["R_A"].to_numpy(), transient_fraction=0.15)
+    initial_count = int(tracks["grain_count"].iloc[0])
+    finite_limit = max(20, int(np.ceil(0.6 * initial_count)))
+    objective = tracks[tracks["grain_count"] >= finite_limit]
+    if len(objective) < 8:
+        objective = tracks
+    fit = fit_growth_law(objective["time"].to_numpy(), objective["R_A"].to_numpy(), transient_fraction=0.1)
     per_grain = load_tracks(run_dir / "grain_tracks.csv")
     metrics = []
     for _, grain in per_grain.groupby("grain_id"):
@@ -70,4 +75,3 @@ def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None)
     target = Path(output) if output else campaign_dir / "mechanism_summary.csv"
     summary.to_csv(target, index=False)
     return summary
-

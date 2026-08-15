@@ -15,6 +15,10 @@ def test_growth_and_activation_recover_inputs():
     fit = fit_growth_law(time, radius)
     assert abs(fit.exponent - 3) < 1e-3
     assert fit.r_squared > 0.999999
+    # A small relative radius change must not bias the fit toward n=1.
+    narrow_time = np.linspace(0, 20, 80)
+    narrow_radius = (100 + 0.3 * narrow_time) ** 0.5
+    assert abs(fit_growth_law(narrow_time, narrow_radius).exponent - 2) < 1e-3
     temps = np.array([700, 800, 900, 1050, 1200])
     q = 0.65
     coefficients = 3e5 * np.exp(-q / (K_B_EV * temps))
@@ -38,4 +42,3 @@ def test_event_ledger_schema(tmp_path):
         row = next(csv.DictReader(handle))
     assert tuple(row) == EVENT_FIELDS
     assert row["normal_step_h"] == "0.2"
-
