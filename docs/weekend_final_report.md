@@ -15,7 +15,7 @@
   `results/campaigns/20260815T115547Z-af440f638c` (165 conditions; running).
 - Independent 256-square convergence campaign:
   `results/campaigns/20260815T083416Z-49423c71d0` (completed).
-- Current fast suite: 79 tests passed in 63.67 seconds under the live
+- Current fast suite: 80 tests passed in 56.92 seconds under the live
   14-worker production load.
 - Python 3.13.5, NumPy 2.1.3, SciPy 1.15.3.
 
@@ -42,6 +42,10 @@ The implementation has four deliberately separated layers:
    entity-attached obstacles.
 4. Immutable campaign execution, exact restart, scaling/Arrhenius inference,
    intermittency diagnostics, publication plots, and final-summary aggregation.
+
+Campaign workers receive one run per multiprocessing chunk. This prevents a
+long coupled-mechanism case from trapping later runs behind it while other
+workers sit idle near the end of a heterogeneous matrix.
 
 The complete module map is in `docs/model_hierarchy.md`; the equations actually
 executed are in `docs/physics_equations.md`.
