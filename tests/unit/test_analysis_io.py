@@ -2,10 +2,17 @@ import csv
 import json
 
 import numpy as np
+import pandas as pd
 
 from grain_growth_pf.analysis.activation_energy import fit_activation_energy
 from grain_growth_pf.analysis.analytical_models import asymptotic_exponent, intrinsic_radius, poisson_activity, series_activity
-from grain_growth_pf.analysis.growth_law import fit_growth_law, scan_growth_exponent
+from grain_growth_pf.analysis.growth_law import (
+    fit_common_exponent,
+    fit_growth_law,
+    fit_growth_law_fixed_exponent,
+    scan_growth_exponent,
+)
+from grain_growth_pf.analysis.grain_tracks import ensemble_radius
 from grain_growth_pf.disconnections.mode import K_B_EV
 from grain_growth_pf.io.event_ledger import EVENT_FIELDS, EventLedger
 from grain_growth_pf.io.provenance import write_manifest
@@ -24,11 +31,33 @@ def test_growth_and_activation_recover_inputs():
 
     profile = scan_growth_exponent(time, radius, np.linspace(1.0, 4.0, 301))
     assert abs(profile.exponents[np.argmin(profile.normalized_rmse)] - 3) < 0.02
+    fixed = fit_growth_law_fixed_exponent(time, radius, 3.0)
+    assert abs(fixed.coefficient - 0.7) < 1e-10
+    common = fit_common_exponent(
+        [time, time, time],
+        [(4**3 + coefficient * time) ** (1 / 3) for coefficient in (0.2, 0.7, 1.4)],
+    )
+    assert abs(common.exponent - 3.0) < 1e-7
+    assert np.allclose(common.coefficients, [0.2, 0.7, 1.4], rtol=1e-8)
     temps = np.array([700, 800, 900, 1050, 1200])
     q = 0.65
     coefficients = 3e5 * np.exp(-q / (K_B_EV * temps))
     activation = fit_activation_energy(temps, coefficients)
     assert abs(activation.activation_energy_ev - q) < 1e-10
+
+
+def test_ensemble_radius_reports_independent_size_measures():
+    tracks = pd.DataFrame({
+        "run_id": ["x", "x"], "time": [0.0, 0.0], "step": [0, 0],
+        "grain_id": [1, 2], "area": [np.pi, 9 * np.pi],
+        "radius": [1.0, 3.0], "perimeter": [2 * np.pi, 8 * np.pi],
+    })
+    row = ensemble_radius(tracks).iloc[0]
+    assert np.isclose(row["R_A"], np.sqrt(5.0))
+    assert np.isclose(row["R_mean"], 2.0)
+    assert np.isclose(row["R_median"], 2.0)
+    assert np.isclose(row["R_rms"], np.sqrt(5.0))
+    assert np.isclose(row["R_perimeter"], 2.5)
 
 
 def test_analytical_limits():

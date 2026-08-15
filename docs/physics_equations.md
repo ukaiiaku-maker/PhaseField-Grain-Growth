@@ -160,7 +160,13 @@ In 2-D \(R_i=\sqrt{A_i/\pi}\), \(R_A=\sqrt{\langle A\rangle/\pi}\). Scaling fits
 R^n-R_0^n=K_n(t-t_0)
 \]
 
-and report residual autocorrelation, local slopes, and realization bootstrap intervals. Activation fits use per-event units only:
+by minimizing residuals in the directly measured radius rather than comparing
+errors in differently transformed \(R^n\) variables. Reports include area-,
+mean-, median-, RMS-, and perimeter-derived radii, residual autocorrelation,
+local slopes, and realization-bootstrap intervals. A temperature series uses
+one jointly fitted \(n\), with a separate \(K_n(T)\) at each temperature, so
+all coefficients entering the Arrhenius fit have common units. Activation fits
+use per-event units only:
 
 \[
 K_n=K_0e^{-Q_{app}/k_BT},\qquad Q_{app}=-k_B\,d\ln K_n/d(1/T).

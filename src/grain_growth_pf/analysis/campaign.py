@@ -9,7 +9,12 @@ import pandas as pd
 
 from grain_growth_pf.analysis.activation_energy import fit_activation_energy
 from grain_growth_pf.analysis.grain_tracks import ensemble_radius, load_tracks
-from grain_growth_pf.analysis.growth_law import fit_growth_law, scan_growth_exponent
+from grain_growth_pf.analysis.growth_law import (
+    fit_common_exponent,
+    fit_growth_law,
+    fit_growth_law_fixed_exponent,
+    scan_growth_exponent,
+)
 from grain_growth_pf.analysis.jerkiness import jerkiness_metrics
 
 
@@ -20,11 +25,41 @@ SUMMARY_COLUMNS = [
     "number_of_events", "number_of_realizations", "Git_SHA",
 ]
 
+RADIUS_MEASURES = ("R_A", "R_mean", "R_median", "R_rms", "R_perimeter")
+
+
+def _growth_window_arrays(run_dirs: list[Path], measure: str = "R_A") -> tuple[np.ndarray, np.ndarray, dict]:
+    """Return aligned per-realization radii in the topology-selected window."""
+    if measure not in RADIUS_MEASURES:
+        raise ValueError(f"unknown radius measure {measure}")
+    aligned = None
+    for index, path in enumerate(run_dirs):
+        _, _, radius = _run_observables(path)
+        renamed = radius[["time", measure, "grain_count"]].rename(columns={
+            measure: f"R_{index}", "grain_count": f"N_{index}",
+        })
+        aligned = renamed if aligned is None else aligned.merge(renamed, on="time", how="inner")
+    assert aligned is not None
+    count_columns = [f"N_{index}" for index in range(len(run_dirs))]
+    mean_count = aligned[count_columns].to_numpy(float).mean(axis=1)
+    start, end, reason = _fit_window(mean_count)
+    time = aligned["time"].to_numpy(float)[start:end]
+    radii = aligned[[f"R_{index}" for index in range(len(run_dirs))]].to_numpy(float).T[:, start:end]
+    metadata = {
+        "selection": reason,
+        "initial_mean_grain_count": float(mean_count[0]),
+        "end_mean_grain_count": float(mean_count[end - 1]),
+        "samples": len(time),
+    }
+    return time, radii, metadata
+
 
 def _run_observables(run_dir: Path) -> tuple[dict, pd.DataFrame, pd.DataFrame]:
     manifest = json.loads((run_dir / "manifest.json").read_text())
     per_grain = load_tracks(run_dir / "grain_tracks.csv")
-    radius = ensemble_radius(per_grain)[["time", "step", "R_A", "grain_count"]]
+    radius = ensemble_radius(per_grain)[
+        ["time", "step", *RADIUS_MEASURES, "grain_count"]
+    ]
     return manifest, per_grain, radius
 
 
@@ -101,11 +136,14 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
     config = manifests[0]["config"]
     aligned = None
     for index, (_, _, radius) in enumerate(loaded):
-        renamed = radius.rename(columns={"R_A": f"R_{index}", "grain_count": f"N_{index}"})
+        renamed = radius.rename(columns={
+            **{measure: f"{measure}_{index}" for measure in RADIUS_MEASURES},
+            "grain_count": f"N_{index}",
+        })
         renamed = renamed.drop(columns="step")
         aligned = renamed if aligned is None else aligned.merge(renamed, on="time", how="inner")
     assert aligned is not None
-    radius_columns = [f"R_{i}" for i in range(len(loaded))]
+    radius_columns = [f"R_A_{i}" for i in range(len(loaded))]
     count_columns = [f"N_{i}" for i in range(len(loaded))]
     radii = aligned[radius_columns].to_numpy(float).T
     mean_count = aligned[count_columns].to_numpy(float).mean(axis=1)
@@ -125,7 +163,9 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
         # K has exponent-dependent units. Its interval is therefore evaluated
         # at the ensemble best-fit n while n itself is bootstrapped freely.
         sample_radius = fit_radii[selection].mean(axis=0)
-        bootstrap_k.append(float(np.polyfit(time, sample_radius**fit.exponent, 1)[0]))
+        bootstrap_k.append(fit_growth_law_fixed_exponent(
+            time, sample_radius, fit.exponent, transient_fraction=0.0
+        ).coefficient)
     n_low, n_high = np.quantile(bootstrap_n, [0.025, 0.975])
     k_low, k_high = np.quantile(bootstrap_k, [0.025, 0.975])
 
@@ -164,7 +204,18 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
                          "n_grid": profile.exponents.tolist(),
                          "normalized_rmse": profile.normalized_rmse.tolist(),
                          "residual_autocorrelation": profile.residual_autocorrelation.tolist()},
+        "radius_measure_fits": {},
     }
+    for measure in RADIUS_MEASURES:
+        columns = [f"{measure}_{index}" for index in range(len(loaded))]
+        measure_radius = aligned[columns].to_numpy(float).T[:, start:end].mean(axis=0)
+        measure_fit = fit_growth_law(time, measure_radius, transient_fraction=0.0)
+        diagnostics["radius_measure_fits"][measure] = {
+            "n": measure_fit.exponent,
+            "K": measure_fit.coefficient,
+            "r_squared": measure_fit.r_squared,
+            "residual_autocorrelation": measure_fit.residual_autocorrelation,
+        }
     return row, diagnostics
 
 
@@ -173,7 +224,8 @@ def analyze_run(run_dir: str | Path) -> dict[str, object]:
     return analyze_group([Path(run_dir)], bootstrap_samples=1)[0]
 
 
-def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None) -> pd.DataFrame:
+def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
+                     bootstrap_samples: int = 500) -> pd.DataFrame:
     campaign_dir = Path(campaign_dir)
     manifest = json.loads((campaign_dir / "campaign_manifest.json").read_text())
     grouped: dict[tuple[str, float], list[Path]] = {}
@@ -186,16 +238,69 @@ def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None)
 
     rows, diagnostics = [], []
     for paths in grouped.values():
-        row, detail = analyze_group(paths)
+        row, detail = analyze_group(paths, bootstrap_samples=bootstrap_samples)
         rows.append(row)
         diagnostics.append(detail)
     summary = pd.DataFrame(rows, columns=SUMMARY_COLUMNS)
+    detail_by_key = {
+        (detail["regime"], float(detail["temperature"])): detail for detail in diagnostics
+    }
     for regime, indices in summary.groupby("regime").groups.items():
         subset = summary.loc[indices]
-        if len(subset) >= 4 and np.all(subset["K"] > 0):
-            activation = fit_activation_energy(subset["temperature"].to_numpy(), subset["K"].to_numpy())
-            summary.loc[indices, "Q_app"] = activation.activation_energy_ev
-            summary.loc[indices, "Q_app_ci"] = 1.96 * activation.standard_error_ev
+        if len(subset) < 4:
+            continue
+        temperatures = np.sort(subset["temperature"].to_numpy(float))
+        series_times, series_radii, window_metadata = [], [], []
+        for temperature in temperatures:
+            time, radii, metadata = _growth_window_arrays(grouped[(regime, temperature)])
+            series_times.append(time)
+            series_radii.append(radii)
+            window_metadata.append(metadata)
+        common = fit_common_exponent(
+            series_times, [radii.mean(axis=0) for radii in series_radii]
+        )
+        digest = hashlib.sha256(f"temperature-series:{regime}".encode()).digest()
+        rng = np.random.default_rng(int.from_bytes(digest[:8], "little"))
+        bootstrap_n, bootstrap_k, bootstrap_q = [], [], []
+        for _ in range(bootstrap_samples):
+            sampled_mean_radii = []
+            for radii in series_radii:
+                selection = rng.integers(0, len(radii), len(radii))
+                sampled_mean_radii.append(radii[selection].mean(axis=0))
+            sample_fit = fit_common_exponent(series_times, sampled_mean_radii)
+            bootstrap_n.append(sample_fit.exponent)
+            bootstrap_k.append(sample_fit.coefficients)
+            if np.all(sample_fit.coefficients > 0):
+                bootstrap_q.append(fit_activation_energy(
+                    temperatures, sample_fit.coefficients
+                ).activation_energy_ev)
+        bootstrap_k_array = np.asarray(bootstrap_k)
+        n_low, n_high = np.quantile(bootstrap_n, [0.025, 0.975])
+        activation = fit_activation_energy(temperatures, common.coefficients)
+        q_low, q_high = np.quantile(bootstrap_q, [0.025, 0.975])
+        for position, temperature in enumerate(temperatures):
+            row_index = subset.index[np.isclose(subset["temperature"], temperature)][0]
+            k_low, k_high = np.quantile(bootstrap_k_array[:, position], [0.025, 0.975])
+            summary.loc[row_index, ["n", "n_ci_low", "n_ci_high"]] = [
+                common.exponent, n_low, n_high
+            ]
+            summary.loc[row_index, ["K", "K_ci"]] = [
+                common.coefficients[position], (k_high - k_low) / 2.0
+            ]
+            summary.loc[row_index, ["Q_app", "Q_app_ci"]] = [
+                activation.activation_energy_ev, (q_high - q_low) / 2.0
+            ]
+            detail_by_key[(regime, float(temperature))]["temperature_series_fit"] = {
+                "common_n": common.exponent,
+                "common_n_95pct": [float(n_low), float(n_high)],
+                "normalized_rmse": common.normalized_rmse,
+                "temperatures": temperatures.tolist(),
+                "coefficients": common.coefficients.tolist(),
+                "activation_energy_ev": activation.activation_energy_ev,
+                "activation_energy_95pct": [float(q_low), float(q_high)],
+                "bootstrap_samples": bootstrap_samples,
+                "window_by_temperature": window_metadata,
+            }
     target = Path(output) if output else campaign_dir / "mechanism_summary.csv"
     summary.to_csv(target, index=False)
     target.with_name(f"{target.stem}_diagnostics.json").write_text(json.dumps(diagnostics, indent=2))

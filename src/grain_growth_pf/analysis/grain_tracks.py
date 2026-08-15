@@ -11,9 +11,18 @@ def load_tracks(path: str | Path) -> pd.DataFrame:
 
 
 def ensemble_radius(tracks: pd.DataFrame) -> pd.DataFrame:
-    grouped = tracks.groupby(["run_id", "time", "step"], as_index=False).agg(
-        mean_area=("area", "mean"), grain_count=("grain_id", "nunique")
+    enriched = tracks.assign(radius_squared=tracks["radius"].to_numpy(float) ** 2)
+    grouped = enriched.groupby(["run_id", "time", "step"], as_index=False).agg(
+        mean_area=("area", "mean"),
+        mean_radius=("radius", "mean"),
+        median_radius=("radius", "median"),
+        mean_radius_squared=("radius_squared", "mean"),
+        mean_perimeter=("perimeter", "mean"),
+        grain_count=("grain_id", "nunique"),
     )
     grouped["R_A"] = np.sqrt(grouped["mean_area"] / np.pi)
+    grouped["R_mean"] = grouped["mean_radius"]
+    grouped["R_median"] = grouped["median_radius"]
+    grouped["R_rms"] = np.sqrt(grouped["mean_radius_squared"])
+    grouped["R_perimeter"] = grouped["mean_perimeter"] / (2.0 * np.pi)
     return grouped
-

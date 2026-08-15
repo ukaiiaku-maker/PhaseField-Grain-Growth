@@ -24,9 +24,17 @@ class GrowthProfile:
     residual_autocorrelation: np.ndarray
 
 
+@dataclass(frozen=True)
+class CommonExponentFit:
+    exponent: float
+    coefficients: np.ndarray
+    initial_radii: np.ndarray
+    normalized_rmse: float
+
+
 def scan_growth_exponent(time: np.ndarray, radius: np.ndarray,
                          exponents: np.ndarray | None = None) -> GrowthProfile:
-    """Profile the generalized growth law without optimizing an incubation time."""
+    """Profile the generalized growth law in the measured-radius error space."""
     time, radius = np.asarray(time, float), np.asarray(radius, float)
     valid = np.isfinite(time) & np.isfinite(radius) & (radius > 0)
     time, radius = time[valid], radius[valid]
@@ -34,10 +42,25 @@ def scan_growth_exponent(time: np.ndarray, radius: np.ndarray,
         raise ValueError("at least three samples are required")
     grid = np.asarray(exponents if exponents is not None else np.linspace(1.0, 6.0, 251), float)
     errors, autocorrelations = [], []
+    shifted_time = time - time[0]
+    radius_scale = max(float(np.std(radius)), 1e-15)
     for exponent in grid:
-        _, _, residual = _linear_for_n(time, radius, float(exponent))
-        transformed = radius**exponent
-        errors.append(float(np.sqrt(np.mean(residual**2)) / max(np.std(transformed), 1e-15)))
+        coefficient = max(float(np.polyfit(shifted_time, radius**exponent, 1)[0]), 1e-15)
+
+        def fixed_exponent_residual(parameters: np.ndarray) -> np.ndarray:
+            prediction = np.maximum(
+                parameters[1] ** exponent + parameters[0] * shifted_time, 1e-30
+            ) ** (1.0 / exponent)
+            return (prediction - radius) / radius_scale
+
+        result = least_squares(
+            fixed_exponent_residual,
+            x0=np.array([coefficient, radius[0]]),
+            bounds=([0.0, 1e-15], [np.inf, np.inf]),
+            x_scale="jac",
+        )
+        residual = fixed_exponent_residual(result.x) * radius_scale
+        errors.append(float(np.sqrt(np.mean(residual**2)) / radius_scale))
         autocorrelations.append(
             float(np.corrcoef(residual[:-1], residual[1:])[0, 1])
             if len(residual) > 2 and np.std(residual) else 0.0
@@ -63,20 +86,139 @@ def fit_growth_law(time: np.ndarray, radius: np.ndarray, n_bounds: tuple[float, 
     if len(time) < 3:
         raise ValueError("at least three post-transient samples are required")
 
-    def objective(x: np.ndarray) -> np.ndarray:
-        transformed = radius ** float(x[0])
-        # Normalize by signal variation, not its mean. Mean normalization
-        # spuriously rewards n->1 whenever R is large compared with Delta R.
-        return _linear_for_n(time, radius, float(x[0]))[2] / max(np.std(transformed), 1e-15)
+    shifted_time = time - time[0]
+    radius_scale = max(float(np.std(radius)), 1e-15)
 
-    result = least_squares(objective, x0=np.array([2.0]), bounds=n_bounds)
-    exponent = float(result.x[0])
-    coefficient, intercept, residual = _linear_for_n(time, radius, exponent)
-    y = radius**exponent
-    sst = float(np.sum((y - y.mean())**2))
+    def objective(parameters: np.ndarray) -> np.ndarray:
+        exponent, coefficient, initial_radius = parameters
+        prediction = np.maximum(
+            initial_radius**exponent + coefficient * shifted_time, 1e-30
+        ) ** (1.0 / exponent)
+        return (prediction - radius) / radius_scale
+
+    candidates = []
+    for initial_exponent in (1.01, 2.0, 3.0, 5.5):
+        initial_exponent = float(np.clip(initial_exponent, *n_bounds))
+        initial_coefficient = max(
+            float(np.polyfit(shifted_time, radius**initial_exponent, 1)[0]), 1e-15
+        )
+        candidates.append(least_squares(
+            objective,
+            x0=np.array([initial_exponent, initial_coefficient, radius[0]]),
+            bounds=([n_bounds[0], 0.0, 1e-15], [n_bounds[1], np.inf, np.inf]),
+            x_scale="jac",
+            max_nfev=10_000,
+        ))
+    result = min(candidates, key=lambda candidate: candidate.cost)
+    exponent, coefficient, initial_radius = map(float, result.x)
+    prediction = np.maximum(
+        initial_radius**exponent + coefficient * shifted_time, 1e-30
+    ) ** (1.0 / exponent)
+    residual = radius - prediction
+    intercept = initial_radius**exponent - coefficient * time[0]
+    sst = float(np.sum((radius - radius.mean())**2))
     r2 = 1.0 - float(np.sum(residual**2)) / sst if sst else 1.0
     ac = float(np.corrcoef(residual[:-1], residual[1:])[0, 1]) if len(residual) > 2 and np.std(residual) else 0.0
     return GrowthFit(exponent, coefficient, intercept, r2, ac, float(time[0]), float(time[-1]))
+
+
+def fit_growth_law_fixed_exponent(time: np.ndarray, radius: np.ndarray, exponent: float,
+                                  transient_fraction: float = 0.2) -> GrowthFit:
+    """Fit ``K`` and ``R0`` in radius space for a prescribed common exponent."""
+    if exponent <= 0:
+        raise ValueError("exponent must be positive")
+    time, radius = np.asarray(time, float), np.asarray(radius, float)
+    valid = np.isfinite(time) & np.isfinite(radius) & (radius > 0)
+    time, radius = time[valid], radius[valid]
+    start = min(max(int(len(time) * transient_fraction), 0), max(len(time) - 3, 0))
+    time, radius = time[start:], radius[start:]
+    if len(time) < 3:
+        raise ValueError("at least three post-transient samples are required")
+    shifted_time = time - time[0]
+    radius_scale = max(float(np.std(radius)), 1e-15)
+    initial_coefficient = max(
+        float(np.polyfit(shifted_time, radius**exponent, 1)[0]), 1e-15
+    )
+
+    def objective(parameters: np.ndarray) -> np.ndarray:
+        prediction = np.maximum(
+            parameters[1] ** exponent + parameters[0] * shifted_time, 1e-30
+        ) ** (1.0 / exponent)
+        return (prediction - radius) / radius_scale
+
+    result = least_squares(
+        objective,
+        x0=np.array([initial_coefficient, radius[0]]),
+        bounds=([0.0, 1e-15], [np.inf, np.inf]),
+        x_scale="jac",
+    )
+    coefficient, initial_radius = map(float, result.x)
+    prediction = np.maximum(
+        initial_radius**exponent + coefficient * shifted_time, 1e-30
+    ) ** (1.0 / exponent)
+    residual = radius - prediction
+    intercept = initial_radius**exponent - coefficient * time[0]
+    sst = float(np.sum((radius - radius.mean())**2))
+    r2 = 1.0 - float(np.sum(residual**2)) / sst if sst else 1.0
+    ac = float(np.corrcoef(residual[:-1], residual[1:])[0, 1]) if len(residual) > 2 and np.std(residual) else 0.0
+    return GrowthFit(float(exponent), coefficient, intercept, r2, ac,
+                     float(time[0]), float(time[-1]))
+
+
+def fit_common_exponent(time_series: list[np.ndarray], radius_series: list[np.ndarray],
+                        n_bounds: tuple[float, float] = (1.0, 6.0)) -> CommonExponentFit:
+    """Jointly fit one exponent and a separate coefficient at each condition."""
+    if len(time_series) != len(radius_series) or not time_series:
+        raise ValueError("time and radius series must be nonempty and paired")
+    times, radii, scales = [], [], []
+    for raw_time, raw_radius in zip(time_series, radius_series):
+        time = np.asarray(raw_time, float)
+        radius = np.asarray(raw_radius, float)
+        valid = np.isfinite(time) & np.isfinite(radius) & (radius > 0)
+        time, radius = time[valid], radius[valid]
+        if len(time) < 3:
+            raise ValueError("each condition requires at least three samples")
+        times.append(time - time[0])
+        radii.append(radius)
+        scales.append(max(float(np.std(radius)), 1e-15) * np.sqrt(len(radius)))
+
+    def objective(parameters: np.ndarray) -> np.ndarray:
+        exponent = parameters[0]
+        coefficients = np.exp(parameters[1:1 + len(radii)])
+        initial_radii = np.exp(parameters[1 + len(radii):])
+        residuals = []
+        for time, radius, scale, coefficient, initial_radius in zip(
+            times, radii, scales, coefficients, initial_radii
+        ):
+            prediction = np.maximum(
+                initial_radius**exponent + coefficient * time, 1e-30
+            ) ** (1.0 / exponent)
+            residuals.append((prediction - radius) / scale)
+        return np.concatenate(residuals)
+
+    candidates = []
+    for initial_exponent in (1.01, 2.0, 3.0, 5.5):
+        initial_exponent = float(np.clip(initial_exponent, *n_bounds))
+        initial_coefficients = [
+            max(float(np.polyfit(time, radius**initial_exponent, 1)[0]), 1e-15)
+            for time, radius in zip(times, radii)
+        ]
+        x0 = np.array([
+            initial_exponent,
+            *np.log(initial_coefficients),
+            *np.log([radius[0] for radius in radii]),
+        ])
+        lower = np.array([n_bounds[0], *([-50.0] * (2 * len(radii)))])
+        upper = np.array([n_bounds[1], *([50.0] * (2 * len(radii)))])
+        candidates.append(least_squares(
+            objective, x0=x0, bounds=(lower, upper), x_scale="jac", max_nfev=10_000
+        ))
+    result = min(candidates, key=lambda candidate: candidate.cost)
+    exponent = float(result.x[0])
+    coefficients = np.exp(result.x[1:1 + len(radii)])
+    initial_radii = np.exp(result.x[1 + len(radii):])
+    normalized_rmse = float(np.sqrt(np.mean(objective(result.x) ** 2)))
+    return CommonExponentFit(exponent, coefficients, initial_radii, normalized_rmse)
 
 
 def bootstrap_exponent(time: np.ndarray, radii_by_realization: np.ndarray, samples: int,
