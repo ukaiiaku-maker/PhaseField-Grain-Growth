@@ -1,5 +1,5 @@
 {
-  "git_sha": "7ba2e13b01e2779634793929dbe5efcdeed164d9",
+  "git_sha": "c732cd6122d269e858933a8699469306bab43a8b",
   "mechanism_isolation_activation": {
     "exact_rates": [
       209.0287246310949,
@@ -11,19 +11,19 @@
     "measured_multihit_elementary_rates": [
       209.69183670926444,
       797.9563672506405,
-      2294.5550015527474,
+      2294.555001552747,
       7550.339654624811
     ],
     "measured_single_rates": [
       206.93372622895978,
       799.8796953005667,
       2286.8250423798545,
-      7576.808465620981
+      7576.808465620983
     ],
-    "persistent_K5_Q_ev": 0.6490427817498777,
-    "persistent_K5_Q_standard_error_ev": 0.00134332711168027,
-    "single_hit_Q_ev": 0.6515818120552934,
-    "single_hit_Q_standard_error_ev": 0.0003590391775644749,
+    "persistent_K5_Q_ev": 0.6490427817498772,
+    "persistent_K5_Q_standard_error_ev": 0.0013433271116803,
+    "single_hit_Q_ev": 0.6515818120552926,
+    "single_hit_Q_standard_error_ev": 0.0003590391775644584,
     "temperatures": [
       700.0,
       800.0,
@@ -48,7 +48,7 @@
     "K": 5,
     "expected_cv": 0.4472135954999579,
     "expected_mean": 2.0,
-    "sample_cv": 0.44657824411833436,
+    "sample_cv": 0.4465782441183344,
     "sample_mean": 1.9980069933878173
   },
   "seed": 20260814,
@@ -62,9 +62,9 @@
     "timestep_mean_relative_difference": 1.1102230246251565e-15
   },
   "software": {
-    "numpy": "2.4.6",
-    "platform": "macOS-26.1-x86_64-i386-64bit",
-    "python": "3.11.3 (v3.11.3:f3909b8bc8, Apr  4 2023, 20:12:10) [Clang 13.0.0 (clang-1300.0.29.30)]",
-    "scipy": "1.17.1"
+    "numpy": "2.1.3",
+    "platform": "macOS-26.1-x86_64-i386-64bit-Mach-O",
+    "python": "3.13.5 | packaged by Anaconda, Inc. | (main, Jun 12 2025, 11:09:21) [Clang 14.0.6 ]",
+    "scipy": "1.15.3"
   }
 }
