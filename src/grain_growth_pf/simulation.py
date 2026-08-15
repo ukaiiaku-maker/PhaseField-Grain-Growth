@@ -72,7 +72,8 @@ class DomainPhysics:
                            "hit_count": self.activation.hit_count},
             "shear": {"state": self.shear.state, "dissipated_energy": self.shear.dissipated_energy},
             "free_volume": {"required_total": self.free_volume.required_total,
-                            "accommodated_total": self.free_volume.accommodated_total},
+                            "accommodated_total": self.free_volume.accommodated_total,
+                            "dissipated_energy": self.free_volume.dissipated_energy},
             "climb": {"stage": self.climb.stage.value, "required_quota": self.climb.required_quota,
                       "completed_quota": self.climb.completed_quota,
                       "clock_hazard": self.climb.clock.cumulative_hazard,
@@ -98,6 +99,7 @@ class DomainPhysics:
         self.shear.dissipated_energy = state["shear"]["dissipated_energy"]
         self.free_volume.required_total = state["free_volume"]["required_total"]
         self.free_volume.accommodated_total = state["free_volume"]["accommodated_total"]
+        self.free_volume.dissipated_energy = state["free_volume"].get("dissipated_energy", 0.0)
         self.climb.stage = ClimbStage(state["climb"]["stage"])
         self.climb.required_quota = state["climb"]["required_quota"]
         self.climb.completed_quota = state["climb"]["completed_quota"]
@@ -721,8 +723,21 @@ class EventResolvedSimulation:
                 if update_entities:
                     self.snapshot = self.tracker.update(self.solver.labels)
                     self._update_physics()
-                stored = sum(d.shear.energy + d.free_volume.energy for d in self.domains.values())
-                self.energy_records.append({"time": diag.time, "interfacial": diag.interfacial_energy, "stored": stored})
+                stored_shear = sum(d.shear.energy for d in self.domains.values())
+                stored_free_volume = sum(d.free_volume.energy for d in self.domains.values())
+                dissipated_shear = sum(d.shear.dissipated_energy for d in self.domains.values())
+                dissipated_free_volume = sum(
+                    d.free_volume.dissipated_energy for d in self.domains.values()
+                )
+                self.energy_records.append({
+                    "time": diag.time,
+                    "interfacial": diag.interfacial_energy,
+                    "stored": stored_shear + stored_free_volume,
+                    "stored_shear": stored_shear,
+                    "stored_free_volume": stored_free_volume,
+                    "dissipated_shear": dissipated_shear,
+                    "dissipated_free_volume": dissipated_free_volume,
+                })
                 if self.solver.step_number % self.config.output_cadence == 0:
                     self._write_tracks()
                     self._save_checkpoint()
