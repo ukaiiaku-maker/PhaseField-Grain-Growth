@@ -120,7 +120,10 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
         selection = rng.integers(0, len(fit_radii), len(fit_radii))
         sample_fit = fit_growth_law(time, fit_radii[selection].mean(axis=0), transient_fraction=0.0)
         bootstrap_n.append(sample_fit.exponent)
-        bootstrap_k.append(sample_fit.coefficient)
+        # K has exponent-dependent units. Its interval is therefore evaluated
+        # at the ensemble best-fit n while n itself is bootstrapped freely.
+        sample_radius = fit_radii[selection].mean(axis=0)
+        bootstrap_k.append(float(np.polyfit(time, sample_radius**fit.exponent, 1)[0]))
     n_low, n_high = np.quantile(bootstrap_n, [0.025, 0.975])
     k_low, k_high = np.quantile(bootstrap_k, [0.025, 0.975])
 

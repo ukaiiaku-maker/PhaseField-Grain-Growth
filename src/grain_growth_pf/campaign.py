@@ -35,6 +35,11 @@ def _run_one(payload: tuple[dict[str, Any], str, bool]) -> dict[str, str]:
         return {"path": path, "status": "failed"}
 
 
+def _prepare_one(payload: tuple[PFConfig, int, dict[str, Any], str, str]) -> str:
+    pf, seed, parameters, path, code_sha = payload
+    return str(prepare_initial_condition(pf, seed, parameters, path, code_sha))
+
+
 def _run_index(root: Path) -> tuple[dict[str, str], dict[str, str]]:
     completed: dict[str, str] = {}
     resumable: dict[str, str] = {}
@@ -104,11 +109,20 @@ def launch_campaign(spec_path: str | Path, root: str | Path = "results/campaigns
     if spec.get("prepare_initial_conditions", False):
         base = ModelConfig.from_dict(spec.get("base", {}))
         cache_root = Path(root).parent / "initial_conditions"
+        preparation_payloads = []
         for seed in sorted({config.seed for config in configs}):
             identity_hash = initial_condition_identity(base.pf, seed, base.parameters, code_sha)
             state_path = cache_root / f"seed-{seed}-{identity_hash[:16]}.npz"
-            prepare_initial_condition(base.pf, seed, base.parameters, state_path, code_sha)
             initial_condition_files[seed] = str(state_path)
+            preparation_payloads.append((base.pf, seed, base.parameters, str(state_path), code_sha))
+        preparation_workers = min(
+            processes or max(1, mp.cpu_count() - 1), len(preparation_payloads)
+        ) if preparation_payloads else 0
+        if preparation_workers == 1:
+            [_prepare_one(payload) for payload in preparation_payloads]
+        elif preparation_workers > 1:
+            with mp.get_context("spawn").Pool(preparation_workers) as pool:
+                pool.map(_prepare_one, preparation_payloads)
         configs = [replace(
             config, parameters={**config.parameters, "initial_state_file": initial_condition_files[config.seed]}
         ) for config in configs]
