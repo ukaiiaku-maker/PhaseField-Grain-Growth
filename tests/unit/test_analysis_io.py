@@ -20,7 +20,12 @@ from grain_growth_pf.analysis.growth_law import (
     scan_growth_exponent,
 )
 from grain_growth_pf.analysis.grain_tracks import ensemble_radius
-from grain_growth_pf.analysis.campaign import _boundary_metrics, _fit_window
+from grain_growth_pf.analysis.campaign import (
+    _boundary_metrics,
+    _burst_size_ccdf,
+    _fit_window,
+    _spatial_motion_correlation,
+)
 from grain_growth_pf.disconnections.mode import K_B_EV
 from grain_growth_pf.io.event_ledger import EVENT_FIELDS, EventLedger
 from grain_growth_pf.io.provenance import write_manifest
@@ -120,6 +125,24 @@ def test_boundary_reverse_metric_filters_inactive_diffuse_jitter(tmp_path):
     metrics = _boundary_metrics(tmp_path)
     assert np.isclose(metrics["raw_reverse_motion_fraction"], 7.0 / 8.0)
     assert np.isclose(metrics["reverse_motion_fraction"], 0.5)
+
+
+def test_spatial_motion_correlation_and_burst_ccdf_are_reported():
+    boundaries = pd.DataFrame({
+        "time": [0.0] * 4,
+        "grain_i": [0, 0, 2, 3], "grain_j": [1, 2, 3, 4],
+        "normal_velocity": [4.0, 4.0, 1.0, 1.0],
+    })
+    assert _spatial_motion_correlation(boundaries) > 0
+    tracks = pd.DataFrame({
+        "grain_id": [0, 0, 0, 1, 1, 1],
+        "time": [0.0, 1.0, 2.0] * 2,
+        "area": [1.0, 2.0, 5.0, 4.0, 4.0, 6.0],
+    })
+    ccdf = _burst_size_ccdf([tracks])
+    assert ccdf["samples"] == 3
+    assert ccdf["probability"][0] == 1.0
+    assert np.all(np.diff(ccdf["probability"]) <= 0)
 
 
 def test_analytical_limits():

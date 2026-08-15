@@ -140,6 +140,7 @@ def _boundary_metrics(run_dir: Path) -> dict[str, float]:
         "active_boundary_fraction": float(np.mean(active)),
         "velocity_curvature_R2": curvature_r2,
         "pinned_fraction": pinned,
+        "simultaneous_motion_spatial_correlation": _spatial_motion_correlation(boundaries),
     }
     for column, name in (
         ("resolved_shear", "velocity_internal_shear_correlation"),
@@ -152,6 +153,71 @@ def _boundary_metrics(run_dir: Path) -> dict[str, float]:
         else:
             result[name] = np.nan
     return result
+
+
+def _spatial_motion_correlation(boundaries: pd.DataFrame,
+                                maximum_time_samples: int = 200) -> float:
+    """Topological Moran-like correlation of simultaneous GB speed.
+
+    Boundary domains are spatial neighbors when they share a grain. The metric
+    compares centered speed products for neighboring domains with the global
+    speed variance at the same recorded time.
+    """
+    required = {"time", "grain_i", "grain_j", "normal_velocity"}
+    if not required.issubset(boundaries.columns) or boundaries.empty:
+        return np.nan
+    grouped = boundaries.groupby("time", sort=False)
+    times = np.asarray(list(grouped.indices), dtype=float)
+    if len(times) > maximum_time_samples:
+        times = times[np.unique(np.linspace(
+            0, len(times) - 1, maximum_time_samples, dtype=int
+        ))]
+    correlations = []
+    for time_value in times:
+        frame = grouped.get_group(time_value)
+        velocity = np.abs(frame["normal_velocity"].to_numpy(float))
+        finite = np.isfinite(velocity)
+        if np.count_nonzero(finite) < 3 or np.var(velocity[finite]) <= 0:
+            continue
+        frame = frame.iloc[np.flatnonzero(finite)]
+        centered = velocity[finite] - np.mean(velocity[finite])
+        grain_ids = np.concatenate((
+            frame["grain_i"].to_numpy(int), frame["grain_j"].to_numpy(int)
+        ))
+        values = np.concatenate((centered, centered))
+        order = np.argsort(grain_ids, kind="stable")
+        sorted_ids, sorted_values = grain_ids[order], values[order]
+        starts = np.r_[0, np.flatnonzero(np.diff(sorted_ids)) + 1]
+        counts = np.diff(np.r_[starts, len(sorted_ids)])
+        sums = np.add.reduceat(sorted_values, starts)
+        sums_squared = np.add.reduceat(sorted_values**2, starts)
+        pair_counts = counts * (counts - 1) / 2.0
+        valid_groups = pair_counts > 0
+        total_pairs = float(pair_counts[valid_groups].sum())
+        if total_pairs:
+            pair_products = 0.5 * (sums**2 - sums_squared)
+            correlations.append(float(
+                pair_products[valid_groups].sum()
+                / (total_pairs * np.var(centered))
+            ))
+    return float(np.mean(correlations)) if correlations else np.nan
+
+
+def _burst_size_ccdf(per_grain_frames: list[pd.DataFrame]) -> dict[str, object]:
+    sizes = []
+    for frame in per_grain_frames:
+        for _, grain in frame.groupby("grain_id"):
+            increments = np.abs(np.diff(grain.sort_values("time")["area"].to_numpy(float)))
+            sizes.extend(increments[increments > 1e-12].tolist())
+    if not sizes:
+        return {"samples": 0, "size": [], "probability": []}
+    values = np.asarray(sizes, dtype=float)
+    thresholds = np.unique(np.quantile(values, np.linspace(0.0, 1.0, 65)))
+    return {
+        "samples": int(len(values)),
+        "size": thresholds.tolist(),
+        "probability": [float(np.mean(values >= threshold)) for threshold in thresholds],
+    }
 
 
 def _neighbor_growth_correlation(per_grain: pd.DataFrame) -> float:
@@ -290,6 +356,7 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
                 "motion_top_5pct", "motion_top_10pct", "burstiness",
             )
         },
+        "burst_size_ccdf": _burst_size_ccdf([item[1] for item in loaded]),
         "correlations": {
             "velocity_internal_shear": _nanmean_metric(
                 boundary_metrics, "velocity_internal_shear_correlation"
@@ -305,6 +372,9 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
             ),
             "active_boundary_fraction": _nanmean_metric(
                 boundary_metrics, "active_boundary_fraction"
+            ),
+            "simultaneous_boundary_motion_spatial": _nanmean_metric(
+                boundary_metrics, "simultaneous_motion_spatial_correlation"
             ),
         },
     }
