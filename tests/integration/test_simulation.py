@@ -107,3 +107,23 @@ def test_named_temperature_and_tj_particle_regimes_are_distinct(tmp_path):
     assert simulation.particles is not None
     assert simulation.tj_domains
     assert (simulation.solver.mobility_scale == 0).any()
+
+
+def test_equilibration_precedes_physical_time_and_hazard(tmp_path):
+    config = ModelConfig(
+        regime="G1", seed=5,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01, intrinsic_mobility=0.2),
+        compatibility_model="geometric_surrogate", active_modules=("gb_compatibility",),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={"initial_grains": 5, "equilibration_steps": 3, "encounter_density": 100.0},
+    )
+    output = tmp_path / "equilibrated"
+    simulation = EventResolvedSimulation(config, output)
+    assert simulation.solver.time == 0
+    assert simulation.solver.step_number == 0
+    simulation.run()
+    with (output / "grain_tracks.csv").open() as handle:
+        rows = list(csv.DictReader(handle))
+    assert any(float(row["time"]) == 0 for row in rows)
+    manifest = json.loads((output / "manifest.json").read_text())
+    assert manifest["equilibration_steps_completed_before_time_zero"] == 3

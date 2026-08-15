@@ -127,7 +127,14 @@ class EventResolvedSimulation:
             effective_pf = replace(config.pf, intrinsic_mobility=(
                 config.pf.intrinsic_mobility * np.exp(-barrier / (K_B_EV * config.pf.temperature))
             ))
-        self.solver = MultiphaseFieldSolver(eta, effective_pf, driving=self._driving)
+        self.driving_field = np.zeros_like(eta)
+        self.solver = MultiphaseFieldSolver(eta, effective_pf, driving=None)
+        equilibration_steps = int(config.parameters.get("equilibration_steps", 0))
+        if not resume and equilibration_steps:
+            self.solver.run(equilibration_steps)
+            self.solver.time = 0.0
+            self.solver.step_number = 0
+        self.solver.driving = self._driving
         self.tracker = EntityTracker(
             orientations, config.pf.grid_spacing,
             float(config.parameters.get("event_domain_length", 8.0)),
@@ -136,7 +143,6 @@ class EventResolvedSimulation:
         self.snapshot = self.tracker.update(self.solver.labels)
         self.domains: dict[str, DomainPhysics] = {}
         self.tj_domains: dict[str, DomainPhysics] = {}
-        self.driving_field = np.zeros_like(eta)
         self.modes = isotropic_surrogate_library(
             b_shells=tuple(config.parameters.get("b_shells", (0.25, 0.5, 1.0))),
             directions=int(config.parameters.get("mode_directions", 8)),
@@ -171,7 +177,10 @@ class EventResolvedSimulation:
         else:
             write_manifest(self.output_dir / "manifest.json", config.to_dict(), "running", {
                 "initial_seed_positions": seeds.tolist(), "orientations": orientations.tolist(),
+                "equilibration_steps_completed_before_time_zero": equilibration_steps,
+                "grains_after_equilibration": len(self.snapshot.grains),
             })
+            self._write_tracks()
 
     def _driving(self, _eta: np.ndarray, _time: float) -> np.ndarray:
         return self.driving_field
@@ -308,7 +317,7 @@ class EventResolvedSimulation:
             delta_path = max(0.0, tj.travel_distance - domain.previous_length)
             domain.previous_length = tj.travel_distance
             explicit_residual = modules.intersection({"tj_burgers_strict", "tj_burgers_residual"}) and np.linalg.norm(tj.residual_burgers) > 1e-10
-            if self.solver.step_number > int(self.config.parameters.get("equilibration_steps", 20)):
+            if self.solver.step_number > 0:
                 if domain.encounter.advance(delta_path) or explicit_residual:
                     domain.blocked = True
             if domain.blocked:
@@ -345,7 +354,6 @@ class EventResolvedSimulation:
         if not modules and cfg.compatibility_model == "off" and self.particles is None:
             self.solver.set_mobility_scale(1.0)
             return
-        equilibration = int(cfg.parameters.get("equilibration_steps", 20))
         mobility = np.ones(cfg.pf.shape)
         self.driving_field.fill(0.0)
         current_ids = set(self.snapshot.boundaries)
@@ -370,7 +378,7 @@ class EventResolvedSimulation:
             encounter_enabled = cfg.compatibility_model == "geometric_surrogate" or bool(
                 modules.intersection({"gb_area_point_defect_pinning", "gb_pinning"})
             )
-            if self.solver.step_number > equilibration and encounter_enabled and domain.encounter.advance(delta_length):
+            if self.solver.step_number > 0 and encounter_enabled and domain.encounter.advance(delta_length):
                 domain.blocked = True
                 domain.activation.clock.reset()
                 domain.climb.activate(self.solver.time)
@@ -380,7 +388,7 @@ class EventResolvedSimulation:
                 complete = domain.activation.advance(total_rate, cfg.pf.time_step, self.solver.time - cfg.pf.time_step)
                 if complete:
                     self._record_event(domain, segment, mode, total_rate, driving, "compatibility_release", delta_length)
-            elif cfg.compatibility_model == "explicit_modes" and self.solver.step_number > equilibration:
+            elif cfg.compatibility_model == "explicit_modes" and self.solver.step_number > 0:
                 # Event-resolved easy-mode flux; completion changes finite hidden
                 # kinematics even when it does not gate mobility.
                 complete = domain.activation.advance(total_rate, cfg.pf.time_step, self.solver.time - cfg.pf.time_step)

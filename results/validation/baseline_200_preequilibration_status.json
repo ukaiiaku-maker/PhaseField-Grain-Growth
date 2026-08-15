@@ -1,0 +1,12 @@
+{
+  "campaign": "results/campaigns/20260815T001913Z-84bc8132f1",
+  "git_sha": "95ec014e4003c8b75c5cd2b0af4fbcf9891f125e",
+  "runs_completed": 5,
+  "initial_order_parameters": 200,
+  "first_recorded_grains_mean": 198.2,
+  "final_grains_mean": 112.2,
+  "grain_count_monotone": true,
+  "scientific_scaling_valid": false,
+  "reason": "Diffuse Voronoi equilibration was included in physical time and produced a two-rate trajectory. The run validates irreversible topology at larger scale but is rejected for exponent inference.",
+  "preserved_summary": "results/production_summaries/baseline_200_summary_preequilibration_included.csv"
+}
