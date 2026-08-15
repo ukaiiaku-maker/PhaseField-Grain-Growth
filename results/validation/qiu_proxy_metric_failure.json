@@ -1,0 +1,24 @@
+{
+  "status": "failed_diagnostic_rejected",
+  "source_report": "results/validation/qiu_regression_benchmarks.json",
+  "git_sha": "d6b14b649bb3dca2e457b7b7dc3b10fbb64298cf",
+  "raw_run_directory": "results/runs/qiu-regressions-20260815T073932Z-d6b14b64",
+  "reason": "The mechanics executed and produced finite nonlocal eigenstrain, stress, feedback, and morphology changes, but the equivalent-radius curvature and pair-area velocity proxies did not establish the required Qiu qualitative comparison. The report's execution validation_passed flag is not accepted as a scientific benchmark pass.",
+  "four_grain": {
+    "eigenstrain_l2": 0.0795266191807732,
+    "stress_l2": 0.15504339070079198,
+    "feedback_l2": 0.16964982421633698,
+    "label_difference_fraction": 0.00043402777777777775,
+    "control_velocity_curvature_correlation": 0.1679867388687436,
+    "shear_velocity_curvature_correlation": 0.2588886312239232
+  },
+  "polycrystal": {
+    "eigenstrain_l2": 0.4550428134165491,
+    "stress_l2": 0.8965032303002228,
+    "feedback_l2": 0.8830830202522822,
+    "label_difference_fraction": 0.00439453125,
+    "control_velocity_curvature_correlation": 0.38151772710979015,
+    "shear_velocity_curvature_correlation": 0.4296558387058319
+  },
+  "corrective_action": "Replace proxy kinematics with signed local diffuse-level-set curvature and velocity, preserve the measurement state in checkpoints, and rerun matched pairs."
+}

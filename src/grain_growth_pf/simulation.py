@@ -24,6 +24,7 @@ from grain_growth_pf.mechanics.local_shear_memory import LocalShearMemory
 from grain_growth_pf.mechanics.qiu_full_field import QiuFullField
 from grain_growth_pf.obstacles.particles import ParticleField
 from grain_growth_pf.pf.geometry import voronoi_polycrystal
+from grain_growth_pf.pf.kinematics import interface_kinematics
 from grain_growth_pf.pf.solver import MultiphaseFieldSolver
 from grain_growth_pf.stochastic.multihit import MultiHitProcess
 
@@ -237,6 +238,8 @@ class EventResolvedSimulation:
         self.energy_records: list[dict[str, float]] = []
         self.accumulated_shear_strain = 0.0
         self.accumulated_volumetric_strain = 0.0
+        self.previous_entity_eta = self.solver.eta.copy()
+        self.previous_entity_time = self.solver.time
         if resume:
             self._load_checkpoint()
         else:
@@ -477,6 +480,7 @@ class EventResolvedSimulation:
         cfg, modules = self.config, set(self.config.active_modules)
         mobility = np.ones(cfg.pf.shape)
         self.driving_field.fill(0.0)
+        entity_elapsed = self.solver.time - self.previous_entity_time
         current_ids = set(self.snapshot.boundaries)
         self.domains = {key: state for key, state in self.domains.items() if key in current_ids}
         for key, segment in self.snapshot.boundaries.items():
@@ -499,8 +503,16 @@ class EventResolvedSimulation:
             domain.previous_area_i = grain_i.area
             domain.previous_area_j = grain_j.area
             domain.previous_time = self.solver.time
-            ri, rj = grain_i.equivalent_radius, grain_j.equivalent_radius
-            segment.curvature = 0.5 * (1.0 / max(rj, cfg.pf.grid_spacing) - 1.0 / max(ri, cfg.pf.grid_spacing))
+            measured_curvature, measured_velocity, measured_normal = interface_kinematics(
+                self.solver.eta[segment.grain_i],
+                self.previous_entity_eta[segment.grain_i],
+                segment.points,
+                entity_elapsed,
+                cfg.pf.grid_spacing,
+                periodic=cfg.pf.boundary_conditions == "periodic",
+            )
+            segment.curvature = measured_curvature
+            segment.velocity = measured_velocity
             ci = np.asarray(self.snapshot.grains[segment.grain_i].centroid)
             cj = np.asarray(self.snapshot.grains[segment.grain_j].centroid)
             normal = cj - ci
@@ -508,6 +520,8 @@ class EventResolvedSimulation:
                 box = np.asarray(cfg.pf.shape, dtype=float)
                 normal -= np.round(normal / box) * box
             normal /= max(np.linalg.norm(normal), np.finfo(float).tiny)
+            if np.linalg.norm(measured_normal):
+                normal = np.asarray(measured_normal)
             segment.normal = tuple(normal)
             if "shear_memory" in modules or "shear_feedback" in modules:
                 beta = float(cfg.parameters.get("easy_beta", 0.35))
@@ -585,6 +599,8 @@ class EventResolvedSimulation:
         self.solver.set_mobility_scale(mobility)
         if self.full_field is not None:
             self.full_field.solve()
+        self.previous_entity_eta = self.solver.eta.copy()
+        self.previous_entity_time = self.solver.time
 
     def _write_tracks(self) -> None:
         for grain in self.snapshot.grains.values():
@@ -613,6 +629,7 @@ class EventResolvedSimulation:
             "eta": self.solver.eta, "mobility_scale": self.solver.mobility_scale,
             "driving_field": self.driving_field, "active_phases": self.solver.active_phases,
             "orientations": self.orientations,
+            "previous_entity_eta": self.previous_entity_eta,
         }
         if self.full_field is not None:
             arrays["eigenstrain"] = self.full_field.eigenstrain
@@ -624,6 +641,7 @@ class EventResolvedSimulation:
             "energy_records": self.energy_records,
             "accumulated_shear_strain": self.accumulated_shear_strain,
             "accumulated_volumetric_strain": self.accumulated_volumetric_strain,
+            "previous_entity_time": self.previous_entity_time,
         }
         (self.output_dir / "checkpoint.json").write_text(json.dumps(state, indent=2) + "\n")
 
@@ -636,10 +654,15 @@ class EventResolvedSimulation:
             if "orientations" in arrays:
                 self.orientations = arrays["orientations"].copy()
             self.driving_field = arrays["driving_field"].copy()
+            self.previous_entity_eta = (
+                arrays["previous_entity_eta"].copy()
+                if "previous_entity_eta" in arrays else arrays["eta"].copy()
+            )
             if self.full_field is not None and "eigenstrain" in arrays:
                 self.full_field.eigenstrain = arrays["eigenstrain"].copy()
         self.solver.time = float(state["time"])
         self.solver.step_number = int(state["step_number"])
+        self.previous_entity_time = float(state.get("previous_entity_time", self.solver.time))
         self.tracker = EntityTracker(
             self.orientations, self.config.pf.grid_spacing,
             float(self.config.parameters.get("event_domain_length", 8.0)),

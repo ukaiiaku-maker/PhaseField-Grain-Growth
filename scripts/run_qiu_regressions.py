@@ -75,7 +75,7 @@ def _matched_pair(name: str, shape: tuple[int, int], grains: int, steps: int,
         "label_difference_fraction": label_difference,
         "accumulated_shear_strain": shear_simulation.accumulated_shear_strain,
     }
-    result["validation_passed"] = bool(
+    result["execution_passed"] = bool(
         result["eigenstrain_l2"] > 0.0
         and result["stress_l2"] > 0.0
         and result["feedback_l2"] > 0.0
@@ -113,9 +113,29 @@ def main() -> None:
             "scipy": scipy.__version__,
         },
     }
+    polycrystal = results[-1]
+    control_correlation = abs(polycrystal["control"]["velocity_curvature_correlation"])
+    shear_correlation = abs(polycrystal["qiu_shear"]["velocity_curvature_correlation"])
+    report["qualitative_qiu_checks"] = {
+        "control_abs_velocity_curvature_correlation": control_correlation,
+        "shear_abs_velocity_curvature_correlation": shear_correlation,
+        "control_reverse_fraction": polycrystal["control"]["reverse_curvature_fraction"],
+        "shear_reverse_fraction": polycrystal["qiu_shear"]["reverse_curvature_fraction"],
+        "control_is_curvature_correlated": bool(control_correlation >= 0.7),
+        "shear_weakens_correlation": bool(shear_correlation < control_correlation),
+        "shear_increases_reverse_motion": bool(
+            polycrystal["qiu_shear"]["reverse_curvature_fraction"]
+            > polycrystal["control"]["reverse_curvature_fraction"]
+        ),
+    }
     report["validation_passed"] = bool(
         report["intrinsic_curvature_regression"]["passed"]
-        and all(item["validation_passed"] for item in results)
+        and all(item["execution_passed"] for item in results)
+        and all(report["qualitative_qiu_checks"][key] for key in (
+            "control_is_curvature_correlated",
+            "shear_weakens_correlation",
+            "shear_increases_reverse_motion",
+        ))
     )
     target = Path("results/validation/qiu_regression_benchmarks.json")
     target.write_text(json.dumps(report, indent=2) + "\n")
