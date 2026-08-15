@@ -10,12 +10,12 @@
 - Development branch: `codex/weekend-disconnection-pf-2026-08-14`.
 - Validated curvature-scaling milestone: tag `v0.8-scaling-validated`.
 - Definitive mechanism simulation launch SHA:
-  `0cea3a339b0c295294f3283d31dc4ef6ff32f03c`.
+  `a7e7cdbdff37fd7d96d482f0f8c81d03afd0617d`.
 - Mechanism campaign:
-  `results/campaigns/20260815T094120Z-af440f638c` (165 conditions; running).
+  `results/campaigns/20260815T114456Z-af440f638c` (165 conditions; running).
 - Independent 256-square convergence campaign:
   `results/campaigns/20260815T083416Z-49423c71d0` (completed).
-- Current fast suite: 73 tests passed in 36.27 seconds.
+- Current fast suite: 77 tests passed in 20.16 seconds.
 - Python 3.13.5, NumPy 2.1.3, SciPy 1.15.3.
 
 Every run manifest contains its launch SHA, canonical configuration hash,
@@ -149,11 +149,16 @@ The finalized matrix contains B0--B1, G1--G3, T1--T3, S1--S3, C1--C5,
 SC1--SC4, P1--P5, Q0--Q1, E0--E2, and J1--J3, each with five matched
 realizations at 900 K. Results are **pending production inference**.
 
-Two superseded partial matrices remain preserved. The first diagnosed tracker
+Three superseded partial matrices remain preserved. The first diagnosed tracker
 throughput; the second stopped before climb runs after detecting unwired
 Butler--Volmer/transport production paths and an incomplete packet-renewal
-interpretation. Their audit records are under `results/validation/`; neither is
-included in final inference.
+interpretation. The third exposed same-step first passages sampled after a
+single-hit release had already changed the physical blocked state. Its five-seed
+G1 ledger contained 98,540 primitive hits for 79,289 releases. The corrected
+clock stops at the physical completion time; unit, packet-window, and actual
+blocked-GB ledger regressions enforce that behavior while continuous easy-mode
+flux retains multiple passages. Audit records are under `results/validation/`;
+none of the partial matrices is included in final inference.
 
 ## 7. Growth-law results
 
