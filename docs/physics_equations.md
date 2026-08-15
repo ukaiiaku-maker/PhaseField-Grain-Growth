@@ -4,22 +4,37 @@ All scalar energies in event kinetics are in eV, temperature is kelvin, lengths 
 
 ## Multiphase field
 
-For order parameters \(0\leq\eta_i\leq1\), \(\sum_i\eta_i=1\),
+For order parameters \(0\leq\eta_i\leq1\), \(\sum_i\eta_i=1\), the baseline
+uses the pairwise double-obstacle formulation in Qiu et al. (their Eqs. 3--6).
+For isotropic boundaries its implemented interfacial energy is
 
 \[
-F_{\rm int}=\frac12\sum_i\int_\Omega\left[\frac{\kappa_\eta}{2}|\nabla\eta_i|^2+W\eta_i^2(1-\eta_i)^2\right]dA,
-\quad \kappa_\eta=3\gamma w,\quad W=6\gamma/w.
+F_{\rm int}=\frac{2\gamma}{\epsilon}\int_\Omega
+\sum_{i<j}\left[\eta_i\eta_j-rac{\epsilon^2}{\pi^2}
+\nabla\eta_i\cdot\nabla\eta_j\right]dA.
 \]
 
-The isolated equilibrium interface has energy \(\gamma\), profile \(\eta=[1+\tanh(x/w)]/2\), and \(\int(\eta')^2dx=1/(3w)\). The chemical potentials and constrained Allen–Cahn dynamics are
+The isolated equilibrium interface has energy \(\gamma\) and the compact profile
+\(\eta=[1+\sin(\pi x/\epsilon)]/2\) for \(|x|<\epsilon/2\), with pure
+phases outside that interval.  The capillary evolution is
 
 \[
-\mu_i=2W\eta_i(1-\eta_i)(1-2\eta_i)-\kappa_\eta\nabla^2\eta_i,
-\qquad
-\dot\eta_i=-L(\mu_i-\bar\mu)+L f_i,
+\dot\eta_i=\sum_{j\in\mathcal A(\mathbf x)}M_{ij}\Gamma_{ij}
+\left[\eta_j\nabla^2\eta_i-\eta_i\nabla^2\eta_j
+-\frac{\pi^2}{2\epsilon^2}(\eta_j-\eta_i)\right]+M_i f_i,
 \]
 
-where \(\bar\mu\) is the local active-phase mean, \(\sum_i f_i=0\), and \(L=M_0/(3w)\). This normalization yields the sharp-interface limit \(v_n=M_0\gamma\kappa\). A Euclidean simplex projection enforces bounds and filling after each explicit step. Periodic or zero-normal-gradient boundaries are supported.
+where \(\mathcal A(\mathbf x)\) contains phases present at the point plus phases
+present in a neighboring stencil cell.  This local support permits topological
+change without nucleating a grain remotely.  For the isotropic baseline
+\(M_{ij}=M_0\), \(\Gamma_{ij}=\gamma\), giving the sharp-interface limit
+\(v_n=M_0\gamma\kappa\).  A nine-point Laplacian, explicit stepping, clipping,
+and local renormalization follow the audited Qiu implementation.  Extinct phases
+are removed irreversibly.  Periodic or zero-normal-gradient boundaries are supported.
+At finite grid spacing, the obstacle coefficient is evaluated as
+\(2\sin^2(\pi\Delta x/(2\epsilon))/\Delta x^2\), the exact discrete-Laplacian
+eigenvalue of the sampled planar profile; it converges to
+\(\pi^2/(2\epsilon^2)\) and prevents artificial planar-interface relaxation.
 
 ## Disconnection modes and driving
 
@@ -141,4 +156,3 @@ K_n=K_0e^{-Q_{app}/k_BT},\qquad Q_{app}=-k_B\,d\ln K_n/d(1/T).
 \]
 
 The analytical comparator also implements intrinsic/drag \(dR/dt=K\Gamma(R)/R\), Class-B completion \(\Gamma=P(K,\Lambda(R))\), exchange crossover \(\Gamma=1/(1+R/R_x)\), and series/parallel activity composition.
-

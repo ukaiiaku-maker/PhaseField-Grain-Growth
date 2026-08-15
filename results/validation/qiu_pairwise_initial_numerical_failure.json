@@ -1,0 +1,16 @@
+{
+  "status": "failed",
+  "reason": "The first numerical validation after adopting the Qiu pairwise MPF compared mobilities over unequal dimensionless M*t intervals.",
+  "git_sha": "960348da77f37dc8a812332617c685fd6b31187a-dirty",
+  "failed_gate": "maximum circular-grain slope error < 0.12",
+  "observed_maximum_relative_error": 0.13239048607611648,
+  "other_observations": {
+    "dx_1_mobility_0.2_relative_error": 0.11246685560914038,
+    "dx_0.5_mobility_0.2_relative_error": 0.024789946966356613,
+    "mesh_slope_spread_fraction": 0.094198937753866,
+    "grid_anisotropy_fraction_legacy_energy_measure": 0.015980083657499394,
+    "maximum_triple_junction_angle_error_degrees": 4.285324250371389,
+    "energy_monotonic_all_circle_cases": true
+  },
+  "corrective_action": "Compare equal M*t intervals and evaluate orientation dependence with the implemented pairwise energy functional."
+}

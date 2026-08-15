@@ -9,7 +9,7 @@ import numpy as np
 from grain_growth_pf.config import PFConfig
 from grain_growth_pf.io.provenance import git_sha, software_versions
 from grain_growth_pf.pf.geometry import circular_grain, equivalent_radius, planar_interface
-from grain_growth_pf.pf.free_energy import coefficients
+from grain_growth_pf.pf.free_energy import free_energy
 from grain_growth_pf.pf.solver import MultiphaseFieldSolver
 
 
@@ -24,7 +24,11 @@ def circle_slope(dx: float, mobility: float, physical_time: float = 60.0) -> dic
     eta = circular_grain(cfg.shape, 14.0 / dx, cfg.interface_width / dx)
     solver = MultiphaseFieldSolver(eta, cfg)
     times, values, energies = [], [], []
-    while solver.time < physical_time:
+    # Compare every mobility over the same dimensionless interval M*t.  Using
+    # one wall-clock interval gives the slower case a disproportionate share
+    # of initial profile relaxation and biases the mobility-ratio benchmark.
+    target_time = physical_time * 0.2 / mobility
+    while solver.time < target_time:
         diag = solver.step()
         if solver.step_number % 30 == 0:
             times.append(solver.time)
@@ -61,9 +65,13 @@ def planar_orientation(angle: float) -> dict[str, float]:
 def planar_surface_energy(angle: float) -> float:
     size, margin, width = 256, 32, 8.0
     eta = planar_interface((size, size), width, angle)
-    kappa, well = coefficients(1.0, width)
     gx = np.gradient(eta, axis=2); gy = np.gradient(eta, axis=1)
-    density = 0.5 * (0.5 * kappa * (gx * gx + gy * gy) + well * eta**2 * (1 - eta)**2).sum(axis=0)
+    pair_potential = 0.5 * (eta.sum(axis=0) ** 2 - np.sum(eta**2, axis=0))
+    pair_gradient = 0.5 * (
+        gx.sum(axis=0) ** 2 + gy.sum(axis=0) ** 2
+        - np.sum(gx**2 + gy**2, axis=0)
+    )
+    density = 4.0 / width * (pair_potential - width**2 / np.pi**2 * pair_gradient)
     side = size - 2 * margin
     contour_length = side / max(abs(np.sin(angle)), abs(np.cos(angle)))
     return float(density[margin:-margin, margin:-margin].sum() / contour_length)

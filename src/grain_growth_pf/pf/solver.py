@@ -7,7 +7,7 @@ import numpy as np
 from numpy.typing import NDArray
 
 from grain_growth_pf.config import PFConfig
-from .free_energy import chemical_potential, free_energy
+from .free_energy import free_energy, laplacian
 
 Array = NDArray[np.float64]
 DrivingCallback = Callable[[Array, float], Array]
@@ -37,11 +37,11 @@ class StepDiagnostics:
 
 
 class MultiphaseFieldSolver:
-    """Constrained Allen-Cahn multiphase-field reference solver.
+    """Pairwise constrained multiphase-field solver following Qiu et al.
 
-    The Lagrange multiplier is the local mean chemical potential, ensuring
-    sum(d eta_i/dt)=0 before the bound-preserving simplex projection. External
-    pair physics enters as a zero-sum phase driving field.
+    The capillary force is the published pairwise double-obstacle form.  Only
+    locally present phases and their one-stencil-cell halos participate, which
+    permits neighbor switching without remote phase nucleation.
     """
 
     def __init__(self, eta: Array, config: PFConfig,
@@ -78,41 +78,48 @@ class MultiphaseFieldSolver:
         used_dt = min(requested, self.stable_dt()) if cfg.adaptive_stepping else requested
         active_indices = np.flatnonzero(self.active_phases)
         eta_active = self.eta[active_indices]
-        mu = chemical_potential(
-            eta_active, cfg.gb_energy, cfg.interface_width,
-            cfg.grid_spacing, cfg.boundary_conditions,
-        )
-        # A globally active phase may advance by one stencil cell beyond its
-        # current diffuse support. Restricting the rate to eta>0 exactly pins
-        # neighbor switches because a phase can never enter a zero-valued
-        # adjacent pixel. The one-cell dilation permits local topology changes
-        # without allowing remote grain nucleation.
-        present = eta_active > 1e-12
-        # At eta=0 the bulk derivative vanishes, so mu<0 identifies exactly
-        # those stencil-adjacent cells where gradient energy favors entry.
-        # Reusing mu avoids four large boolean roll temporaries per step.
-        active = present | (mu < -1e-14)
-        count = np.maximum(active.sum(axis=0, keepdims=True), 1)
-        lagrange = (mu * active).sum(axis=0, keepdims=True) / count
-        # For the chosen equilibrium profile integral(|grad eta|^2) = 1/(3w).
-        # L=M_sharp/(3w) therefore gives v_n=M_sharp*gamma*kappa.
-        kinetic = cfg.intrinsic_mobility / (3.0 * cfg.interface_width)
-        rate = -kinetic * (mu - lagrange) * active
+        lap = laplacian(eta_active, cfg.grid_spacing, cfg.boundary_conditions)
+        present = eta_active > 1e-14
+        if cfg.boundary_conditions == "periodic":
+            support = (
+                present | np.roll(present, 1, -2) | np.roll(present, -1, -2)
+                | np.roll(present, 1, -1) | np.roll(present, -1, -1)
+            )
+        else:
+            padded = np.pad(present, ((0, 0), (1, 1), (1, 1)), mode="constant")
+            support = (
+                present | padded[:, 2:, 1:-1] | padded[:, :-2, 1:-1]
+                | padded[:, 1:-1, 2:] | padded[:, 1:-1, :-2]
+            )
+        count = np.maximum(support.sum(axis=0, keepdims=True), 1)
+        phase_sum = (eta_active * support).sum(axis=0, keepdims=True)
+        lap_sum = (lap * support).sum(axis=0, keepdims=True)
+        # Match the obstacle coefficient to the discrete Laplacian eigenvalue
+        # of the sampled sinusoidal equilibrium profile.  This tends to the
+        # continuum pi^2/(2 eps^2) as dx/eps -> 0, while keeping an aligned
+        # planar interface stationary at finite resolution.
+        obstacle = 2.0 * np.sin(
+            np.pi * cfg.grid_spacing / (2.0 * cfg.interface_width)
+        ) ** 2 / cfg.grid_spacing**2
+        # Sum_j Gamma [eta_j lap(eta_i) - eta_i lap(eta_j)
+        #                    + pi^2/(2 eps^2) (eta_i - eta_j)].
+        rate = cfg.intrinsic_mobility * cfg.gb_energy * (
+            lap * phase_sum - eta_active * lap_sum
+            + obstacle * (count * eta_active - phase_sum)
+        ) * support
         if self.driving is not None:
             ext = np.asarray(self.driving(self.eta, self.time), dtype=float)
             if ext.shape != self.eta.shape:
                 raise ValueError("driving callback returned the wrong shape")
             ext_active = ext[active_indices]
-            ext_active -= ext_active.mean(axis=0, keepdims=True)
-            rate += kinetic * ext_active
+            ext_active -= (ext_active * support).sum(axis=0, keepdims=True) / count
+            rate += cfg.intrinsic_mobility * ext_active * support
         rate *= self.mobility_scale[None, :, :]
         trial = eta_active + used_dt * rate
-        if float(trial.min()) >= 0.0 and float(trial.max()) <= 1.0:
-            # The constrained rate has zero local sum. Normalization removes
-            # only roundoff and avoids an O(N log N) simplex sort at every pixel.
-            self.eta[active_indices] = trial / trial.sum(axis=0, keepdims=True)
-        else:
-            self.eta[active_indices] = project_simplex(trial)
+        # This is the bound/renormalization step used by the Qiu reference
+        # implementation.  It preserves compact support unlike a smooth tail.
+        np.clip(trial, 0.0, 1.0, out=trial)
+        self.eta[active_indices] = trial / trial.sum(axis=0, keepdims=True)
         extinct = self.active_phases & (
             np.max(self.eta, axis=(1, 2)) < cfg.grain_extinction_threshold
         )
@@ -124,7 +131,8 @@ class MultiphaseFieldSolver:
         self.step_number += 1
         return StepDiagnostics(
             self.time, self.step_number, used_dt,
-            free_energy(self.eta, cfg.gb_energy, cfg.interface_width, cfg.grid_spacing),
+            free_energy(self.eta, cfg.gb_energy, cfg.interface_width, cfg.grid_spacing,
+                        boundary=cfg.boundary_conditions),
             float(np.max(np.abs(self.eta.sum(axis=0) - 1.0))),
         )
 
