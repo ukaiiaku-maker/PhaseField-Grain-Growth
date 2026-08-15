@@ -1,0 +1,16 @@
+{
+  "status": "failed",
+  "campaign": "results/campaigns/20260815T033537Z-1bc5860f6c",
+  "launch_git_sha": "686f742d8ccc54f798fd7d1920670fdeb27271d4",
+  "reason": "The 120-step horizon inherited from the rejected fast solver ended before a substantial grain-size change, so the generalized exponent was not identifiable.",
+  "initial_mean_grain_count": 200.0,
+  "final_mean_grain_count": 183.2,
+  "fit": {
+    "n": 5.999999706271779,
+    "n_95pct": [1.0000000000043863, 5.999999999996162],
+    "r_squared": 0.9898210125954717,
+    "residual_autocorrelation": 0.29743414991584816,
+    "at_search_bound": true
+  },
+  "corrective_action": "Extend matched production horizons to 1100 steps while retaining termination at 100 grains; reject fits whose topology-defined end point is unavailable."
+}

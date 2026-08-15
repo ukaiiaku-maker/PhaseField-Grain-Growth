@@ -38,6 +38,8 @@ def _fit_window(mean_count: np.ndarray) -> tuple[int, int, str]:
     if end - start < 8:
         start, end = max(1, int(0.1 * len(mean_count))), len(mean_count)
         reason = "fallback_10pct_to_available_end"
+    elif not len(end_hits):
+        reason = "five_pct_loss_to_available_end"
     else:
         reason = "five_pct_loss_to_sixty_pct_population"
     return start, end, reason

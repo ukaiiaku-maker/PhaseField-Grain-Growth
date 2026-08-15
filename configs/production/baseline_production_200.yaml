@@ -17,7 +17,7 @@ base:
   compatibility_model: off
   active_modules: []
   output_cadence: 2
-  max_steps: 120
+  max_steps: 1100
   termination_grains: 100
   parameters:
     initial_grains: 267
