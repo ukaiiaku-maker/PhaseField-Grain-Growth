@@ -114,6 +114,14 @@ An event records \(\Delta x_n=N_{disc}h_m\), \(\Delta\mathbf u_t=N_{disc}\mathbf
 \Delta\epsilon_v=\frac{Q_m\Omega_{pd}}{V_{RVE}}.
 \]
 
+When the signed hidden normal-displacement ledger reaches
+`pf_release_displacement`, one packet is moved into a persistent release state.
+That state adds a signed pairwise normal pressure on the owning GB domain until
+measured interface displacement consumes the packet. Sub-threshold residuals
+remain in the hidden ledger; both quantities are checkpointed. Thus an atomic
+step is never equated to a grid cell, and a correlated packet produces finite
+PF motion rather than only an event-log row.
+
 ## Excess volume and climb
 
 For GB measure change,

@@ -4,6 +4,7 @@ import json
 import numpy as np
 
 from grain_growth_pf.config import ModelConfig, PFConfig
+from grain_growth_pf.disconnections.mode import ModeDriving
 from grain_growth_pf.pf.initial_conditions import prepare_initial_condition
 from grain_growth_pf.simulation import EventResolvedSimulation
 
@@ -77,6 +78,32 @@ def test_simulation_wires_quenched_barrier_distribution(tmp_path):
     barriers = np.asarray([mode.barrier_ev for mode in simulation.modes])
     assert np.all((barriers >= 0.4) & (barriers <= 0.7))
     assert np.std(barriers) > 0
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
+def test_accumulated_atomic_step_triggers_finite_pf_release(tmp_path):
+    config = ModelConfig(
+        regime="subgrid-release", seed=92,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01),
+        compatibility_model="explicit_modes", active_modules=("event_modes",),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={
+            "initial_grains": 5, "easy_beta": 0.0,
+            "pf_release_displacement": 0.25, "event_normal_pressure": 1.0,
+        },
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "subgrid-release")
+    segment = next(iter(simulation.snapshot.boundaries.values()))
+    domain = simulation.domains[segment.entity_id]
+    mode = next(mode for mode in simulation.modes if mode.step_height > 0)
+    simulation._record_event(
+        domain, segment, mode, 1.0, ModeDriving(), "test-release", 0.0
+    )
+    assert np.isclose(domain.normal_displacement_ledger, mode.step_height)
+    simulation._update_physics()
+    assert domain.normal_displacement_ledger == 0.0
+    assert np.isclose(domain.normal_release_remaining, 0.25)
+    assert np.any(simulation.driving_field != 0.0)
     simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
 
 

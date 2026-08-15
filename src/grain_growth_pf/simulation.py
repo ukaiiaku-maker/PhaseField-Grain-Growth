@@ -53,6 +53,7 @@ class DomainPhysics:
     previous_area_j: float = 0.0
     previous_time: float = 0.0
     normal_displacement_ledger: float = 0.0
+    normal_release_remaining: float = 0.0
     event_counter: int = 0
 
     def __post_init__(self) -> None:
@@ -84,6 +85,7 @@ class DomainPhysics:
             "previous_area_i": self.previous_area_i, "previous_area_j": self.previous_area_j,
             "previous_time": self.previous_time,
             "normal_displacement_ledger": self.normal_displacement_ledger,
+            "normal_release_remaining": self.normal_release_remaining,
             "event_counter": self.event_counter,
         }
 
@@ -113,6 +115,7 @@ class DomainPhysics:
         self.previous_area_j = state.get("previous_area_j", 0.0)
         self.previous_time = state.get("previous_time", 0.0)
         self.normal_displacement_ledger = state["normal_displacement_ledger"]
+        self.normal_release_remaining = state.get("normal_release_remaining", 0.0)
         self.event_counter = state["event_counter"]
 
 
@@ -527,6 +530,25 @@ class EventResolvedSimulation:
             else:
                 normal_displacement = 0.0
                 segment.velocity = 0.0
+            if domain.normal_release_remaining * normal_displacement > 0.0:
+                consumed = min(
+                    abs(domain.normal_release_remaining), abs(normal_displacement)
+                )
+                domain.normal_release_remaining -= np.sign(
+                    domain.normal_release_remaining
+                ) * consumed
+                if abs(domain.normal_release_remaining) < 1e-12:
+                    domain.normal_release_remaining = 0.0
+            release_distance = float(
+                cfg.parameters.get("pf_release_displacement", cfg.pf.grid_spacing)
+            )
+            if release_distance <= 0:
+                raise ValueError("pf_release_displacement must be positive")
+            if (domain.normal_release_remaining == 0.0
+                    and abs(domain.normal_displacement_ledger) >= release_distance):
+                direction = np.sign(domain.normal_displacement_ledger)
+                domain.normal_release_remaining = direction * release_distance
+                domain.normal_displacement_ledger -= direction * release_distance
             domain.previous_area_i = grain_i.area
             domain.previous_area_j = grain_j.area
             domain.previous_time = self.solver.time
@@ -610,6 +632,10 @@ class EventResolvedSimulation:
             self._advance_climb(domain, segment, delta_length)
 
             pair_force = float(cfg.parameters.get("easy_beta", 0.35)) * self._boundary_resolved_shear(domain, segment)
+            if domain.normal_release_remaining:
+                pair_force += np.sign(domain.normal_release_remaining) * float(
+                    cfg.parameters.get("event_normal_pressure", 1.0)
+                )
             for yx in segment.points.astype(int):
                 y, x = yx % np.asarray(cfg.pf.shape)
                 if domain.blocked:
