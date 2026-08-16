@@ -1,0 +1,35 @@
+{
+  "date_utc": "2026-08-16",
+  "production_source": "results/campaigns/20260816T055128Z-3d79a43322",
+  "diagnosis": "Every disconnection event scanned every triple junction to find the normally zero to two adjoining junctions. In the J2 attempt-limited state this made the event path quadratic in event and junction counts.",
+  "changes": [
+    "Build a boundary-to-triple-junction index once per topology update.",
+    "Reuse event-ledger and full-field positions for all events on one boundary in one PF step.",
+    "Write restart NPZ archives with atomic DEFLATE level 1 while preserving the standard NumPy archive format."
+  ],
+  "pre_optimization_live_part_intervals_seconds": {
+    "definition": "One Parquet part is committed every two PF steps; last 30 intervals from each of five live J2 runs under 16-worker production load.",
+    "median_range": [
+      195.18606960773468,
+      218.86178505420685
+    ],
+    "mean_range": [
+      215.73238349755604,
+      227.96558651129405
+    ]
+  },
+  "optimized_exact_checkpoint_benchmarks_seconds_per_step": [
+    23.328573241014965,
+    20.351910066907294,
+    21.03881044255104
+  ],
+  "benchmark_conditions": "Each optimized trial cloned a different authoritative live J2 checkpoint, resumed exactly for two steps, committed its Parquet ledger and restart archive, and ran alongside the same production workload plus the benchmark worker.",
+  "conservative_speedup_from_lower_pre_median_and_upper_optimized_trial": 4.183898409608803,
+  "tests": {
+    "command": "PYTHONPATH=src /opt/anaconda3/bin/python -m pytest -q",
+    "passed": 87,
+    "failed": 0,
+    "elapsed_seconds": 62.08
+  },
+  "physics_effect": "None. Event ordering, random draws, mode selection, state increments, and output rows are unchanged; only topology lookup, repeated serialization work, and lossless archive compression level changed."
+}

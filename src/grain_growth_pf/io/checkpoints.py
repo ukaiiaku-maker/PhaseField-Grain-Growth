@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 import tempfile
 from typing import Any
+import zipfile
 
 import numpy as np
 
@@ -31,7 +32,7 @@ def atomic_write_text(path: str | Path, text: str) -> None:
 
 
 def atomic_savez_compressed(path: str | Path, **arrays: np.ndarray) -> None:
-    """Write a compressed NumPy archive without exposing a partial archive."""
+    """Atomically write a restart archive using fast, low-level DEFLATE."""
     destination = Path(path)
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary: Path | None = None
@@ -41,7 +42,16 @@ def atomic_savez_compressed(path: str | Path, **arrays: np.ndarray) -> None:
             prefix=f".{destination.name}.", suffix=".tmp", delete=False,
         ) as handle:
             temporary = Path(handle.name)
-            np.savez_compressed(handle, **arrays)
+            with zipfile.ZipFile(
+                handle, mode="w", compression=zipfile.ZIP_DEFLATED,
+                compresslevel=1, allowZip64=True,
+            ) as archive:
+                for name, array in arrays.items():
+                    member_name = name if name.endswith(".npy") else f"{name}.npy"
+                    with archive.open(member_name, mode="w", force_zip64=True) as member:
+                        np.lib.format.write_array(
+                            member, np.asanyarray(array), allow_pickle=False
+                        )
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary, destination)

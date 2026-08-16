@@ -212,6 +212,7 @@ class EventResolvedSimulation:
             periodic=config.pf.boundary_conditions == "periodic",
         )
         self.snapshot = self.tracker.update(self.solver.labels)
+        self._boundary_to_tjs = self._index_boundary_tjs()
         self.domains: dict[str, DomainPhysics] = {}
         self.tj_domains: dict[str, DomainPhysics] = {}
         self.modes = isotropic_surrogate_library(
@@ -374,7 +375,11 @@ class EventResolvedSimulation:
         """Write every stochastic first passage, including sub-completion hits."""
         if segment is not None:
             grain_ids = f"{segment.grain_i};{segment.grain_j}"
-            position = segment.points.mean(axis=0).tolist() if len(segment.points) else ""
+            if position == "":
+                position = (
+                    json.dumps(segment.points.mean(axis=0).tolist())
+                    if len(segment.points) else ""
+                )
             geometry_measure = domain.encounter.total_measure
         for event, hit_count, completed in hits:
             domain.event_counter += 1
@@ -490,9 +495,18 @@ class EventResolvedSimulation:
             value += self.full_field.resolved_shear(position, tangent, normal)
         return float(value)
 
+    def _index_boundary_tjs(self) -> dict[str, tuple[Any, ...]]:
+        """Index the (normally zero to two) TJs adjoining each GB domain."""
+        indexed: dict[str, list[Any]] = {}
+        for tj in self.snapshot.triple_junctions.values():
+            for boundary_id in tj.adjoining_boundaries:
+                indexed.setdefault(boundary_id, []).append(tj)
+        return {boundary_id: tuple(tjs) for boundary_id, tjs in indexed.items()}
+
     def _record_event(self, domain: DomainPhysics, segment: GBSegment, mode: DisconnectionMode,
                       rate: float, driving: ModeDriving, event_type: str, delta_length: float,
-                      event_time: float | None = None) -> None:
+                      event_time: float | None = None, *, ledger_position: str | None = None,
+                      field_position: tuple[int, int] | None = None) -> None:
         domain.event_counter += 1
         packet = float(self.config.parameters.get("packet_size", 1.0))
         b = np.asarray(mode.burgers) * packet
@@ -505,15 +519,14 @@ class EventResolvedSimulation:
         self.accumulated_volumetric_strain += volumetric_strain
         domain.normal_displacement_ledger += h
         if self.full_field is not None and len(segment.points):
-            position = tuple(segment.points[len(segment.points) // 2].astype(int))
+            position = field_position or tuple(segment.points[len(segment.points) // 2].astype(int))
             normal = np.asarray(segment.normal, dtype=float)
             plastic_distortion = np.outer(b, normal)
             strain_increment = 0.5 * (plastic_distortion + plastic_distortion.T)
             strain_increment += dq * domain.formation_volume * np.eye(2)
             self.full_field.add_event(position, strain_increment)
-        for tj in self.snapshot.triple_junctions.values():
-            if segment.entity_id in tj.adjoining_boundaries:
-                tj.add_burgers(b)
+        for tj in self._boundary_to_tjs.get(segment.entity_id, ()):
+            tj.add_burgers(b)
         ds_release = mode.delta_s * packet
         released = domain.shear.release(ds_release)
         q_release = domain.free_volume.accommodate(abs(dq) if dq else mode.delta_q * packet)
@@ -523,7 +536,9 @@ class EventResolvedSimulation:
             "temperature": self.config.pf.temperature, "seed": self.config.seed,
             "event_id": f"{domain.entity_id}:{domain.event_counter}", "event_type": event_type,
             "grain_ids": f"{segment.grain_i};{segment.grain_j}", "entity_id": domain.entity_id,
-            "position": segment.points.mean(axis=0).tolist() if len(segment.points) else "",
+            "position": ledger_position if ledger_position is not None else (
+                json.dumps(segment.points.mean(axis=0).tolist()) if len(segment.points) else ""
+            ),
             "geometry_measure_Q": domain.encounter.total_measure,
             "grain_size": 0.5 * (self.snapshot.grains[segment.grain_i].equivalent_radius + self.snapshot.grains[segment.grain_j].equivalent_radius),
             "curvature": segment.curvature, "local_velocity": segment.velocity,
@@ -540,7 +555,7 @@ class EventResolvedSimulation:
             "release_Delta_s": ds_release, "release_Delta_q": q_release,
             "GB_area_change": delta_length, "TJ_travel": 0,
             "point_defect_quota": domain.free_volume.deficit,
-            "normal_step_h": h, "burgers_vector_b": b.tolist(), "Nv": dq,
+            "normal_step_h": h, "burgers_vector_b": json.dumps(b.tolist()), "Nv": dq,
             "shear_strain_increment": shear_strain,
             "volumetric_strain_increment": volumetric_strain,
             "packet_size": packet, "Git_SHA": self.sha,
@@ -730,6 +745,7 @@ class EventResolvedSimulation:
 
     def _update_physics(self) -> None:
         cfg, modules = self.config, set(self.config.active_modules)
+        self._boundary_to_tjs = self._index_boundary_tjs()
         mobility = np.ones(cfg.pf.shape)
         self.driving_field.fill(0.0)
         entity_elapsed = self.solver.time - self.previous_entity_time
@@ -774,6 +790,14 @@ class EventResolvedSimulation:
             domain.previous_area_i = grain_i.area
             domain.previous_area_j = grain_j.area
             domain.previous_time = self.solver.time
+            ledger_position = (
+                json.dumps(segment.points.mean(axis=0).tolist())
+                if len(segment.points) else ""
+            )
+            field_position = (
+                tuple(segment.points[len(segment.points) // 2].astype(int))
+                if len(segment.points) else None
+            )
             measured_curvature, measured_velocity, measured_normal = interface_kinematics(
                 self.solver.eta[segment.grain_i],
                 self.previous_entity_eta[segment.grain_i],
@@ -838,7 +862,9 @@ class EventResolvedSimulation:
                     self.solver.time - cfg.pf.time_step,
                     stop_after_completion=True,
                 )
-                self._record_activation_hits(domain, total_rate, hits, segment=segment)
+                self._record_activation_hits(
+                    domain, total_rate, hits, segment=segment, position=ledger_position
+                )
                 if completions:
                     if total_rate:
                         selected = int(domain.rng.choice(len(candidates), p=rates / total_rate))
@@ -849,7 +875,9 @@ class EventResolvedSimulation:
                         normal_pressure, resolved_shear, vacancy_mu, selected
                     )
                     self._record_event(domain, segment, mode, total_rate, driving,
-                                       "compatibility_release", delta_length, completions[0].time)
+                                       "compatibility_release", delta_length, completions[0].time,
+                                       ledger_position=ledger_position,
+                                       field_position=field_position)
             elif (cfg.compatibility_model == "explicit_modes" and not encounter_enabled
                   and self.solver.step_number > 0):
                 # Event-resolved easy-mode flux; completion changes finite hidden
@@ -862,7 +890,9 @@ class EventResolvedSimulation:
                     domain, total_rate, cfg.pf.time_step,
                     self.solver.time - cfg.pf.time_step,
                 )
-                self._record_activation_hits(domain, total_rate, hits, segment=segment)
+                self._record_activation_hits(
+                    domain, total_rate, hits, segment=segment, position=ledger_position
+                )
                 for completion in completions:
                     if total_rate:
                         selected = int(domain.rng.choice(len(candidates), p=rates / total_rate))
@@ -873,7 +903,9 @@ class EventResolvedSimulation:
                         normal_pressure, resolved_shear, vacancy_mu, selected
                     )
                     self._record_event(domain, segment, mode, total_rate, driving,
-                                       "disconnection_mode", delta_length, completion.time)
+                                       "disconnection_mode", delta_length, completion.time,
+                                       ledger_position=ledger_position,
+                                       field_position=field_position)
 
             self._advance_climb(domain, segment, delta_length)
 
