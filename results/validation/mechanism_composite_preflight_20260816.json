@@ -1,0 +1,45 @@
+{
+  "analysis_git_sha": "44d071d7e6a3e33136fe3af641240a76de100493",
+  "status": "passed",
+  "selection_key": [
+    "regime",
+    "temperature",
+    "seed"
+  ],
+  "prefer_later_duplicates": true,
+  "completed_source_campaigns": [
+    {
+      "campaign": "results/campaigns/20260815T115547Z-af440f638c",
+      "completed_runs_accepted": 146
+    },
+    {
+      "campaign": "results/campaigns/20260816T020915Z-e91786f3cd",
+      "completed_runs_accepted": 2
+    },
+    {
+      "campaign": "results/campaigns/20260816T022756Z-876f84d9c9",
+      "completed_runs_accepted": 2
+    }
+  ],
+  "pending_repair_campaign": "results/campaigns/20260816T160354Z-188fe232c6",
+  "pending_repair_conditions_configured": 30,
+  "legacy_conditions_replaced_by_repair": {
+    "E1": 5,
+    "Q1": 5,
+    "SC3": 5
+  },
+  "missing_conditions_filled_by_repair": {
+    "J1": 5,
+    "J2": 5,
+    "SC4": 5
+  },
+  "projected_unique_conditions": 165,
+  "expected_regimes": 33,
+  "expected_realizations_per_regime": 5,
+  "assertions": {
+    "projected_unique_conditions_equals_165": true,
+    "all_33_regimes_have_five_realizations": true,
+    "replacement_count_equals_15": true
+  },
+  "note": "This is a read-only key-level preflight. Final composition remains gated on all 30 repair runs completing and uses the immutable compose_campaigns manifest to record actual run paths and replacements."
+}
