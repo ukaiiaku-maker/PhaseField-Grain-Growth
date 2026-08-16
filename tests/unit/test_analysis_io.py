@@ -40,6 +40,7 @@ from grain_growth_pf.io.event_ledger import (
     EventLedger,
     event_ledger_has_rows,
     event_ledger_path,
+    iter_event_ledger,
     read_event_ledger,
 )
 from grain_growth_pf.io.provenance import write_manifest
@@ -273,7 +274,13 @@ def test_event_rate_observation_retains_zero_event_exposure(tmp_path):
     assert np.isclose(exposure, 2.5)
 
 
-def test_event_diagnostics_separates_primitive_rows_and_climb_resistance(tmp_path):
+def test_event_diagnostics_separates_primitive_rows_and_climb_resistance(
+    tmp_path, monkeypatch,
+):
+    monkeypatch.setattr(
+        "grain_growth_pf.analysis.campaign.iter_event_ledger",
+        lambda path, columns: iter_event_ledger(path, columns, batch_size=2),
+    )
     pd.DataFrame({
         "time": [1.0, 1.0, 1.0, 2.0, 3.0, 3.0],
         "entity_id": ["gb", "gb", "tj:1-2-3", "gb", "gb", "gb"],
@@ -394,6 +401,11 @@ def test_parquet_event_ledger_truncates_to_checkpoint_part(tmp_path):
     projected = read_event_ledger(target, columns=["event_type", "time", "step"])
     assert list(projected.columns) == ["event_type", "time", "step"]
     assert projected["step"].tolist() == [1, 2]
+    streamed = list(iter_event_ledger(
+        target, columns=["event_type", "time", "step"], batch_size=1
+    ))
+    assert [len(frame) for frame in streamed] == [1, 1]
+    assert pd.concat(streamed, ignore_index=True)["step"].tolist() == [1, 2]
 
 
 def test_manifest_can_pin_launch_revision(tmp_path):

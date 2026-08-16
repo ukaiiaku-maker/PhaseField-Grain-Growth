@@ -24,6 +24,7 @@ from grain_growth_pf.analysis.jerkiness import jerkiness_metrics
 from grain_growth_pf.io.event_ledger import (
     event_ledger_has_rows,
     event_ledger_path,
+    iter_event_ledger,
     read_event_ledger,
 )
 from grain_growth_pf.io.provenance import git_sha
@@ -322,17 +323,29 @@ def _event_statistics(run_dir: Path) -> tuple[int, float]:
     path = event_ledger_path(run_dir)
     if not event_ledger_has_rows(path):
         return 0, np.nan
-    events = read_event_ledger(path, columns=["event_type", "time"])
-    if events.empty:
-        return 0, np.nan
-    events = _activation_rows(events)
-    if "time" not in events:
-        return len(events), np.nan
     tracks = pd.read_csv(run_dir / "grain_tracks.csv", usecols=["time"])
     duration = int(np.ceil(tracks["time"].max())) + 1
-    counts = np.bincount(np.floor(events["time"].to_numpy(float)).astype(int), minlength=duration)
+    has_primitive = any(
+        frame["event_type"].isin(ACTIVATION_EVENT_TYPES).any()
+        for frame in iter_event_ledger(path, columns=["event_type"])
+    )
+    event_count = 0
+    counts = np.zeros(duration, dtype=np.int64)
+    for frame in iter_event_ledger(path, columns=["event_type", "time"]):
+        events = (
+            frame[frame["event_type"].isin(ACTIVATION_EVENT_TYPES)]
+            if has_primitive else frame
+        )
+        event_count += len(events)
+        times = pd.to_numeric(events["time"], errors="coerce").to_numpy(float)
+        times = times[np.isfinite(times) & (times >= 0)]
+        if len(times):
+            batch_counts = np.bincount(np.floor(times).astype(int), minlength=duration)
+            if len(batch_counts) > len(counts):
+                counts = np.pad(counts, (0, len(batch_counts) - len(counts)))
+            counts[:len(batch_counts)] += batch_counts
     fano = float(np.var(counts) / np.mean(counts)) if np.mean(counts) else np.nan
-    return len(events), fano
+    return event_count, fano
 
 
 def _event_rate_observation(run_dir: Path) -> tuple[int, float]:
@@ -351,14 +364,19 @@ def _event_rate_observation(run_dir: Path) -> tuple[int, float]:
         ))
     if not event_ledger_has_rows(event_path):
         return 0, exposure
-    events = _activation_rows(read_event_ledger(
-        event_path, columns=["event_type"]
-    ))
-    return len(events), exposure
+    primitive_count = 0
+    total_count = 0
+    for frame in iter_event_ledger(event_path, columns=["event_type"]):
+        total_count += len(frame)
+        primitive_count += int(frame["event_type"].isin(ACTIVATION_EVENT_TYPES).sum())
+    return primitive_count if primitive_count else total_count, exposure
 
 
-def _quantiles(values: list[float] | np.ndarray) -> dict[str, object]:
-    array = np.asarray(values, dtype=float)
+def _quantiles(values: list[float] | list[np.ndarray] | np.ndarray) -> dict[str, object]:
+    if isinstance(values, list) and values and isinstance(values[0], np.ndarray):
+        array = np.concatenate(values).astype(float, copy=False)
+    else:
+        array = np.asarray(values, dtype=float)
     array = array[np.isfinite(array)]
     if not len(array):
         return {"samples": 0, "quantiles": {}}
@@ -376,9 +394,8 @@ def _event_diagnostics(run_dirs: list[Path]) -> dict[str, object]:
     """Summarize primitive first passages without mixing independent clocks."""
     primitive_counts: Counter[str] = Counter()
     release_counts: Counter[str] = Counter()
-    waiting_times: list[float] = []
-    stage_samples: dict[str, list[float]] = {}
-    primitive_residence_samples: dict[str, list[float]] = {}
+    waiting_times: list[np.ndarray] = []
+    primitive_residence_samples: dict[str, list[np.ndarray]] = {}
     signed_shear = 0.0
     signed_volumetric = 0.0
     runs_with_events = 0
@@ -399,74 +416,88 @@ def _event_diagnostics(run_dirs: list[Path]) -> dict[str, object]:
         path = event_ledger_path(run_dir)
         if not event_ledger_has_rows(path):
             continue
-        frame = read_event_ledger(path, columns=columns)
-        if frame.empty:
-            continue
-        runs_with_events += 1
-        primitive = _activation_rows(frame)
-        primitive_counts.update(map(str, primitive["event_type"].dropna()))
-        release_mask = ~frame.index.isin(primitive.index)
-        release_mask &= frame["event_type"] != "tj_compatibility_failure"
-        releases = frame.loc[release_mask, "event_type"]
-        release_counts.update(map(str, releases.dropna()))
-        mode_event_count += int(frame["event_type"].isin({
-            "disconnection_mode", "compatibility_release",
-        }).sum())
-        failures = frame[frame["event_type"] == "tj_compatibility_failure"]
-        if not failures.empty:
-            tj_failure_count += len(failures)
-            tj_failure_families.update(map(str, failures["barrier_type"].dropna()))
-            tj_failure_entities.update(map(str, failures["entity_id"].dropna()))
-            bare = pd.to_numeric(failures["DeltaG0"], errors="coerce").to_numpy(float)
-            effective = pd.to_numeric(
-                failures["effective_DeltaG"], errors="coerce"
-            ).to_numpy(float)
-            finite_pair = np.isfinite(bare) & np.isfinite(effective)
-            tj_bare_barriers.extend(bare[np.isfinite(bare)].tolist())
-            tj_effective_barriers.extend(effective[np.isfinite(effective)].tolist())
-            tj_barrier_shifts.extend((effective[finite_pair] - bare[finite_pair]).tolist())
-            for raw_burgers in failures["burgers_vector_b"].dropna():
-                try:
-                    vector = np.asarray(json.loads(str(raw_burgers)), dtype=float)
-                except (TypeError, ValueError, json.JSONDecodeError):
+        has_primitive = any(
+            frame["event_type"].isin(ACTIVATION_EVENT_TYPES).any()
+            for frame in iter_event_ledger(path, columns=["event_type"])
+        )
+        saw_rows = False
+        last_entity_time: dict[str, float] = {}
+        for frame in iter_event_ledger(path, columns=columns):
+            if frame.empty:
+                continue
+            saw_rows = True
+            primitive_mask = frame["event_type"].isin(ACTIVATION_EVENT_TYPES)
+            primitive = frame.loc[primitive_mask] if has_primitive else frame
+            primitive_counts.update(map(str, primitive["event_type"].dropna()))
+            release_mask = ~primitive_mask if has_primitive else np.zeros(len(frame), bool)
+            release_mask &= frame["event_type"] != "tj_compatibility_failure"
+            releases = frame.loc[release_mask, "event_type"]
+            release_counts.update(map(str, releases.dropna()))
+            mode_event_count += int(frame["event_type"].isin({
+                "disconnection_mode", "compatibility_release",
+            }).sum())
+            failures = frame[frame["event_type"] == "tj_compatibility_failure"]
+            if not failures.empty:
+                tj_failure_count += len(failures)
+                tj_failure_families.update(map(str, failures["barrier_type"].dropna()))
+                tj_failure_entities.update(map(str, failures["entity_id"].dropna()))
+                bare = pd.to_numeric(failures["DeltaG0"], errors="coerce").to_numpy(float)
+                effective = pd.to_numeric(
+                    failures["effective_DeltaG"], errors="coerce"
+                ).to_numpy(float)
+                finite_pair = np.isfinite(bare) & np.isfinite(effective)
+                tj_bare_barriers.extend(bare[np.isfinite(bare)].tolist())
+                tj_effective_barriers.extend(effective[np.isfinite(effective)].tolist())
+                tj_barrier_shifts.extend((effective[finite_pair] - bare[finite_pair]).tolist())
+                for raw_burgers in failures["burgers_vector_b"].dropna():
+                    try:
+                        vector = np.asarray(json.loads(str(raw_burgers)), dtype=float)
+                    except (TypeError, ValueError, json.JSONDecodeError):
+                        continue
+                    if vector.size and np.all(np.isfinite(vector)):
+                        tj_burgers_magnitudes.append(float(np.linalg.norm(vector)))
+            for entity_id, entity in primitive.groupby("entity_id", dropna=False):
+                times = pd.to_numeric(entity["time"], errors="coerce").to_numpy(float)
+                times = np.sort(times[np.isfinite(times)])
+                if not len(times):
                     continue
-                if vector.size and np.all(np.isfinite(vector)):
-                    tj_burgers_magnitudes.append(float(np.linalg.norm(vector)))
-        for _, entity in primitive.groupby("entity_id", dropna=False):
-            differences = np.diff(np.sort(entity["time"].to_numpy(float)))
-            waiting_times.extend(differences[differences > 0].tolist())
-        for event_type, rows in primitive.groupby("event_type"):
-            rates = pd.to_numeric(
-                rows["instantaneous_rate"], errors="coerce"
-            ).to_numpy(float)
-            rates = rates[np.isfinite(rates) & (rates > 0)]
-            primitive_residence_samples.setdefault(str(event_type), []).extend(
-                (1.0 / rates).tolist()
-            )
-        stage_rows = primitive[primitive["event_type"].isin({
-            "climb_nucleation", "climb_exchange", "climb_transport",
-        })]
-        for event_type, rows in stage_rows.groupby("event_type"):
-            rates = pd.to_numeric(
-                rows["instantaneous_rate"], errors="coerce"
-            ).to_numpy(float)
-            rates = rates[np.isfinite(rates) & (rates > 0)]
-            stage_samples.setdefault(str(event_type), []).extend((1.0 / rates).tolist())
-        signed_shear += float(pd.to_numeric(
-            frame["shear_strain_increment"], errors="coerce"
-        ).fillna(0.0).sum())
-        signed_volumetric += float(pd.to_numeric(
-            frame["volumetric_strain_increment"], errors="coerce"
-        ).fillna(0.0).sum())
+                entity_key = str(entity_id)
+                previous = last_entity_time.get(entity_key)
+                sequence = np.concatenate(([previous], times)) if previous is not None else times
+                differences = np.diff(sequence)
+                differences = differences[differences > 0]
+                if len(differences):
+                    waiting_times.append(differences)
+                last_entity_time[entity_key] = float(times[-1])
+            for event_type, rows in primitive.groupby("event_type"):
+                rates = pd.to_numeric(
+                    rows["instantaneous_rate"], errors="coerce"
+                ).to_numpy(float)
+                rates = rates[np.isfinite(rates) & (rates > 0)]
+                if len(rates):
+                    primitive_residence_samples.setdefault(str(event_type), []).append(
+                        1.0 / rates
+                    )
+            signed_shear += float(pd.to_numeric(
+                frame["shear_strain_increment"], errors="coerce"
+            ).fillna(0.0).sum())
+            signed_volumetric += float(pd.to_numeric(
+                frame["volumetric_strain_increment"], errors="coerce"
+            ).fillna(0.0).sum())
+        runs_with_events += int(saw_rows)
     if not runs_with_events:
         return {"primitive_event_counts": {}, "waiting_times": _quantiles([])}
     stage_residence = {
         event_type: _quantiles(samples)
-        for event_type, samples in stage_samples.items()
+        for event_type, samples in primitive_residence_samples.items()
+        if event_type in {"climb_nucleation", "climb_exchange", "climb_transport"}
     }
     resistance = {
-        event_type: float(np.mean(samples))
-        for event_type, samples in stage_samples.items() if samples
+        event_type: float(np.mean(np.concatenate(samples)))
+        for event_type, samples in primitive_residence_samples.items()
+        if samples and event_type in {
+            "climb_nucleation", "climb_exchange", "climb_transport",
+        }
     }
     finite_resistance = {key: value for key, value in resistance.items() if np.isfinite(value)}
     total_resistance = sum(finite_resistance.values())
@@ -474,7 +505,7 @@ def _event_diagnostics(run_dirs: list[Path]) -> dict[str, object]:
         key: value / total_resistance for key, value in finite_resistance.items()
     } if total_resistance else {}
     primitive_resistance = {
-        event_type: float(np.mean(samples))
+        event_type: float(np.mean(np.concatenate(samples)))
         for event_type, samples in primitive_residence_samples.items() if samples
     }
     primitive_total = sum(

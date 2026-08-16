@@ -5,7 +5,7 @@ import gzip
 import json
 import os
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any, Iterable, Iterator
 
 
 EVENT_FIELDS = (
@@ -67,6 +67,37 @@ def read_event_ledger(path: str | Path, columns: Iterable[str] | None = None):
         if name not in frame:
             frame[name] = pd.NA
     return frame[selected]
+
+
+def iter_event_ledger(path: str | Path, columns: Iterable[str] | None = None,
+                      batch_size: int = 250_000) -> Iterator[Any]:
+    """Yield bounded-memory DataFrames from any event-ledger representation."""
+    import pandas as pd
+
+    path = Path(path)
+    selected = list(columns) if columns is not None else None
+    if path.is_dir() or path.suffix == ".parquet":
+        import pyarrow.parquet as pq
+
+        parts = sorted(path.glob("part-*.parquet")) if path.is_dir() else [path]
+        for part in parts:
+            parquet = pq.ParquetFile(part)
+            for batch in parquet.iter_batches(batch_size=batch_size, columns=selected):
+                yield batch.to_pandas()
+        return
+    available = list(pd.read_csv(path, nrows=0).columns)
+    if selected is None:
+        load_columns = None
+    else:
+        present = [name for name in selected if name in available]
+        load_columns = present or available[:1]
+    for frame in pd.read_csv(path, usecols=load_columns, chunksize=batch_size):
+        if selected is not None:
+            for name in selected:
+                if name not in frame:
+                    frame[name] = pd.NA
+            frame = frame[selected]
+        yield frame
 
 
 class EventLedger:
