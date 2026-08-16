@@ -807,7 +807,9 @@ class EventResolvedSimulation:
                 domain.climb.activate(self.solver.time)
 
             encounter_enabled = cfg.compatibility_model == "geometric_surrogate" or bool(
-                modules.intersection({"gb_area_point_defect_pinning", "gb_pinning"})
+                modules.intersection({
+                    "gb_compatibility", "gb_area_point_defect_pinning", "gb_pinning"
+                })
             )
             if (self.solver.step_number > 0 and encounter_enabled and not domain.blocked
                     and domain.encounter.advance(delta_length, maximum_events=1)):

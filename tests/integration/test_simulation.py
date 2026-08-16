@@ -257,6 +257,31 @@ def test_single_hit_blocked_gb_ledger_has_one_hit_per_release(tmp_path):
     assert releases > 0
 
 
+def test_explicit_modes_gb_compatibility_waits_for_geometric_encounter(tmp_path):
+    config = ModelConfig(
+        regime="explicit-gb-encounter", seed=199,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01),
+        compatibility_model="explicit_modes",
+        active_modules=("gb_compatibility", "single_hit_poisson"),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={
+            "initial_grains": 5, "encounter_density": 1.0,
+            "attempt_frequency": 0.0,
+        },
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "explicit-gb-encounter")
+    simulation.solver.step_number = 1
+    simulation.solver.time = config.pf.time_step
+    for key, segment in simulation.snapshot.boundaries.items():
+        domain = simulation.domains[key]
+        domain.previous_length = segment.length + 1.0
+        domain.encounter.threshold = domain.encounter.cumulative_hazard
+    simulation._update_physics()
+    assert simulation.domains
+    assert all(domain.blocked for domain in simulation.domains.values())
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
 def test_accumulated_atomic_step_triggers_finite_pf_release(tmp_path):
     config = ModelConfig(
         regime="subgrid-release", seed=92,
