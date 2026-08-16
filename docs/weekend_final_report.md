@@ -9,14 +9,15 @@
 
 - Development branch: `codex/weekend-disconnection-pf-2026-08-14`.
 - Validated curvature-scaling milestone: tag `v0.8-scaling-validated`.
-- Definitive mechanism simulation launch SHA:
+- Original mechanism simulation launch SHA:
   `9e8796e6e9e13bc4bb418662cfc33601adeaa502`.
-- Mechanism campaign:
-  `results/campaigns/20260815T115547Z-af440f638c` (165 conditions; running).
+- Mechanism campaign: 146 valid completed conditions retained from
+  `results/campaigns/20260815T115547Z-af440f638c`; whole-condition repair
+  campaigns replace the rejected/interrupted SC4, P1, J1, J2, and J3 entries.
 - Independent 256-square convergence campaign:
   `results/campaigns/20260815T083416Z-49423c71d0` (completed).
 - Current fast suite: 85 tests passed in 47.99 seconds under the live
-  14-worker production load.
+  production load.
 - Python 3.13.5, NumPy 2.1.3, SciPy 1.15.3.
 
 Every run manifest contains its launch SHA, canonical configuration hash,
@@ -155,7 +156,10 @@ deleted.
 
 The finalized matrix contains B0--B1, G1--G3, T1--T3, S1--S3, C1--C5,
 SC1--SC4, P1--P5, Q0--Q1, E0--E2, and J1--J3, each with five matched
-realizations at 900 K. Results are **pending production inference**.
+realizations at 900 K. The original campaign contributes 146 valid completed
+conditions; corrected whole-condition campaigns supply the remaining 19.
+Results remain **pending production inference** until the five-seed J1 and J2
+repairs complete and the exact 165-condition composite is assembled.
 
 Four superseded partial matrices remain preserved. The first diagnosed tracker
 throughput; the second stopped before climb runs after detecting unwired
@@ -171,7 +175,16 @@ already created a blocked state. The corrected geometric clock stops at the
 exact first encounter coordinate for gated GB/TJ callers, while its ungated
 multi-passage behavior remains available. Audit records are under
 `results/validation/`; none of the partial matrices is included in final
-inference.
+inference. A later audit found two additional production boundaries: explicit
+GB compatibility was missing from the encounter predicate and then remained
+reachable through an ungated explicit-mode fallback, while per-event CSV
+flushing made valid high-rate J ledgers grow to multiple gigabytes.
+Geometry-gate regressions now cover both paths. Event ledgers are buffered to
+authoritative checkpoints, optionally gzip-compressed, and exactly truncated
+on resume from checkpointed byte extents. The definitive SC4 repair completed
+five seeds with zero tracebacks and gives `n=1.3248` (95% CI
+`[1.0000, 2.2126]`), `K=0.1763`, jerkiness CV `1.162`, and Fano factor
+`280.95`; final cross-regime interpretation still awaits the composite.
 
 ## 7. Growth-law results
 
