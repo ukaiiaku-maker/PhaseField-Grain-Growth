@@ -235,8 +235,8 @@ coefficient to an exactly flat trajectory.
 
 Two distinct four-temperature experiments are configured:
 
-- mechanism isolation: 12 selected regimes at 800, 900, 1000, 1100 K, with
-  intrinsic PF mobility held constant;
+- mechanism isolation: 11 selected barrier regimes at 800, 900, 1000, 1100 K
+  with intrinsic PF mobility held constant, plus a B1 intrinsic Arrhenius control;
 - fully physical: 11 `FP-*` regimes at the same temperatures, including a
   0.45 eV intrinsic-mobility barrier normalized to `M(900 K)≈4`.
 
@@ -246,8 +246,13 @@ separately from primitive event counts divided by integrated GB-domain-time
 exposure, including zero-event exposure. Adjacent-temperature slopes and
 Arrhenius curvature are retained. A grain-growth activation fit is suppressed
 when any series changes radius by less than 2%, rather than assigning a
-spurious activation energy to stagnation. Results are **pending production
-inference**.
+spurious activation energy to stagnation. The completed 20-run B1 control uses
+five matched seeds at each temperature and recovers its imposed 0.45 eV
+intrinsic barrier as `0.450000 eV` with bootstrap 95% CI
+`[0.437646, 0.462170]`, Arrhenius `R²=1.0`, and all three adjacent-temperature
+slopes equal to 0.45 eV within `4e-11`. Its common exponent is `1.63449`
+(95% CI `[1.43851,1.82699]`) over a 70.2% radius increase. Other selected and
+fully physical results remain **pending production inference**.
 The plotting path applies the same distinction: it retains event-level
 Arrhenius and local-slope panels even when every growth coefficient is zero.
 
@@ -306,7 +311,7 @@ immutable source campaign completes.
 | Q7 | Can climb alone generate intermittency and velocity-curvature decorrelation? | Pending C1--C5 composite results. |
 | Q8 | What resistance fractions arise from nucleation, exchange, transport, shear, and TJ compatibility? | Primitive-stage rates and exposure diagnostics are implemented; final fractions await C/J/SC aggregation. |
 | Q9 | Are simultaneous shear and climb additive in residence time, strongly coupled, or dominated by one process? | Pending SC1--SC4 matched comparison. |
-| Q10 | How does apparent grain-growth activation compare with imposed microscopic barriers? | Fixed-geometry validation recovers 0.65 eV to within 0.0016 eV; production answer awaits both temperature campaigns. |
+| Q10 | How does apparent grain-growth activation compare with imposed microscopic barriers? | Fixed-geometry validation recovers 0.65 eV to within 0.0016 eV, and the completed 20-run B1 production control recovers an imposed 0.45 eV as 0.450000 eV (95% CI `[0.437646,0.462170]`); emergent barrier-regime comparisons await the rest of both temperature campaigns. |
 | Q11 | Can similar apparent activation energies coexist with very different mobilities? | Pending paired temperature-series inference. |
 | Q12 | Under what conditions does physical stagnation occur? | Stagnation rejection criteria are implemented; production boundaries await mechanism and temperature summaries. |
 | Q13 | Which parameters maximize jerkiness without destroying realistic mean scaling? | None of the 12 completed search candidates passes the strict scaling gate. `JK-L24-K3-SPARSE` is closest (`n=1.188`, CI `[1.000,1.798]`, CV 1.811) but remains rejected; the high-barrier candidate has the largest CV (3.111) and also fails scaling. |
