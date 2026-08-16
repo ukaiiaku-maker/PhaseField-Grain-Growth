@@ -50,6 +50,15 @@ ACTIVATION_EVENT_TYPES = {
 }
 
 
+def _source_theory_class(regime: str) -> str:
+    return (
+        "class_b" if regime in CLASS_B_REGIMES else
+        "class_c" if regime in CLASS_C_REGIMES else
+        "class_d" if regime in CLASS_D_REGIMES else
+        "intrinsic_or_unclassified"
+    )
+
+
 def _activation_rows(events: pd.DataFrame) -> pd.DataFrame:
     """Prefer primitive stochastic passages over duplicate release summaries."""
     if "event_type" not in events:
@@ -524,6 +533,110 @@ def _event_diagnostics(run_dirs: list[Path]) -> dict[str, object]:
     }
 
 
+def _stagnant_group_result(
+    run_dirs: list[Path], loaded: list[tuple[dict, pd.DataFrame, pd.DataFrame]],
+    manifests: list[dict], config: dict, aligned: pd.DataFrame,
+    mean_count: np.ndarray, start: int, end: int, time: np.ndarray,
+    window_reason: str, relative_radius_change: float,
+    minimum_relative_growth: float, bootstrap_samples: int,
+) -> tuple[dict[str, object], dict]:
+    """Retain diagnostics while suppressing unsupported growth-law inference."""
+    trajectory_metrics = [_trajectory_metrics(item[1]) for item in loaded]
+    boundary_metrics = [_boundary_metrics(path) for path in run_dirs]
+    event_metrics = [_event_statistics(path) for path in run_dirs]
+    row = {
+        "regime": config["regime"], "temperature": config["pf"]["temperature"],
+        "n": np.nan, "n_ci_low": np.nan, "n_ci_high": np.nan,
+        "K": 0.0, "K_ci": 0.0, "Q_app": np.nan, "Q_app_ci": np.nan,
+        "jerkiness_CV": _nanmean_metric(trajectory_metrics, "jerkiness_CV"),
+        "Fano": float(np.nanmean([m[1] for m in event_metrics]))
+        if any(np.isfinite(m[1]) for m in event_metrics) else np.nan,
+        "burstiness": _nanmean_metric(trajectory_metrics, "burstiness"),
+        "reverse_motion_fraction": _nanmean_metric(
+            boundary_metrics, "reverse_motion_fraction"
+        ),
+        "velocity_curvature_R2": _nanmean_metric(
+            boundary_metrics, "velocity_curvature_R2"
+        ),
+        "pinned_fraction": _nanmean_metric(boundary_metrics, "pinned_fraction"),
+        "number_of_events": int(sum(m[0] for m in event_metrics)),
+        "number_of_realizations": len(run_dirs), "Git_SHA": manifests[0]["git_sha"],
+    }
+    radius_measure_changes = {}
+    for measure in RADIUS_MEASURES:
+        columns = [f"{measure}_{index}" for index in range(len(loaded))]
+        values = aligned[columns].to_numpy(float).T[:, start:end].mean(axis=0)
+        radius_measure_changes[measure] = {
+            "fit_suppressed": True,
+            "relative_change": float(
+                (values[-1] - values[0]) / max(values[0], np.finfo(float).tiny)
+            ),
+        }
+    diagnostics = {
+        "regime": config["regime"], "temperature": config["pf"]["temperature"],
+        "fit_window": {
+            "start": float(time[0]), "end": float(time[-1]),
+            "selection": window_reason, "samples": len(time),
+            "initial_mean_grain_count": float(mean_count[0]),
+            "end_mean_grain_count": float(mean_count[end - 1]),
+        },
+        "kinetic_observability": {
+            "observable": False,
+            "relative_radius_change": relative_radius_change,
+            "minimum_required_relative_radius_change": minimum_relative_growth,
+            "reason": "growth_law_suppressed_for_stagnant_or_censored_ensemble",
+        },
+        "ensemble_fit": {
+            "n": None, "K": 0.0, "intercept": None, "r_squared": None,
+            "residual_autocorrelation": None, "at_search_bound": False,
+            "fit_suppressed": True,
+        },
+        "bootstrap": {
+            "samples": 0, "requested_samples": bootstrap_samples,
+            "n_95pct": None, "K_95pct": [0.0, 0.0],
+            "fit_suppressed": True,
+        },
+        "profile_scan": {"fit_suppressed": True, "n_grid": [], "normalized_rmse": []},
+        "mechanistic_comparators": {
+            "source_theory_class": _source_theory_class(str(config["regime"])),
+            "intrinsic_parabolic_n2": {"fit_suppressed": True, "K": 0.0},
+        },
+        "radius_measure_fits": radius_measure_changes,
+        "population_band_sensitivity": [],
+        "intermittency": {
+            key: _nanmean_metric(trajectory_metrics, key)
+            for key in (
+                "jerkiness_CV", "stationary_fraction", "motion_top_1pct",
+                "motion_top_5pct", "motion_top_10pct", "burstiness",
+            )
+        },
+        "burst_size_ccdf": _burst_size_ccdf([item[1] for item in loaded]),
+        "trajectory_distributions": _trajectory_distributions([item[1] for item in loaded]),
+        "event_diagnostics": _event_diagnostics(run_dirs),
+        "correlations": {
+            "velocity_internal_shear": _nanmean_metric(
+                boundary_metrics, "velocity_internal_shear_correlation"
+            ),
+            "velocity_free_volume_deficit": _nanmean_metric(
+                boundary_metrics, "velocity_free_volume_correlation"
+            ),
+            "neighbor_number_growth_rate": _nanmean_values([
+                _neighbor_growth_correlation(item[1]) for item in loaded
+            ]),
+            "raw_reverse_motion_fraction": _nanmean_metric(
+                boundary_metrics, "raw_reverse_motion_fraction"
+            ),
+            "active_boundary_fraction": _nanmean_metric(
+                boundary_metrics, "active_boundary_fraction"
+            ),
+            "simultaneous_boundary_motion_spatial": _nanmean_metric(
+                boundary_metrics, "simultaneous_motion_spatial_correlation"
+            ),
+        },
+    }
+    return row, diagnostics
+
+
 def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[dict[str, object], dict]:
     loaded = [_run_observables(path) for path in run_dirs]
     manifests = [item[0] for item in loaded]
@@ -545,6 +658,17 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
     start, end, window_reason = _fit_window(mean_count)
     time = aligned["time"].to_numpy(float)[start:end]
     fit_radii = radii[:, start:end]
+    relative_radius_change = float(
+        (fit_radii[:, -1].mean() - fit_radii[:, 0].mean())
+        / max(fit_radii[:, 0].mean(), np.finfo(float).tiny)
+    )
+    minimum_relative_growth = 0.02
+    if relative_radius_change < minimum_relative_growth:
+        return _stagnant_group_result(
+            run_dirs, loaded, manifests, config, aligned, mean_count,
+            start, end, time, window_reason, relative_radius_change,
+            minimum_relative_growth, bootstrap_samples,
+        )
     fit = fit_growth_law(time, fit_radii.mean(axis=0), transient_fraction=0.0)
     parabolic_fit = fit_growth_law_fixed_exponent(
         time, fit_radii.mean(axis=0), 2.0, transient_fraction=0.0
@@ -652,12 +776,7 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
         },
     }
     regime = str(config["regime"])
-    theory_class = (
-        "class_b" if regime in CLASS_B_REGIMES else
-        "class_c" if regime in CLASS_C_REGIMES else
-        "class_d" if regime in CLASS_D_REGIMES else
-        "intrinsic_or_unclassified"
-    )
+    theory_class = _source_theory_class(regime)
     diagnostics["mechanistic_comparators"]["source_theory_class"] = theory_class
     if theory_class in {"class_b", "class_d"}:
         class_b = fit_crossover_growth(time, fit_radii.mean(axis=0))
@@ -778,13 +897,106 @@ def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
             event_observations.append([
                 _event_rate_observation(path) for path in grouped[(regime, temperature)]
             ])
-        common = fit_common_exponent(
-            series_times, [radii.mean(axis=0) for radii in series_radii]
-        )
         minimum_relative_growth = 0.02
         observable = all(
             metadata["relative_radius_change"] >= minimum_relative_growth
             for metadata in window_metadata
+        )
+        if not observable:
+            pooled_event_counts = np.asarray([
+                sum(observation[0] for observation in observations)
+                for observations in event_observations
+            ])
+            pooled_event_exposure = np.asarray([
+                sum(observation[1] for observation in observations)
+                for observations in event_observations
+            ])
+            pooled_event_rates = np.divide(
+                pooled_event_counts, pooled_event_exposure,
+                out=np.zeros_like(pooled_event_exposure),
+                where=pooled_event_exposure > 0,
+            )
+            event_activation = (
+                fit_activation_energy(temperatures, pooled_event_rates)
+                if np.all(pooled_event_rates > 0) else None
+            )
+            if event_activation is not None:
+                event_local_temperature, event_local_q = local_activation_energies(
+                    temperatures, pooled_event_rates
+                )
+            else:
+                event_local_temperature = event_local_q = np.asarray([])
+            digest = hashlib.sha256(
+                f"temperature-series-events:{regime}".encode()
+            ).digest()
+            rng = np.random.default_rng(int.from_bytes(digest[:8], "little"))
+            bootstrap_event_q = []
+            for _ in range(bootstrap_samples):
+                sampled_event_rates = []
+                for observations in event_observations:
+                    selection = rng.integers(0, len(observations), len(observations))
+                    event_count = sum(observations[index][0] for index in selection)
+                    exposure = sum(observations[index][1] for index in selection)
+                    sampled_event_rates.append(
+                        event_count / exposure if exposure > 0 else 0.0
+                    )
+                if np.all(np.asarray(sampled_event_rates) > 0):
+                    bootstrap_event_q.append(fit_activation_energy(
+                        temperatures, np.asarray(sampled_event_rates)
+                    ).activation_energy_ev)
+            event_q_interval = (
+                np.quantile(bootstrap_event_q, [0.025, 0.975]).tolist()
+                if bootstrap_event_q else None
+            )
+            for temperature, metadata in zip(temperatures, window_metadata):
+                detail_by_key[(regime, float(temperature))]["temperature_series_fit"] = {
+                    "common_n": None,
+                    "common_n_95pct": None,
+                    "normalized_rmse": None,
+                    "temperatures": temperatures.tolist(),
+                    "coefficients": None,
+                    "activation_energy_ev": None,
+                    "activation_energy_95pct": None,
+                    "arrhenius_r_squared": None,
+                    "arrhenius_standard_error_ev": None,
+                    "local_activation_midpoint_temperature": [],
+                    "local_activation_energy_ev": [],
+                    "kinetically_observable": False,
+                    "minimum_required_relative_radius_change": minimum_relative_growth,
+                    "suppression_reason": (
+                        "at_least_one_temperature_has_less_than_two_percent_radius_change"
+                    ),
+                    "bootstrap_samples": 0,
+                    "window_by_temperature": window_metadata,
+                    "event_level": {
+                        "estimator": "event_count_per_integrated_GB_domain_time",
+                        "counts": pooled_event_counts.tolist(),
+                        "domain_time_exposure": pooled_event_exposure.tolist(),
+                        "rates": pooled_event_rates.tolist(),
+                        "activation_energy_ev": (
+                            event_activation.activation_energy_ev
+                            if event_activation else None
+                        ),
+                        "activation_energy_95pct": event_q_interval,
+                        "arrhenius_r_squared": (
+                            event_activation.r_squared if event_activation else None
+                        ),
+                        "local_activation_midpoint_temperature": (
+                            event_local_temperature.tolist()
+                        ),
+                        "local_activation_energy_ev": event_local_q.tolist(),
+                        "bootstrap_samples_with_events_at_all_temperatures": len(
+                            bootstrap_event_q
+                        ),
+                        "growth_series_censored": True,
+                    },
+                    "condition_relative_radius_change": metadata[
+                        "relative_radius_change"
+                    ],
+                }
+            continue
+        common = fit_common_exponent(
+            series_times, [radii.mean(axis=0) for radii in series_radii]
         )
         digest = hashlib.sha256(f"temperature-series:{regime}".encode()).digest()
         rng = np.random.default_rng(int.from_bytes(digest[:8], "little"))

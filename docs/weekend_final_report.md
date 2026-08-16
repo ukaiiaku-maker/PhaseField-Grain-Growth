@@ -16,7 +16,7 @@
   campaigns replace the rejected/interrupted SC4, P1, J1, J2, and J3 entries.
 - Independent 256-square convergence campaign:
   `results/campaigns/20260815T083416Z-49423c71d0` (completed).
-- Current fast suite: 97 tests passed in 78.17 seconds under the live
+- Current fast suite: 98 tests passed in 80.46 seconds under the live
   production load.
 - Python 3.13.5, NumPy 2.1.3, SciPy 1.15.3.
 
@@ -209,6 +209,12 @@ interpretation awaits the corrected full-field/TJ campaign and composite.
 fits, objective topology windows, realization bootstrap intervals, exponent
 profiles, local exponents, residual autocorrelation, radius-measure sensitivity,
 population-band sensitivity, and source-manuscript Class-B/Class-C comparators.
+An ensemble whose fitted-window characteristic radius changes by less than 2%
+is classified as stagnant/censored before nonlinear fitting: its summary reports
+`n=NaN`, `K=0`, and the explicit observability reason. Event, boundary,
+intermittency, and TJ-failure diagnostics are still retained. This prevents an
+optimizer from assigning a bound-dependent exponent and tiny positive growth
+coefficient to an exactly flat trajectory.
 
 ## 8. Temperature and activation-energy campaigns
 

@@ -24,6 +24,7 @@ from grain_growth_pf.analysis.growth_law import (
 )
 from grain_growth_pf.analysis.grain_tracks import ensemble_radius
 from grain_growth_pf.analysis.campaign import (
+    analyze_group,
     _boundary_metrics,
     _burst_size_ccdf,
     _event_diagnostics,
@@ -33,6 +34,7 @@ from grain_growth_pf.analysis.campaign import (
     _trajectory_distributions,
 )
 from grain_growth_pf.disconnections.mode import K_B_EV
+from grain_growth_pf.config import ModelConfig, PFConfig
 from grain_growth_pf.io.event_ledger import (
     EVENT_FIELDS,
     EventLedger,
@@ -121,6 +123,36 @@ def test_tj_failure_plot_separates_bare_and_residual_adjusted_barriers(tmp_path)
     assert _tj_failure_figure([tmp_path], target)
     assert target.with_suffix(".png").exists()
     assert target.with_suffix(".pdf").exists()
+
+
+def test_stagnant_ensemble_suppresses_growth_law_without_losing_diagnostics(tmp_path):
+    run_dirs = []
+    for seed in (1, 2):
+        run = tmp_path / f"run-{seed}"
+        run.mkdir()
+        config = ModelConfig(regime="J1", seed=seed, pf=PFConfig(shape=(8, 8)))
+        (run / "manifest.json").write_text(json.dumps({
+            "config": config.to_dict(), "git_sha": "stagnant-sha", "status": "completed",
+        }))
+        time = np.arange(21.0)
+        frames = []
+        for grain_id in (1, 2):
+            frames.append(pd.DataFrame({
+                "run_id": f"run-{seed}", "time": time,
+                "step": np.arange(len(time)), "grain_id": grain_id,
+                "area": np.full(len(time), 32.0),
+                "radius": np.full(len(time), np.sqrt(32.0 / np.pi)),
+                "perimeter": np.full(len(time), 2.0 * np.sqrt(32.0 * np.pi)),
+                "neighbors": np.full(len(time), 1),
+            }))
+        pd.concat(frames, ignore_index=True).to_csv(run / "grain_tracks.csv", index=False)
+        run_dirs.append(run)
+    row, detail = analyze_group(run_dirs, bootstrap_samples=5)
+    assert np.isnan(row["n"])
+    assert row["K"] == 0.0
+    assert detail["kinetic_observability"]["observable"] is False
+    assert detail["ensemble_fit"]["fit_suppressed"] is True
+    assert detail["event_diagnostics"]["primitive_event_counts"] == {}
 
 
 def test_ensemble_radius_reports_independent_size_measures():

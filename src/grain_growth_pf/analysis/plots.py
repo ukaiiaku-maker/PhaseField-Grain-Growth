@@ -90,17 +90,30 @@ def _kinetics_figure(paths: list[Path], row: pd.Series, target: Path) -> None:
         if power == 1:
             axis.fill_between(time, radius - spread, radius + spread, color="C0", alpha=0.2)
         axis.set_ylabel(label)
-    transformed = radius**exponent
-    axes[1, 0].plot(time, transformed, color="C1", label=f"n={exponent:.2f}")
-    start, end, _ = _fit_window(data["N_mean"].to_numpy(float))
-    fit_time, fit_values = time[start:end], transformed[start:end]
-    coefficient, intercept = np.polyfit(fit_time, fit_values, 1)
-    axes[1, 0].plot(fit_time, coefficient * fit_time + intercept, "k--", lw=1, label="fit window")
-    axes[1, 0].set_ylabel(r"$R^n$")
-    axes[1, 0].legend(frameon=False)
-    axes[1, 1].plot(time, _local_exponent(time, radius), color="C2")
-    axes[1, 1].axhline(2, color="0.4", ls="--", lw=1)
-    axes[1, 1].set_ylabel("local effective n")
+    if np.isfinite(exponent):
+        transformed = radius**exponent
+        axes[1, 0].plot(time, transformed, color="C1", label=f"n={exponent:.2f}")
+        start, end, _ = _fit_window(data["N_mean"].to_numpy(float))
+        fit_time, fit_values = time[start:end], transformed[start:end]
+        coefficient, intercept = np.polyfit(fit_time, fit_values, 1)
+        axes[1, 0].plot(
+            fit_time, coefficient * fit_time + intercept, "k--", lw=1,
+            label="fit window",
+        )
+        axes[1, 0].set_ylabel(r"$R^n$")
+        axes[1, 0].legend(frameon=False)
+        axes[1, 1].plot(time, _local_exponent(time, radius), color="C2")
+        axes[1, 1].axhline(2, color="0.4", ls="--", lw=1)
+        axes[1, 1].set_ylabel("local effective n")
+    else:
+        axes[1, 0].plot(time, radius / radius[0], color="C1")
+        axes[1, 0].axhline(1.0, color="0.4", ls="--", lw=1)
+        axes[1, 0].set_ylabel(r"$R/R_0$")
+        axes[1, 1].text(
+            0.5, 0.5, "growth-law fit suppressed\n(<2% radius change)",
+            ha="center", va="center", transform=axes[1, 1].transAxes,
+        )
+        axes[1, 1].set_ylabel("local effective n")
     axes[1, 2].plot(time, data["N_mean"], color="C3")
     axes[1, 2].set_ylabel("grain count")
     for axis in axes[1]:
