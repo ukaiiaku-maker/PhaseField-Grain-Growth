@@ -1,0 +1,50 @@
+{
+  "status": "partially_accepted_and_repaired_after_gb_gate_and_storage_audit",
+  "audit_time_utc": "2026-08-16T02:33:18Z",
+  "preserved_campaign": "results/campaigns/20260815T115547Z-af440f638c",
+  "simulation_git_sha": "9e8796e6e9e13bc4bb418662cfc33601adeaa502",
+  "corrected_model_git_sha": "6ad432ef10f2275a5e7c9e66b33c3f0d2f94ab84",
+  "source_config": "configs/production/mechanism_scaling_200.yaml",
+  "source_config_sha256": "28174d22b8ed4ef6c823ec90b32ffbc695b4c362f655f2f0f255db2436a71273",
+  "workers": 14,
+  "runs_total": 165,
+  "valid_completed_runs_retained": 146,
+  "interrupted_runs_excluded_and_repaired": 7,
+  "queued_runs_repaired": 12,
+  "tracebacks_before_manual_interrupt": 0,
+  "campaign_disk_kib_at_interrupt": 105715996,
+  "invalid_sc4_partial_runs": [
+    {"seed": 5101, "step": 412, "event_ledger_bytes": 6323441491},
+    {"seed": 5102, "step": 492, "event_ledger_bytes": 8259950055},
+    {"seed": 5105, "step": 496, "event_ledger_bytes": 8287158138}
+  ],
+  "valid_but_interrupted_j_runs": [
+    {"regime": "J1", "seed": 5101, "step": 1332, "event_ledger_bytes": 5085390110},
+    {"regime": "J1", "seed": 5104, "step": 1396, "event_ledger_bytes": 5106264326},
+    {"regime": "J2", "seed": 5102, "step": 394, "event_ledger_bytes": 5625421971},
+    {"regime": "J2", "seed": 5105, "step": 388, "event_ledger_bytes": 5542649817}
+  ],
+  "root_causes": [
+    "The explicit SC4 configuration activated gb_compatibility, but the GB encounter predicate omitted that module and the unblocked explicit-mode fallback therefore emitted continuous easy-mode passages without geometric encounters.",
+    "EventLedger flushed every CSV row. Legitimate J1/J2 event rates turned that durability strategy into multi-gigabyte partial files and projected J2 storage beyond available disk."
+  ],
+  "corrections": [
+    "Explicit GB compatibility is geometry gated and cannot enter the ungated mode fallback.",
+    "Event rows are buffered between checkpoint generations; the ledger and trajectory byte extents are embedded in the authoritative checkpoint and truncated exactly on resume.",
+    "Optional gzip ledgers are finalized as one member per checkpoint and analysis and plotting accept plain or compressed CSV transparently.",
+    "The exact missing 19-condition matrix is split across SC4, P1, J1/J2, and J3 repair specifications."
+  ],
+  "replacement_campaigns": {
+    "SC4": "results/campaigns/20260816T020439Z-970230dc4c",
+    "P1_seeds_5101_5102": "results/campaigns/20260816T020915Z-e91786f3cd",
+    "J3_seeds_5101_5102": "results/campaigns/20260816T022756Z-876f84d9c9",
+    "J1_J2_all_seeds": "results/campaigns/20260816T022954Z-b7da7df52e"
+  },
+  "validation": {
+    "gb_gate_and_fallback_regressions": "3 passed in 1.84 s",
+    "buffered_compressed_restart_regressions": "5 focused tests passed",
+    "full_tests": "84 passed in 43.20 s",
+    "production_storage_qc": "J2 compressed ledgers were about 3 MB at step 10 versus about 5.6 GB near step 390 in the interrupted plain-CSV runs."
+  },
+  "policy": "All original partial files remain preserved. Final inference admits the 146 valid completions only and replaces every missing or invalid condition with the listed corrected campaign; no partial realization is spliced across code revisions."
+}
