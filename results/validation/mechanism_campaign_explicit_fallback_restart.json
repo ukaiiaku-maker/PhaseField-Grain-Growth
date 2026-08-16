@@ -1,0 +1,33 @@
+{
+  "status": "rejected_for_ungated_explicit_mode_fallback",
+  "audit_time_utc": "2026-08-16T02:06:44Z",
+  "preserved_campaign": "results/campaigns/20260816T020014Z-970230dc4c",
+  "simulation_git_sha": "fcab311ef92e01008af11877c399becb7056b1f7",
+  "corrected_model_git_sha": "9007c3c6b5e624c581240e1c193d2df5a86670c6",
+  "source_config": "configs/production/mechanism_repair_sc4_200.yaml",
+  "source_config_sha256": "13703d9e21482f585d372f51771be0aa08d18197ce7388ab35af51c96671dd92",
+  "workers": 5,
+  "runs_total": 5,
+  "runs_started": 5,
+  "runs_completed": 0,
+  "runs_checkpointed_at_interrupt": 5,
+  "checkpoint_step_minimum": 16,
+  "checkpoint_step_mean": 17.6,
+  "checkpoint_step_maximum": 18,
+  "tracebacks_before_manual_interrupt": 0,
+  "event_ledger_bytes_at_interrupt": 350932388,
+  "event_rows_at_interrupt_including_headers": 811114,
+  "root_cause": "Adding gb_compatibility to the geometric-encounter predicate correctly created blocked states, but after a compatibility release the explicit_modes fallback still sampled an ungated easy-mode flux on later steps without an encounter.",
+  "corrections": [
+    "GB compatibility is included in the geometric-encounter predicate even when its compatibility model uses explicit disconnection modes.",
+    "The unblocked explicit-mode fallback is disabled whenever an encounter-gated GB module is active.",
+    "A regression forces zero geometric change and an immediate activation threshold, then proves that no activation or mode event can be emitted.",
+    "A complementary regression forces a geometric encounter and proves that the domain blocks."
+  ],
+  "validation": {
+    "focused_gb_gate_regressions": "3 passed in 1.84 s",
+    "full_tests": "82 passed in 43.87 s",
+    "corrected_live_qc": "At step 30 the sampled SC4 run had 502 activation hits, 502 compatibility releases, and zero disconnection_mode events."
+  },
+  "policy": "All partial checkpoints, event ledgers, and trajectories remain in place and are excluded from inference. The five-run SC4 repair restarted from the corrected tested SHA."
+}
