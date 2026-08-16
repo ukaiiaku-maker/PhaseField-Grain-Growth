@@ -203,6 +203,14 @@ five seeds with zero tracebacks and gives `n=1.3248` (95% CI
 because it used the autocatalytic full-field sign. Final cross-regime
 interpretation awaits the corrected full-field/TJ campaign and composite.
 
+The corrected-sign SC4 replacement is now complete for five seeds. Its interim
+fit gives `n=1.000` at the scan bound, `K=0.15522`, fit `R²=0.96374`, CV
+`1.17168`, Fano `584.80`, reverse-motion fraction `0.65717`, and velocity--
+curvature `R²=6.3e-5` across 1,254,987 primitive events. Within its serial climb
+stages, expected `1/r` resistance is 99.15% transport, 0.74% exchange, and
+0.11% nucleation. This is corrected interim evidence; matched cross-regime
+inference still awaits the exact composite.
+
 Final analysis reads checkpointed event ledgers in bounded-memory batches. A
 production regression over 31,255,548 primitive rows produced a byte-identical
 summary and identical diagnostics apart from sub-`8e-12` summation-order roundoff,
@@ -302,15 +310,15 @@ immutable source campaign completes.
 
 | Question | Required inference | Current evidence gate |
 |---|---|---|
-| Q1 | Can high-barrier compatibility events yield strong grain-scale jerkiness with smooth ensemble scaling? | SC4 already gives CV `1.162` and ensemble-fit `R²=0.9982`; final answer awaits the matched 165-condition composite. |
+| Q1 | Can high-barrier compatibility events yield strong grain-scale jerkiness with smooth ensemble scaling? | Corrected SC4 gives CV `1.172`, Fano `584.80`, and ensemble-fit `R²=0.9637`; final answer awaits the matched 165-condition composite. |
 | Q2 | How does geometric encounter measure set the coarse-grained exponent? | Pending the G-series and explicit-versus-surrogate composite comparison. |
 | Q3 | How do single-hit Poisson and multihit kinetics differ? | Engine-level exponential/Erlang/packet predictions pass; production-scale comparison awaits the composite. |
 | Q4 | Does increasing `K` raise or lower intermittency at fixed spatial correlation? | In the completed L24 series, K=1→3→5 raises trajectory CV (1.435→1.704→1.905) and burstiness (-0.075→-0.018→0.025), but lowers event-count Fano (53.28→38.94→32.87); the answer is metric dependent, consistent with multihit self-averaging of event counts. |
 | Q5 | Can reduced shear memory reproduce Qiu-like velocity-curvature decorrelation without full elasticity? | Validation benchmarks show decorrelation for the full-field backend; final reduced-versus-full comparison awaits E1/E2 and S-series aggregation. |
 | Q6 | Can shear memory generate reverse-curvature migration? | Corrected-sign Qiu-type benchmarks show active reverse motion rises from 12.70% to 15.35% in the matched full-field case; production attribution awaits the composite. |
 | Q7 | Can climb alone generate intermittency and velocity-curvature decorrelation? | Pending C1--C5 composite results. |
-| Q8 | What resistance fractions arise from nucleation, exchange, transport, shear, and TJ compatibility? | Primitive-stage rates and exposure diagnostics are implemented; final fractions await C/J/SC aggregation. |
-| Q9 | Are simultaneous shear and climb additive in residence time, strongly coupled, or dominated by one process? | Pending SC1--SC4 matched comparison. |
+| Q8 | What resistance fractions arise from nucleation, exchange, transport, shear, and TJ compatibility? | In corrected SC4, serial climb `1/r` resistance is 99.15% transport, 0.74% exchange, and 0.11% nucleation; final shear/TJ attribution awaits C/J/SC aggregation. |
+| Q9 | Are simultaneous shear and climb additive in residence time, strongly coupled, or dominated by one process? | Corrected SC4 is transport-dominated in observed-event resistance, but causal comparison remains pending the SC1--SC4 matched composite. |
 | Q10 | How does apparent grain-growth activation compare with imposed microscopic barriers? | Fixed-geometry validation recovers 0.65 eV to within 0.0016 eV, and the completed 20-run B1 production control recovers an imposed 0.45 eV as 0.450000 eV (95% CI `[0.437646,0.462170]`); emergent barrier-regime comparisons await the rest of both temperature campaigns. |
 | Q11 | Can similar apparent activation energies coexist with very different mobilities? | Pending paired temperature-series inference. |
 | Q12 | Under what conditions does physical stagnation occur? | Stagnation rejection criteria are implemented; production boundaries await mechanism and temperature summaries. |

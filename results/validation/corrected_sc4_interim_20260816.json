@@ -1,0 +1,58 @@
+{
+  "status": "passed_interim_pending_final_composite",
+  "campaign": "results/campaigns/20260816T160354Z-188fe232c6",
+  "regime": "SC4",
+  "temperature_K": 900.0,
+  "realizations": 5,
+  "simulation_git_sha": "990c3a0d96e29290e13612387c32576f16cf993e",
+  "analysis_git_sha": "8d30f56b4c74faaf24cd881488fb1c8d3cda65ab",
+  "fit_window": {
+    "start": 4.560000000000003,
+    "end": 42.47999999999927,
+    "samples": 475,
+    "initial_mean_grain_count": 200.0,
+    "end_mean_grain_count": 62.6
+  },
+  "growth": {
+    "n": 1.0000000000000002,
+    "n_95pct": [1.0000000000000002, 1.000000000000067],
+    "at_search_bound": true,
+    "K": 0.15522247315930124,
+    "K_95pct": [0.1493722805545288, 0.16185310092117608],
+    "r_squared": 0.9637381405924009
+  },
+  "intermittency": {
+    "jerkiness_CV": 1.1716842589082834,
+    "Fano": 584.8044608194466,
+    "burstiness": -0.10051362628792115,
+    "stationary_fraction": 0.3026901233722308,
+    "motion_top_10pct": 0.3760842271075532
+  },
+  "motion": {
+    "reverse_motion_fraction": 0.6571659708015101,
+    "velocity_curvature_R2": 0.00006344938788163285,
+    "active_boundary_fraction": 0.03922931631493309,
+    "pinned_fraction": 0.2434691352800467
+  },
+  "primitive_event_counts": {
+    "activation_hit": 1189609,
+    "tj_activation_hit": 34168,
+    "climb_nucleation": 22424,
+    "climb_exchange": 8704,
+    "climb_transport": 82,
+    "total": 1254987
+  },
+  "climb_expected_resistance_fraction": {
+    "nucleation": 0.0010834653891070908,
+    "exchange": 0.00741570532205244,
+    "transport": 0.9915008292888405
+  },
+  "event_conditioned_resistance_fraction": {
+    "gb_activation": 0.00010348465902010967,
+    "tj_activation": 0.003917783753137475,
+    "climb_nucleation": 0.0010791084839622083,
+    "climb_exchange": 0.007385884780487001,
+    "climb_transport": 0.9875137383233932
+  },
+  "interpretation_limit": "Observed-event 1/r fractions are diagnostics, not causal probabilities; final Q8/Q9 inference requires matched composite comparisons."
+}
