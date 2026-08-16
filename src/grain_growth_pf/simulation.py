@@ -839,7 +839,8 @@ class EventResolvedSimulation:
                     )
                     self._record_event(domain, segment, mode, total_rate, driving,
                                        "compatibility_release", delta_length, completions[0].time)
-            elif cfg.compatibility_model == "explicit_modes" and self.solver.step_number > 0:
+            elif (cfg.compatibility_model == "explicit_modes" and not encounter_enabled
+                  and self.solver.step_number > 0):
                 # Event-resolved easy-mode flux; completion changes finite hidden
                 # kinematics even when it does not gate mobility.
                 candidates, rates, normal_pressure, resolved_shear, vacancy_mu = self._activation_rates(

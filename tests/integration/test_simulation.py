@@ -282,6 +282,33 @@ def test_explicit_modes_gb_compatibility_waits_for_geometric_encounter(tmp_path)
     simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
 
 
+def test_explicit_modes_gb_compatibility_never_uses_ungated_fallback(tmp_path):
+    config = ModelConfig(
+        regime="explicit-gb-no-fallback", seed=200,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01),
+        compatibility_model="explicit_modes",
+        active_modules=("gb_compatibility", "single_hit_poisson"),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={
+            "initial_grains": 5, "encounter_density": 1.0,
+            "attempt_frequency": 1e6, "barrier_core_ev": 0.0,
+            "b_coefficient_ev": 0.0, "h_coefficient_ev": 0.0,
+        },
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "explicit-gb-no-fallback")
+    simulation.solver.step_number = 1
+    simulation.solver.time = config.pf.time_step
+    for key, segment in simulation.snapshot.boundaries.items():
+        domain = simulation.domains[key]
+        domain.previous_length = segment.length
+        domain.encounter.threshold = np.inf
+        domain.activation.clock.threshold = 0.0
+    simulation._update_physics()
+    assert all(not domain.blocked for domain in simulation.domains.values())
+    assert all(domain.event_counter == 0 for domain in simulation.domains.values())
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
 def test_accumulated_atomic_step_triggers_finite_pf_release(tmp_path):
     config = ModelConfig(
         regime="subgrid-release", seed=92,
