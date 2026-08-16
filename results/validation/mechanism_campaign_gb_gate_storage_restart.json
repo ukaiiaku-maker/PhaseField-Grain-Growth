@@ -38,12 +38,19 @@
     "SC4": "results/campaigns/20260816T020439Z-970230dc4c",
     "P1_seeds_5101_5102": "results/campaigns/20260816T020915Z-e91786f3cd",
     "J3_seeds_5101_5102": "results/campaigns/20260816T022756Z-876f84d9c9",
-    "J1_J2_all_seeds": "results/campaigns/20260816T022954Z-b7da7df52e"
+    "J1_all_seeds": "results/campaigns/20260816T032113Z-7ae2f1e60a",
+    "J2_all_seeds": "results/campaigns/20260816T031606Z-7840d8f94b"
   },
+  "preserved_scheduling_attempts_excluded": [
+    {
+      "campaign": "results/campaigns/20260816T022954Z-b7da7df52e",
+      "reason": "A six-worker combined J1/J2 pool would serialize four ceiling-length J2 runs behind J1; it was stopped before inference and replaced by concurrent five-worker regime-specific campaigns."
+    }
+  ],
   "validation": {
     "gb_gate_and_fallback_regressions": "3 passed in 1.84 s",
     "buffered_compressed_restart_regressions": "5 focused tests passed",
-    "full_tests": "84 passed in 43.20 s",
+    "full_tests": "85 passed in 52.33 s",
     "production_storage_qc": "J2 compressed ledgers were about 3 MB at step 10 versus about 5.6 GB near step 390 in the interrupted plain-CSV runs."
   },
   "policy": "All original partial files remain preserved. Final inference admits the 146 valid completions only and replaces every missing or invalid condition with the listed corrected campaign; no partial realization is spliced across code revisions."
