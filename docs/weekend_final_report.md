@@ -235,25 +235,36 @@ mechanism results are **pending production inference**.
 
 ## 11. Scientific questions Q1--Q24
 
-Final answers are **pending production inference**. They will explicitly cover:
+The final evidence map is explicit so a missing answer cannot be hidden in a
+grouped narrative. Entries marked pending are not interpreted before their
+immutable source campaign completes.
 
-- grain-scale jerkiness versus ensemble smoothness and encounter-size scaling;
-- single-hit, persistent multihit, and finite packet-reset differences;
-- local versus nonlocal shear memory, decorrelation, and reverse motion;
-- climb-only intermittency and nucleation/exchange/transport resistance;
-- independent versus mixed shear/climb residence times;
-- event-level versus growth-level activation and mechanism crossover;
-- matched apparent activation energies with different mobilities;
-- physical stagnation and constrained jerkiness optima;
-- stress/curvature selection from the isotropic discrete mode spectrum;
-- low-mode TJ compatibility failures, Burgers residuals, and barrier sampling;
-- sensitivity to mode discreteness and comparison with geometric surrogates;
-- accumulated shear, climb, and mixed strain fractions.
-
-Apparent grain rotation (Q22) is not directly evolved in the current fixed-
-orientation PF state. Event tangential strain is retained, but a spatial
-grain-rigid-body rotation estimator requires centroid-resolved event history and
-will be reported as a limitation unless added without invalidating the campaign.
+| Question | Required inference | Current evidence gate |
+|---|---|---|
+| Q1 | Can high-barrier compatibility events yield strong grain-scale jerkiness with smooth ensemble scaling? | SC4 already gives CV `1.162` and ensemble-fit `R²=0.9982`; final answer awaits the matched 165-condition composite. |
+| Q2 | How does geometric encounter measure set the coarse-grained exponent? | Pending the G-series and explicit-versus-surrogate composite comparison. |
+| Q3 | How do single-hit Poisson and multihit kinetics differ? | Engine-level exponential/Erlang/packet predictions pass; production-scale comparison awaits the composite. |
+| Q4 | Does increasing `K` raise or lower intermittency at fixed spatial correlation? | Pending the 60-run jerkiness search. |
+| Q5 | Can reduced shear memory reproduce Qiu-like velocity-curvature decorrelation without full elasticity? | Validation benchmarks show decorrelation for the full-field backend; final reduced-versus-full comparison awaits E1/E2 and S-series aggregation. |
+| Q6 | Can shear memory generate reverse-curvature migration? | Qiu-type benchmarks show active reverse motion rises from 12.70% to 30.85% in the matched full-field case; production attribution awaits the composite. |
+| Q7 | Can climb alone generate intermittency and velocity-curvature decorrelation? | Pending C1--C5 composite results. |
+| Q8 | What resistance fractions arise from nucleation, exchange, transport, shear, and TJ compatibility? | Primitive-stage rates and exposure diagnostics are implemented; final fractions await C/J/SC aggregation. |
+| Q9 | Are simultaneous shear and climb additive in residence time, strongly coupled, or dominated by one process? | Pending SC1--SC4 matched comparison. |
+| Q10 | How does apparent grain-growth activation compare with imposed microscopic barriers? | Fixed-geometry validation recovers 0.65 eV to within 0.0016 eV; production answer awaits both temperature campaigns. |
+| Q11 | Can similar apparent activation energies coexist with very different mobilities? | Pending paired temperature-series inference. |
+| Q12 | Under what conditions does physical stagnation occur? | Stagnation rejection criteria are implemented; production boundaries await mechanism and temperature summaries. |
+| Q13 | Which parameters maximize jerkiness without destroying realistic mean scaling? | Pending constrained Pareto analysis of the 60-run search. |
+| Q14 | Can anisotropic stress/curvature selection from an isotropic discrete mode spectrum generate effective shear coupling? | Mode-selection regressions pass; production magnitude awaits E/SC results. |
+| Q15 | Can effective shear coupling acquire temperature dependence through Arrhenius mode occupation rather than an imposed coupling factor? | Pending event-resolved temperature series. |
+| Q16 | How often do low-barrier modes fail explicit TJ compatibility? | Explicit compatibility/failure ledgers are implemented; pending J1/J2 completion. |
+| Q17 | What barrier distribution is sampled during TJ compatibility failures? | Barrier samples are retained per event; pending J1/J2 completion. |
+| Q18 | Does explicit Burgers conservation yield long waits and abrupt TJ motion? | Conservation and residual-storage tests pass; production comparison awaits J1/J2/J3 aggregation. |
+| Q19 | How sensitive are growth and jerkiness to minimum Burgers magnitude and mode discreteness? | Discrete minimum-Burgers tests pass; production sensitivity awaits matched regime fits. |
+| Q20 | Can the geometric TJ surrogate reproduce explicit-mode scaling and intermittency? | J3 replacement is complete; final answer awaits J1/J2 and the composite. |
+| Q21 | What accumulated strain fractions are shear, climb, and mixed? | Signed shear and volumetric event sums are available; final fractions await SC aggregation. |
+| Q22 | Does apparent grain rotation emerge from event-wise tangential displacement? | Not directly identifiable: orientations are fixed and no grain-rigid-body rotation state is evolved. Event tangential strain is retained, but this remains a stated model limitation. |
+| Q23 | At what temperature does the dominant difficult event cross from shear/TJ compatibility to climb/point-defect control? | Pending the fully physical temperature campaign. |
+| Q24 | Does that crossover curve the Arrhenius plot or change the growth exponent? | Pending common-exponent, local-slope, and Arrhenius-curvature analysis. |
 
 ## 12. Unexpected physics and preserved failures
 
