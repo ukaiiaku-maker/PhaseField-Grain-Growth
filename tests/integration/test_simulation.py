@@ -102,12 +102,18 @@ def test_vectorized_mode_rates_match_individual_mode_equations(tmp_path):
     domain = simulation.domains[segment.entity_id]
     domain.shear.state = 0.17
     domain.free_volume.required_total = 0.31
-    candidates, rates, normal, shear, vacancy = simulation._activation_rates(domain, segment)
+    candidates, rates, normal, shear, vacancy, effective = simulation._activation_rates(
+        domain, segment
+    )
     expected = np.asarray([
         mode.rate(config.pf.temperature, ModeDriving(normal, shear[index], vacancy))
         for index, mode in enumerate(candidates)
     ])
     assert np.allclose(rates, expected, rtol=3e-14, atol=0.0)
+    assert np.allclose(effective, [
+        mode.effective_barrier_ev(ModeDriving(normal, shear[index], vacancy))
+        for index, mode in enumerate(candidates)
+    ])
     simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
 
 
@@ -683,7 +689,7 @@ def test_finite_tj_residual_back_stress_favors_relaxing_mode(tmp_path):
     )
     first_tj, first_sign = simulation._signed_boundary_tjs(segment)[0]
     first_tj.residual_burgers[:] = (first_sign, 0.0)
-    candidates, rates, *_ = simulation._activation_rates(
+    candidates, rates, _, _, _, effective = simulation._activation_rates(
         simulation.domains[segment.entity_id], segment
     )
     positive = next(
@@ -696,6 +702,7 @@ def test_finite_tj_residual_back_stress_favors_relaxing_mode(tmp_path):
     )
     relaxing, increasing = (negative, positive) if first_sign > 0 else (positive, negative)
     assert rates[relaxing] > rates[increasing]
+    assert effective[relaxing] < effective[increasing]
     simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
 
 
@@ -722,7 +729,7 @@ def test_strict_tj_residual_gates_additional_gb_events(tmp_path):
         domain, segment, 0.0, position, field_position
     )
     first_count = domain.event_counter
-    assert first_count == 2  # one primitive hit and one completed mode event
+    assert first_count >= 3  # primitive hit, mode event, and at least one TJ failure
     assert any(
         np.linalg.norm(tj.residual_burgers) > 0
         for tj in simulation._boundary_to_tjs[segment.entity_id]
@@ -732,6 +739,14 @@ def test_strict_tj_residual_gates_additional_gb_events(tmp_path):
     )
     assert domain.event_counter == first_count
     simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+    with (tmp_path / "strict-tj-gate" / "events.csv").open() as handle:
+        failures = [
+            row for row in csv.DictReader(handle)
+            if row["event_type"] == "tj_compatibility_failure"
+        ]
+    assert failures
+    assert all(row["DeltaG0"] and row["effective_DeltaG"] for row in failures)
+    assert all(row["burgers_vector_b"] for row in failures)
 
 
 def test_strict_tj_relaxation_uses_the_same_packet_scale(tmp_path):

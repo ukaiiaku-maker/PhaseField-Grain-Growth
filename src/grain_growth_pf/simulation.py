@@ -413,7 +413,7 @@ class EventResolvedSimulation:
             })
 
     def _activation_rates(self, domain: DomainPhysics, segment: GBSegment) -> tuple[
-        list[DisconnectionMode], np.ndarray, float, np.ndarray, float
+        list[DisconnectionMode], np.ndarray, float, np.ndarray, float, np.ndarray
     ]:
         capillary = self.config.pf.gb_energy * segment.curvature
         candidates = [m for m in self.modes if (m.family != "easy" if domain.blocked else True)]
@@ -481,7 +481,10 @@ class EventResolvedSimulation:
         rates = prefactors * np.exp(
             -effective_barriers / (K_B_EV * self.config.pf.temperature)
         )
-        return candidates, rates, float(normal_pressure), resolved_shear, float(vacancy_mu)
+        return (
+            candidates, rates, float(normal_pressure), resolved_shear,
+            float(vacancy_mu), effective_barriers,
+        )
 
     @staticmethod
     def _mode_driving(normal_pressure: float, resolved_shear: np.ndarray,
@@ -489,7 +492,7 @@ class EventResolvedSimulation:
         return ModeDriving(normal_pressure, float(resolved_shear[selected]), vacancy_mu)
 
     def _activation_mode(self, domain: DomainPhysics, segment: GBSegment) -> tuple[DisconnectionMode, float, ModeDriving]:
-        candidates, rates, normal_pressure, resolved_shear, vacancy_mu = self._activation_rates(
+        candidates, rates, normal_pressure, resolved_shear, vacancy_mu, _ = self._activation_rates(
             domain, segment
         )
         total = float(rates.sum())
@@ -533,8 +536,10 @@ class EventResolvedSimulation:
     def _record_event(self, domain: DomainPhysics, segment: GBSegment, mode: DisconnectionMode,
                       rate: float, driving: ModeDriving, event_type: str, delta_length: float,
                       event_time: float | None = None, *, ledger_position: str | None = None,
-                      field_position: tuple[int, int] | None = None) -> None:
+                      field_position: tuple[int, int] | None = None,
+                      effective_barrier_ev: float | None = None) -> None:
         domain.event_counter += 1
+        mode_event_counter = domain.event_counter
         packet = float(self.config.parameters.get("packet_size", 1.0))
         b = np.asarray(mode.burgers) * packet
         h = mode.step_height * packet
@@ -552,8 +557,15 @@ class EventResolvedSimulation:
             strain_increment = 0.5 * (plastic_distortion + plastic_distortion.T)
             strain_increment += dq * domain.formation_volume * np.eye(2)
             self.full_field.add_event(position, strain_increment)
-        for tj, sign in self._signed_boundary_tjs(segment):
-            tj.add_burgers(sign * b)
+        compatibility_failures = []
+        if set(self.config.active_modules).intersection({
+            "tj_burgers_strict", "tj_burgers_residual"
+        }):
+            for tj, sign in self._signed_boundary_tjs(segment):
+                increment = sign * b
+                tj.add_burgers(increment)
+                if np.linalg.norm(tj.residual_burgers) > 1e-10:
+                    compatibility_failures.append((tj, increment.copy()))
         ds_release = mode.delta_s * packet
         released = domain.shear.release(ds_release)
         q_release = domain.free_volume.accommodate(abs(dq) if dq else mode.delta_q * packet)
@@ -561,7 +573,7 @@ class EventResolvedSimulation:
             "run_id": self.run_id, "time": self.solver.time if event_time is None else event_time,
             "step": self.solver.step_number,
             "temperature": self.config.pf.temperature, "seed": self.config.seed,
-            "event_id": f"{domain.entity_id}:{domain.event_counter}", "event_type": event_type,
+            "event_id": f"{domain.entity_id}:{mode_event_counter}", "event_type": event_type,
             "grain_ids": f"{segment.grain_i};{segment.grain_j}", "entity_id": domain.entity_id,
             "position": ledger_position if ledger_position is not None else (
                 json.dumps(segment.points.mean(axis=0).tolist()) if len(segment.points) else ""
@@ -570,7 +582,10 @@ class EventResolvedSimulation:
             "grain_size": 0.5 * (self.snapshot.grains[segment.grain_i].equivalent_radius + self.snapshot.grains[segment.grain_j].equivalent_radius),
             "curvature": segment.curvature, "local_velocity": segment.velocity,
             "barrier_type": mode.family, "DeltaG0": mode.barrier_ev,
-            "effective_DeltaG": mode.effective_barrier_ev(driving),
+            "effective_DeltaG": (
+                mode.effective_barrier_ev(driving)
+                if effective_barrier_ev is None else effective_barrier_ev
+            ),
             "activation_volume": f"{mode.activation_volume_normal};{mode.activation_volume_shear}",
             "local_shear_stress": driving.resolved_shear,
             "local_normal_free_volume_stress": driving.normal_pressure,
@@ -587,6 +602,37 @@ class EventResolvedSimulation:
             "volumetric_strain_increment": volumetric_strain,
             "packet_size": packet, "Git_SHA": self.sha,
         })
+        for tj, increment in compatibility_failures:
+            domain.event_counter += 1
+            self.ledger.write({
+                "run_id": self.run_id,
+                "time": self.solver.time if event_time is None else event_time,
+                "step": self.solver.step_number,
+                "temperature": self.config.pf.temperature,
+                "seed": self.config.seed,
+                "event_id": f"{domain.entity_id}:{domain.event_counter}",
+                "event_type": "tj_compatibility_failure",
+                "grain_ids": ";".join(map(str, tj.grain_ids)),
+                "entity_id": tj.entity_id,
+                "position": json.dumps(list(tj.position)),
+                "geometry_measure_Q": tj.travel_distance,
+                "barrier_type": mode.family,
+                "DeltaG0": mode.barrier_ev,
+                "effective_DeltaG": (
+                    mode.effective_barrier_ev(driving)
+                    if effective_barrier_ev is None else effective_barrier_ev
+                ),
+                "instantaneous_rate": rate,
+                "cumulative_hazard": domain.activation.clock.cumulative_hazard,
+                "random_hazard_threshold": domain.activation.clock.threshold,
+                "hit_count": domain.activation.hit_count,
+                "required_hits_K": domain.hits,
+                "TJ_travel": 0.0,
+                "normal_step_h": h,
+                "burgers_vector_b": json.dumps(increment.tolist()),
+                "packet_size": packet,
+                "Git_SHA": self.sha,
+            })
         if released >= 0:
             domain.blocked = False
 
@@ -606,7 +652,7 @@ class EventResolvedSimulation:
                 np.linalg.norm(tj.residual_burgers) > 1e-10 for tj, _ in attached
             ):
                 break
-            candidates, rates, normal_pressure, resolved_shear, vacancy_mu = (
+            candidates, rates, normal_pressure, resolved_shear, vacancy_mu, effective = (
                 self._activation_rates(domain, segment)
             )
             total_rate = float(rates.sum())
@@ -632,6 +678,7 @@ class EventResolvedSimulation:
                 domain, segment, mode, total_rate, driving,
                 "disconnection_mode", delta_length, completion.time,
                 ledger_position=ledger_position, field_position=field_position,
+                effective_barrier_ev=float(effective[selected]),
             )
             consumed = max(0.0, completion.time - current_time)
             remaining -= consumed
@@ -948,7 +995,7 @@ class EventResolvedSimulation:
                 domain.climb.activate(self.solver.time)
 
             if domain.blocked and self.solver.step_number > 0:
-                candidates, rates, normal_pressure, resolved_shear, vacancy_mu = self._activation_rates(
+                candidates, rates, normal_pressure, resolved_shear, vacancy_mu, effective = self._activation_rates(
                     domain, segment
                 )
                 total_rate = float(rates.sum())
@@ -972,7 +1019,8 @@ class EventResolvedSimulation:
                     self._record_event(domain, segment, mode, total_rate, driving,
                                        "compatibility_release", delta_length, completions[0].time,
                                        ledger_position=ledger_position,
-                                       field_position=field_position)
+                                       field_position=field_position,
+                                       effective_barrier_ev=float(effective[selected]))
             elif (cfg.compatibility_model == "explicit_modes" and not encounter_enabled
                   and self.solver.step_number > 0):
                 # Event-resolved easy-mode flux; completion changes finite hidden
@@ -982,7 +1030,7 @@ class EventResolvedSimulation:
                         domain, segment, delta_length, ledger_position, field_position
                     )
                 else:
-                    candidates, rates, normal_pressure, resolved_shear, vacancy_mu = self._activation_rates(
+                    candidates, rates, normal_pressure, resolved_shear, vacancy_mu, effective = self._activation_rates(
                         domain, segment
                     )
                     total_rate = float(rates.sum())
@@ -1005,7 +1053,8 @@ class EventResolvedSimulation:
                         self._record_event(domain, segment, mode, total_rate, driving,
                                            "disconnection_mode", delta_length, completion.time,
                                            ledger_position=ledger_position,
-                                           field_position=field_position)
+                                           field_position=field_position,
+                                           effective_barrier_ev=float(effective[selected]))
 
             self._advance_climb(domain, segment, delta_length)
 

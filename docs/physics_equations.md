@@ -138,6 +138,11 @@ mode rates, the cumulative-hazard integrator stops at each passage, updates the
 TJ state, recomputes the full candidate spectrum, and then advances through the
 remaining PF-step time. TJ relaxation uses the same \(N_{disc}\) packet factor
 as the arriving GB event; residual Burgers vector is never erased directly.
+Every nonzero constrained arrival writes a `tj_compatibility_failure` row with
+the TJ identity, signed packet Burgers increment, bare barrier, and the actual
+residual-energy-adjusted effective barrier used by the cumulative hazard. This
+makes low-mode failure frequency and the sampled failure-barrier distribution
+direct observables rather than post-hoc guesses.
 
 ## Atomic-to-PF event kinematics
 

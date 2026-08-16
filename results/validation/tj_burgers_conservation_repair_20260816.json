@@ -34,7 +34,8 @@
     "Add Delta E_TJ = K_TJ (|B+DeltaB|^2-|B|^2)/2 to finite-residual activation barriers.",
     "Recompute the admissible mode spectrum and rates after every TJ-coupled first passage over the remaining timestep.",
     "Bind each TJ to the nearest correlation domain on each of its three GBs rather than every domain sharing those grain pairs.",
-    "Use the negative elastic-energy derivative as the full-field self-stress and require negative source self-work."
+    "Use the negative elastic-energy derivative as the full-field self-stress and require negative source self-work.",
+    "Emit one labeled TJ compatibility-failure row per nonzero constrained endpoint arrival and retain the residual-energy-adjusted barrier actually used in its hazard."
   ],
   "corrected_smoke": {
     "shape": [64, 64],
