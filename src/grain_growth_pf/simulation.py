@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -244,7 +245,12 @@ class EventResolvedSimulation:
             float(config.parameters.get("particle_radius", 1.5)), config.pf.shape,
             config.seed + 991,
         ) if particle_modules else None
-        self.ledger = EventLedger(self.output_dir / "events.csv")
+        event_name = (
+            "events.csv.gz"
+            if bool(config.parameters.get("compress_event_ledger", False))
+            else "events.csv"
+        )
+        self.ledger = EventLedger(self.output_dir / event_name)
         track_path = self.output_dir / "grain_tracks.csv"
         self.track_handle = track_path.open("a" if resume else "w", newline="", encoding="utf-8")
         self.track_writer = csv.DictWriter(self.track_handle, fieldnames=(
@@ -914,6 +920,15 @@ class EventResolvedSimulation:
         self.boundary_handle.flush()
 
     def _save_checkpoint(self) -> None:
+        event_ledger_offset = self.ledger.checkpoint()
+        stream_offsets = {}
+        for name, handle in (
+            ("grain_tracks_offset", self.track_handle),
+            ("boundary_tracks_offset", self.boundary_handle),
+        ):
+            handle.flush()
+            os.fsync(handle.fileno())
+            stream_offsets[name] = handle.tell()
         state = {
             "time": self.solver.time, "step_number": self.solver.step_number,
             "domains": {key: domain.state_dict() for key, domain in self.domains.items()},
@@ -922,6 +937,8 @@ class EventResolvedSimulation:
             "accumulated_shear_strain": self.accumulated_shear_strain,
             "accumulated_volumetric_strain": self.accumulated_volumetric_strain,
             "previous_entity_time": self.previous_entity_time,
+            "event_ledger_offset": event_ledger_offset,
+            **stream_offsets,
         }
         serialized_state = json.dumps(state, indent=2) + "\n"
         arrays: dict[str, np.ndarray] = {
@@ -947,6 +964,25 @@ class EventResolvedSimulation:
                 # Backward compatibility for production runs created before
                 # checkpoint metadata was embedded in the archive.
                 state = json.loads((self.output_dir / "checkpoint.json").read_text())
+            if "event_ledger_offset" in state:
+                self.ledger.truncate(int(state["event_ledger_offset"]))
+            for name, handle in (
+                ("grain_tracks_offset", self.track_handle),
+                ("boundary_tracks_offset", self.boundary_handle),
+            ):
+                if name in state:
+                    offset = int(state[name])
+                    handle.flush()
+                    size = Path(handle.name).stat().st_size
+                    if offset < 0 or offset > size:
+                        raise ValueError(
+                            f"invalid {name} checkpoint offset {offset} for {size} bytes"
+                        )
+                    handle.seek(offset)
+                    handle.truncate()
+                    handle.flush()
+                    os.fsync(handle.fileno())
+                    handle.seek(0, 2)
             self.solver.eta = arrays["eta"].copy()
             self.solver.mobility_scale = arrays["mobility_scale"].copy()
             self.solver.active_phases = arrays["active_phases"].astype(bool).copy()
@@ -1018,6 +1054,10 @@ class EventResolvedSimulation:
             failure = f"{type(exc).__name__}: {exc}"
             raise
         finally:
+            if (failure is None and self.solver.step_number > 0
+                    and self.solver.step_number % self.config.output_cadence != 0):
+                self._write_tracks()
+                self._save_checkpoint()
             self.ledger.close()
             self.track_handle.close()
             self.boundary_handle.close()
@@ -1037,6 +1077,7 @@ class EventResolvedSimulation:
                                "final_grains": len(self.snapshot.grains),
                                "accumulated_shear_strain": self.accumulated_shear_strain,
                                "accumulated_volumetric_strain": self.accumulated_volumetric_strain,
+                               "event_ledger": str(self.ledger.path),
                                "restart_artifacts": restart_artifacts,
                            }, code_sha=self.sha)
         return self.output_dir

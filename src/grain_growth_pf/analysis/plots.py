@@ -12,6 +12,7 @@ import pandas as pd
 
 from grain_growth_pf.analysis.campaign import _activation_rows, _fit_window, analyze_campaign
 from grain_growth_pf.analysis.grain_tracks import ensemble_radius, load_tracks
+from grain_growth_pf.io.event_ledger import event_ledger_path
 
 
 def _save(fig: plt.Figure, target: Path) -> None:
@@ -118,7 +119,7 @@ def _representative_figure(path: Path, target: Path) -> None:
             rate = np.diff(grain["area"].to_numpy(float)) / np.diff(grain["time"].to_numpy(float))
             rate_axis.plot(grain["time"].to_numpy(float)[1:], rate, lw=0.8)
             neighbor_axis.scatter(grain["neighbors"].to_numpy(float)[:-1], rate, s=7, alpha=0.35)
-    event_path = path / "events.csv"
+    event_path = event_ledger_path(path)
     if event_path.exists() and event_path.stat().st_size:
         events = _activation_rows(pd.read_csv(event_path))
         if not events.empty and "time" in events:
@@ -165,7 +166,7 @@ def _boundary_figure(paths: list[Path], target: Path) -> None:
 def _event_figure(paths: list[Path], target: Path) -> None:
     frames = []
     for path in paths:
-        event_path = path / "events.csv"
+        event_path = event_ledger_path(path)
         if event_path.exists() and event_path.stat().st_size:
             frame = pd.read_csv(event_path)
             if not frame.empty:

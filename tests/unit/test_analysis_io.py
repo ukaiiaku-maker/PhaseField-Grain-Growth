@@ -170,6 +170,16 @@ def test_event_rate_observation_retains_zero_event_exposure(tmp_path):
     assert count == 2
     assert np.isclose(exposure, 2.5)
 
+    (tmp_path / "events.csv").unlink()
+    pd.DataFrame({
+        "time": [0.2, 0.8],
+        "event_type": ["activation_hit", "compatibility_release"],
+    }).to_csv(tmp_path / "events.csv.gz", index=False, compression="gzip")
+    count, exposure = _event_rate_observation(tmp_path)
+    assert count == 1
+    assert np.isclose(exposure, 2.5)
+    (tmp_path / "events.csv.gz").unlink()
+
     pd.DataFrame({
         "time": [0.2, 0.2, 0.8, 0.8],
         "event_type": ["activation_hit", "compatibility_release",
@@ -234,6 +244,22 @@ def test_event_ledger_schema(tmp_path):
         row = next(csv.DictReader(handle))
     assert tuple(row) == EVENT_FIELDS
     assert row["normal_step_h"] == "0.2"
+
+
+def test_gzip_event_ledger_truncates_to_checkpoint_member(tmp_path):
+    target = tmp_path / "events.csv.gz"
+    ledger = EventLedger(target)
+    ledger.write({"run_id": "kept", "event_id": 1})
+    offset = ledger.checkpoint()
+    ledger.write({"run_id": "discarded", "event_id": 2})
+    ledger.close()
+
+    resumed = EventLedger(target)
+    resumed.truncate(offset)
+    resumed.write({"run_id": "resumed", "event_id": 3})
+    resumed.close()
+    rows = pd.read_csv(target)
+    assert rows["run_id"].tolist() == ["kept", "resumed"]
 
 
 def test_manifest_can_pin_launch_revision(tmp_path):

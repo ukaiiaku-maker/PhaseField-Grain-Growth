@@ -20,6 +20,7 @@ from grain_growth_pf.analysis.growth_law import (
     scan_growth_exponent,
 )
 from grain_growth_pf.analysis.jerkiness import jerkiness_metrics
+from grain_growth_pf.io.event_ledger import event_ledger_path
 from grain_growth_pf.io.provenance import git_sha
 
 
@@ -304,7 +305,7 @@ def _nanmean_values(values: list[float]) -> float:
 
 
 def _event_statistics(run_dir: Path) -> tuple[int, float]:
-    path = run_dir / "events.csv"
+    path = event_ledger_path(run_dir)
     if not path.exists() or path.stat().st_size == 0:
         return 0, np.nan
     events = pd.read_csv(path)
@@ -322,7 +323,7 @@ def _event_statistics(run_dir: Path) -> tuple[int, float]:
 
 def _event_rate_observation(run_dir: Path) -> tuple[int, float]:
     """Return events and integrated GB-domain exposure for censoring-aware rates."""
-    event_path = run_dir / "events.csv"
+    event_path = event_ledger_path(run_dir)
     boundary_path = run_dir / "boundary_tracks.csv"
     if not boundary_path.exists() or boundary_path.stat().st_size == 0:
         return 0, 0.0
@@ -359,7 +360,7 @@ def _event_diagnostics(run_dirs: list[Path]) -> dict[str, object]:
     """Summarize primitive first passages without mixing independent clocks."""
     frames = []
     for run_index, run_dir in enumerate(run_dirs):
-        path = run_dir / "events.csv"
+        path = event_ledger_path(run_dir)
         if not path.exists() or path.stat().st_size == 0:
             continue
         frame = pd.read_csv(path)
