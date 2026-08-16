@@ -1,0 +1,59 @@
+prepare_initial_conditions: true
+regime_catalog: ../mechanisms/regimes.yaml
+regime_names: [J1]
+temperatures: [900.0]
+seeds: [5101, 5102, 5103, 5104, 5105]
+base:
+  regime: J1
+  seed: 5101
+  pf:
+    shape: [192, 192]
+    grid_spacing: 1.0
+    interface_width: 4.0
+    time_step: 0.04
+    gb_energy: 1.0
+    intrinsic_mobility: 4.0
+    boundary_conditions: periodic
+    temperature: 900.0
+    adaptive_stepping: true
+    grain_extinction_threshold: 0.5
+  mechanics_backend: none
+  compatibility_model: off
+  active_modules: []
+  output_cadence: 2
+  max_steps: 3500
+  termination_grains: 60
+  parameters:
+    initial_grains: 267
+    equilibration_steps: 20
+    equilibrate_to_grains: 200
+    equilibration_max_steps: 550
+    compact_after_equilibration: true
+    event_domain_length: 12.0
+    encounter_density: 0.20
+    barrier_core_ev: 0.25
+    b_coefficient_ev: 0.02
+    h_coefficient_ev: 0.02
+    attempt_frequency: 10.0
+    packet_size: 2.0
+    packet_window_time: 1.0
+    pinned_mobility_fraction: 0.0
+    shear_stiffness: 0.20
+    shear_trigger: 0.25
+    easy_beta: 0.35
+    excess_volume_per_area: 0.01
+    point_defect_formation_volume: 0.02
+    free_volume_stiffness: 0.05
+    climb_trigger_quota: 0.25
+    climb_release_quota: 1.0
+    nucleation_prefactor: 1000.0
+    exchange_prefactor: 1000.0
+    transport_prefactor: 1000.0
+    nucleation_barrier_ev: 0.45
+    exchange_barrier_ev: 0.55
+    transport_barrier_ev: 0.65
+    particle_count: 40
+    particle_radius: 1.2
+    tj_barrier_ev: 0.55
+    tj_attempt_frequency: 1000.0
+    compress_event_ledger: true
