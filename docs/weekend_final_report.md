@@ -179,9 +179,10 @@ inference. A later audit found two additional production boundaries: explicit
 GB compatibility was missing from the encounter predicate and then remained
 reachable through an ungated explicit-mode fallback, while per-event CSV
 flushing made valid high-rate J ledgers grow to multiple gigabytes.
-Geometry-gate regressions now cover both paths. Event ledgers are buffered to
-authoritative checkpoints, optionally gzip-compressed, and exactly truncated
-on resume from checkpointed byte extents. The definitive SC4 repair completed
+Geometry-gate regressions now cover both paths. Event ledgers support
+checkpoint-member gzip and fixed-schema Zstandard Parquet; the latter commits
+atomic parts and truncates by the authoritative checkpoint part count. The
+definitive SC4 repair completed
 five seeds with zero tracebacks and gives `n=1.3248` (95% CI
 `[1.0000, 2.2126]`), `K=0.1763`, jerkiness CV `1.162`, and Fano factor
 `280.95`; final cross-regime interpretation still awaits the composite.

@@ -4,6 +4,7 @@
   "preserved_campaign": "results/campaigns/20260815T115547Z-af440f638c",
   "simulation_git_sha": "9e8796e6e9e13bc4bb418662cfc33601adeaa502",
   "corrected_model_git_sha": "6ad432ef10f2275a5e7c9e66b33c3f0d2f94ab84",
+  "current_output_git_sha": "f3b1514b19ffc4cd95928b3a9ccb950410e7dc91",
   "source_config": "configs/production/mechanism_scaling_200.yaml",
   "source_config_sha256": "28174d22b8ed4ef6c823ec90b32ffbc695b4c362f655f2f0f255db2436a71273",
   "workers": 14,
@@ -38,8 +39,8 @@
     "SC4": "results/campaigns/20260816T020439Z-970230dc4c",
     "P1_seeds_5101_5102": "results/campaigns/20260816T020915Z-e91786f3cd",
     "J3_seeds_5101_5102": "results/campaigns/20260816T022756Z-876f84d9c9",
-    "J1_all_seeds": "results/campaigns/20260816T033908Z-7ae2f1e60a",
-    "J2_all_seeds": "results/campaigns/20260816T033908Z-7840d8f94b"
+    "J1_all_seeds": "results/campaigns/20260816T055128Z-c5fbecf30c",
+    "J2_all_seeds": "results/campaigns/20260816T055128Z-3d79a43322"
   },
   "completed_replacement_audits": {
     "SC4": {
@@ -86,13 +87,25 @@
         "results/campaigns/20260816T031606Z-7840d8f94b"
       ],
       "reason": "The first split runs used gzip level 6. A live J2 payload benchmark took 17.25 s at level 6 versus 6.07 s at level 1; the early runs were preserved and restarted with the tested faster output codec."
+    },
+    {
+      "campaigns": [
+        "results/campaigns/20260816T033908Z-7ae2f1e60a",
+        "results/campaigns/20260816T033908Z-7840d8f94b"
+      ],
+      "last_checkpoint_summary": {
+        "J1": {"minimum": 584, "mean": 619.2, "maximum": 656},
+        "J2": {"minimum": 230, "mean": 231.6, "maximum": 234}
+      },
+      "reason": "A live worker sample showed that row-wise CSV dictionary serialization, especially integer/string conversion, dominated J2. A 200,000-row benchmark took 10.102 s and 1,327,572 bytes for level-1 gzip CSV versus 4.346 s and 681,214 bytes for Zstandard Parquet including table construction. Both zero-traceback partial campaigns were preserved and replaced whole after atomic-part restart tests and the full suite passed."
     }
   ],
   "validation": {
     "gb_gate_and_fallback_regressions": "3 passed in 1.84 s",
     "buffered_compressed_restart_regressions": "5 focused tests passed",
-    "full_tests": "85 passed in 47.99 s",
-    "production_storage_qc": "J2 compressed ledgers were about 3 MB at step 10 versus about 5.6 GB near step 390 in the interrupted plain-CSV runs."
+    "full_tests": "87 passed in 62.22 s",
+    "parquet_restart_and_analysis": "Atomic part-count truncation, NumPy-valued schema normalization, and transparent analysis passed; 5 J1 and 5 J2 plus 240 selected-temperature and 220 fully physical configurations enumerate with event_ledger_format=parquet.",
+    "production_storage_qc": "J2 gzip ledgers were about 3 MB at step 10 versus about 5.6 GB near step 390 in the interrupted plain-CSV runs; the admitted Parquet replacement is smaller and avoids row-wise CSV output."
   },
   "policy": "All original partial files remain preserved. Final inference admits the 146 valid completions only and replaces every missing or invalid condition with the listed corrected campaign; no partial realization is spliced across code revisions."
 }
