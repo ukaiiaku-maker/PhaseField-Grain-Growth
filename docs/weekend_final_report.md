@@ -261,6 +261,14 @@ intrinsic barrier as `0.450000 eV` with bootstrap 95% CI
 slopes equal to 0.45 eV within `4e-11`. Its common exponent is `1.63449`
 (95% CI `[1.43851,1.82699]`) over a 70.2% radius increase. Other selected and
 fully physical results remain **pending production inference**.
+The completed G2 persistent-multihit family provides the first production
+event/growth separation. Its event rate per integrated GB-domain time recovers
+the imposed 0.25 eV barrier as `0.250122 eV` (95% CI
+`[0.240313,0.260878]`, `R²=0.99920`), while its coarse-grained growth
+coefficient has only `Q_app=0.143697 eV` (95% CI
+`[0.127936,0.159105]`, `R²=0.99981`). The common exponent is at the lower
+scan bound `n=1`; trajectory CV falls from 1.705 to 1.361 over 800--1100 K
+while event-count Fano rises from 43.3 to 230.8.
 The plotting path applies the same distinction: it retains event-level
 Arrhenius and local-slope panels even when every growth coefficient is zero.
 
@@ -319,7 +327,7 @@ immutable source campaign completes.
 | Q7 | Can climb alone generate intermittency and velocity-curvature decorrelation? | Pending C1--C5 composite results. |
 | Q8 | What resistance fractions arise from nucleation, exchange, transport, shear, and TJ compatibility? | In corrected SC4, serial climb `1/r` resistance is 99.15% transport, 0.74% exchange, and 0.11% nucleation; final shear/TJ attribution awaits C/J/SC aggregation. |
 | Q9 | Are simultaneous shear and climb additive in residence time, strongly coupled, or dominated by one process? | Corrected SC4 is transport-dominated in observed-event resistance, but causal comparison remains pending the SC1--SC4 matched composite. |
-| Q10 | How does apparent grain-growth activation compare with imposed microscopic barriers? | Fixed-geometry validation recovers 0.65 eV to within 0.0016 eV, and the completed 20-run B1 production control recovers an imposed 0.45 eV as 0.450000 eV (95% CI `[0.437646,0.462170]`); emergent barrier-regime comparisons await the rest of both temperature campaigns. |
+| Q10 | How does apparent grain-growth activation compare with imposed microscopic barriers? | B1 recovers an imposed 0.45 eV as 0.450000 eV (95% CI `[0.437646,0.462170]`). In G2, event-level Q recovers the 0.25 eV barrier as 0.250122 eV, but growth Q is only 0.143697 eV: the coarse-grained apparent barrier need not equal the microscopic first-passage barrier. |
 | Q11 | Can similar apparent activation energies coexist with very different mobilities? | Pending paired temperature-series inference. |
 | Q12 | Under what conditions does physical stagnation occur? | Stagnation rejection criteria are implemented; production boundaries await mechanism and temperature summaries. |
 | Q13 | Which parameters maximize jerkiness without destroying realistic mean scaling? | None of the 12 completed search candidates passes the strict scaling gate. `JK-L24-K3-SPARSE` is closest (`n=1.188`, CI `[1.000,1.798]`, CV 1.811) but remains rejected; the high-barrier candidate has the largest CV (3.111) and also fails scaling. |
