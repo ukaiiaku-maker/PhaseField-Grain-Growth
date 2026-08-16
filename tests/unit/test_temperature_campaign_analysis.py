@@ -51,6 +51,12 @@ def test_temperature_campaign_uses_one_common_exponent(tmp_path):
         detail["provenance"]["simulation_git_shas"] == ["synthetic-sha"]
         for detail in diagnostics
     )
+    filtered = analyze_campaign(
+        campaign, tmp_path / "filtered.csv", bootstrap_samples=1,
+        regimes={"not-present"},
+    )
+    assert filtered.empty
+    assert json.loads((tmp_path / "filtered_diagnostics.json").read_text()) == []
     (campaign / "campaign_manifest.json").write_text(json.dumps({
         "runs": run_paths, "status": "running",
     }))

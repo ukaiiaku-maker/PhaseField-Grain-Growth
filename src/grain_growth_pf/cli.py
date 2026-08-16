@@ -30,9 +30,14 @@ def analyze_main() -> None:
     parser.add_argument("campaign")
     parser.add_argument("--output")
     parser.add_argument("--allow-incomplete", action="store_true")
+    parser.add_argument(
+        "--regime", action="append", dest="regimes",
+        help="Analyze only this regime; repeat to select multiple regimes.",
+    )
     args = parser.parse_args()
     print(analyze_campaign(
-        args.campaign, args.output, require_completed=not args.allow_incomplete
+        args.campaign, args.output, require_completed=not args.allow_incomplete,
+        regimes=set(args.regimes) if args.regimes else None,
     ).to_string(index=False))
 
 

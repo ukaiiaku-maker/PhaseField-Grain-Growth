@@ -869,7 +869,8 @@ def analyze_run(run_dir: str | Path) -> dict[str, object]:
 
 def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
                      bootstrap_samples: int = 500,
-                     require_completed: bool = True) -> pd.DataFrame:
+                     require_completed: bool = True,
+                     regimes: set[str] | None = None) -> pd.DataFrame:
     campaign_dir = Path(campaign_dir)
     analysis_sha = git_sha()
     manifest = json.loads((campaign_dir / "campaign_manifest.json").read_text())
@@ -892,6 +893,8 @@ def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
         if run_manifest.get("status") != "completed":
             continue
         config = run_manifest["config"]
+        if regimes is not None and config["regime"] not in regimes:
+            continue
         key = (config["regime"], float(config["pf"]["temperature"]))
         grouped.setdefault(key, []).append(path)
 
