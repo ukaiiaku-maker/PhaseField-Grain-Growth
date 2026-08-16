@@ -1,0 +1,95 @@
+{
+  "git_sha": "68f72dfaefe479b9040672462658f3bd80ce7479-dirty",
+  "raw_run_directory": "results/runs/qiu-regressions-20260816T161637Z-68f72dfa",
+  "intrinsic_curvature_regression": {
+    "source": "results/validation/numerical_validation.json",
+    "source_git_sha": "290b77b99faf97bfd772d26d70d65e17628cd414",
+    "passed": true,
+    "circle_max_relative_error": 0.11277163769800658
+  },
+  "shear_regressions": [
+    {
+      "geometry": "four-grain",
+      "shape": [
+        48,
+        48
+      ],
+      "initial_grains": 4,
+      "steps": 160,
+      "control": {
+        "velocity_curvature_correlation": 0.43687437893594805,
+        "reverse_curvature_fraction": 0.45408714440043213,
+        "active_reverse_curvature_fraction": 0.03089887640449438,
+        "active_curvature_threshold": 0.1167381974174243,
+        "active_velocity_threshold": 0.0163035511537597,
+        "boundary_samples": 2777,
+        "active_boundary_samples": 356
+      },
+      "qiu_shear": {
+        "velocity_curvature_correlation": 0.41820411140234254,
+        "reverse_curvature_fraction": 0.40439323010442924,
+        "active_reverse_curvature_fraction": 0.04180064308681672,
+        "active_curvature_threshold": 0.1160267487916526,
+        "active_velocity_threshold": 0.0166345266324797,
+        "boundary_samples": 2777,
+        "active_boundary_samples": 311
+      },
+      "eigenstrain_l2": 0.029576427340874845,
+      "stress_l2": 0.059326601580252394,
+      "feedback_l2": 0.05901222317714242,
+      "label_difference_fraction": 0.00043402777777777775,
+      "phase_field_rms_difference": 0.0006338328398925347,
+      "accumulated_shear_strain": 0.0,
+      "execution_passed": true
+    },
+    {
+      "geometry": "polycrystal",
+      "shape": [
+        64,
+        64
+      ],
+      "initial_grains": 24,
+      "steps": 220,
+      "control": {
+        "velocity_curvature_correlation": 0.4357842905413253,
+        "reverse_curvature_fraction": 0.42800586510263927,
+        "active_reverse_curvature_fraction": 0.1269968051118211,
+        "active_curvature_threshold": 0.17024464373291814,
+        "active_velocity_threshold": 0.03146271746495723,
+        "boundary_samples": 13640,
+        "active_boundary_samples": 1252
+      },
+      "qiu_shear": {
+        "velocity_curvature_correlation": 0.38971025034885515,
+        "reverse_curvature_fraction": 0.46604215456674475,
+        "active_reverse_curvature_fraction": 0.1535303776683087,
+        "active_curvature_threshold": 0.17435560310544906,
+        "active_velocity_threshold": 0.026993969477052876,
+        "boundary_samples": 13664,
+        "active_boundary_samples": 1218
+      },
+      "eigenstrain_l2": 0.2843203391542002,
+      "stress_l2": 0.5573350177456229,
+      "feedback_l2": 0.5124379235694774,
+      "label_difference_fraction": 0.004638671875,
+      "phase_field_rms_difference": 0.0023691684726245793,
+      "accumulated_shear_strain": 0.0,
+      "execution_passed": true
+    }
+  ],
+  "software": {
+    "python": "3.13.5",
+    "numpy": "2.1.3",
+    "scipy": "1.15.3"
+  },
+  "qualitative_qiu_checks": {
+    "control_abs_velocity_curvature_correlation": 0.4357842905413253,
+    "shear_abs_velocity_curvature_correlation": 0.38971025034885515,
+    "control_active_reverse_fraction": 0.1269968051118211,
+    "shear_active_reverse_fraction": 0.1535303776683087,
+    "control_is_curvature_correlated": true,
+    "shear_weakens_correlation": true,
+    "shear_increases_reverse_motion": true
+  },
+  "validation_passed": true
+}

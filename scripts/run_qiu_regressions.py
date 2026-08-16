@@ -156,7 +156,9 @@ def main() -> None:
             "shear_increases_reverse_motion",
         ))
     )
-    target = Path("results/validation/qiu_regression_benchmarks.json")
+    # Keep every sign/model revision auditable instead of overwriting a prior
+    # benchmark whose differing outcome may be the evidence for a correction.
+    target = Path("results/validation") / f"qiu_regression_benchmarks_{code_sha[:8]}.json"
     target.write_text(json.dumps(report, indent=2) + "\n")
     print(json.dumps(report, indent=2))
 
