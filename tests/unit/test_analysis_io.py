@@ -292,6 +292,9 @@ def test_parquet_event_ledger_truncates_to_checkpoint_part(tmp_path):
     assert rows["run_id"].tolist() == ["kept", "resumed"]
     assert rows["step"].tolist() == [1, 2]
     assert rows["position"].iloc[1] == "[1.5, 2.5]"
+    projected = read_event_ledger(target, columns=["event_type", "time", "step"])
+    assert list(projected.columns) == ["event_type", "time", "step"]
+    assert projected["step"].tolist() == [1, 2]
 
 
 def test_manifest_can_pin_launch_revision(tmp_path):

@@ -1,0 +1,19 @@
+{
+  "date_utc": "2026-08-16",
+  "source_ledger": "results/campaigns/20260816T160354Z-188fe232c6/E1-T900-s5101-b47f55953560/events.parquet",
+  "full_schema_read": {
+    "columns": 41,
+    "rows": 1351062,
+    "seconds": 4.444998081075028,
+    "dataframe_deep_bytes": 1167772362
+  },
+  "diagnostic_projection_read": {
+    "columns": 6,
+    "rows": 1386034,
+    "seconds": 0.2487586939241737,
+    "dataframe_deep_bytes": 217695738
+  },
+  "note": "The live ledger grew between sequential reads, so row counts differ. Per-row deep memory fell by approximately 5.5x and elapsed read time by approximately 18x.",
+  "algorithm": "Event statistics request only event_type/time; rate observations request event_type; mechanistic diagnostics request six fields and aggregate one realization at a time. Plotting uses the corresponding two- or three-column projections.",
+  "tests": "15 analysis and temperature tests passed in 47.99 seconds under live production load."
+}

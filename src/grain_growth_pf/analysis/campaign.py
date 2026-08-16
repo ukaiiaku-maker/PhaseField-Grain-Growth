@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections import Counter
 from pathlib import Path
 
 import numpy as np
@@ -312,7 +313,7 @@ def _event_statistics(run_dir: Path) -> tuple[int, float]:
     path = event_ledger_path(run_dir)
     if not event_ledger_has_rows(path):
         return 0, np.nan
-    events = read_event_ledger(path)
+    events = read_event_ledger(path, columns=["event_type", "time"])
     if events.empty:
         return 0, np.nan
     events = _activation_rows(events)
@@ -341,7 +342,9 @@ def _event_rate_observation(run_dir: Path) -> tuple[int, float]:
         ))
     if not event_ledger_has_rows(event_path):
         return 0, exposure
-    events = _activation_rows(read_event_ledger(event_path))
+    events = _activation_rows(read_event_ledger(
+        event_path, columns=["event_type"]
+    ))
     return len(events), exposure
 
 
@@ -362,61 +365,73 @@ def _quantiles(values: list[float] | np.ndarray) -> dict[str, object]:
 
 def _event_diagnostics(run_dirs: list[Path]) -> dict[str, object]:
     """Summarize primitive first passages without mixing independent clocks."""
-    frames = []
-    for run_index, run_dir in enumerate(run_dirs):
+    primitive_counts: Counter[str] = Counter()
+    release_counts: Counter[str] = Counter()
+    waiting_times: list[float] = []
+    stage_samples: dict[str, list[float]] = {}
+    signed_shear = 0.0
+    signed_volumetric = 0.0
+    runs_with_events = 0
+    columns = [
+        "event_type", "entity_id", "time", "instantaneous_rate",
+        "shear_strain_increment", "volumetric_strain_increment",
+    ]
+    for run_dir in run_dirs:
         path = event_ledger_path(run_dir)
         if not event_ledger_has_rows(path):
             continue
-        frame = read_event_ledger(path)
+        frame = read_event_ledger(path, columns=columns)
         if frame.empty:
             continue
-        frame["realization"] = run_index
-        frames.append(frame)
-    if not frames:
+        runs_with_events += 1
+        primitive = _activation_rows(frame)
+        primitive_counts.update(map(str, primitive["event_type"].dropna()))
+        releases = frame.loc[~frame.index.isin(primitive.index), "event_type"]
+        release_counts.update(map(str, releases.dropna()))
+        for _, entity in primitive.groupby("entity_id", dropna=False):
+            differences = np.diff(np.sort(entity["time"].to_numpy(float)))
+            waiting_times.extend(differences[differences > 0].tolist())
+        stage_rows = primitive[primitive["event_type"].isin({
+            "climb_nucleation", "climb_exchange", "climb_transport",
+        })]
+        for event_type, rows in stage_rows.groupby("event_type"):
+            rates = pd.to_numeric(
+                rows["instantaneous_rate"], errors="coerce"
+            ).to_numpy(float)
+            rates = rates[np.isfinite(rates) & (rates > 0)]
+            stage_samples.setdefault(str(event_type), []).extend((1.0 / rates).tolist())
+        signed_shear += float(pd.to_numeric(
+            frame["shear_strain_increment"], errors="coerce"
+        ).fillna(0.0).sum())
+        signed_volumetric += float(pd.to_numeric(
+            frame["volumetric_strain_increment"], errors="coerce"
+        ).fillna(0.0).sum())
+    if not runs_with_events:
         return {"primitive_event_counts": {}, "waiting_times": _quantiles([])}
-    all_events = pd.concat(frames, ignore_index=True)
-    primitive = _activation_rows(all_events)
-    counts = primitive["event_type"].value_counts().sort_index().to_dict()
-    waiting_times: list[float] = []
-    for _, entity in primitive.groupby(["realization", "entity_id"], dropna=False):
-        differences = np.diff(np.sort(entity["time"].to_numpy(float)))
-        waiting_times.extend(differences[differences > 0].tolist())
-    stage_residence = {}
-    stage_rows = primitive[primitive["event_type"].isin({
-        "climb_nucleation", "climb_exchange", "climb_transport",
-    })]
-    resistance = {}
-    for event_type, rows in stage_rows.groupby("event_type"):
-        rates = pd.to_numeric(rows["instantaneous_rate"], errors="coerce").to_numpy(float)
-        rates = rates[np.isfinite(rates) & (rates > 0)]
-        stage_residence[event_type] = _quantiles(1.0 / rates)
-        resistance[event_type] = float(np.mean(1.0 / rates)) if len(rates) else np.nan
+    stage_residence = {
+        event_type: _quantiles(samples)
+        for event_type, samples in stage_samples.items()
+    }
+    resistance = {
+        event_type: float(np.mean(samples))
+        for event_type, samples in stage_samples.items() if samples
+    }
     finite_resistance = {key: value for key, value in resistance.items() if np.isfinite(value)}
     total_resistance = sum(finite_resistance.values())
     resistance_fraction = {
         key: value / total_resistance for key, value in finite_resistance.items()
     } if total_resistance else {}
-    shear_increment = (
-        pd.to_numeric(all_events["shear_strain_increment"], errors="coerce")
-        if "shear_strain_increment" in all_events else pd.Series(dtype=float)
-    )
-    volumetric_increment = (
-        pd.to_numeric(all_events["volumetric_strain_increment"], errors="coerce")
-        if "volumetric_strain_increment" in all_events else pd.Series(dtype=float)
-    )
     return {
-        "primitive_event_counts": {str(key): int(value) for key, value in counts.items()},
+        "primitive_event_counts": dict(sorted(primitive_counts.items())),
         "waiting_times_by_entity": _quantiles(waiting_times),
         "climb_expected_stage_residence": stage_residence,
         "climb_expected_resistance_fraction": resistance_fraction,
         "release_summary_counts": {
-            str(key): int(value) for key, value in
-            all_events[~all_events.index.isin(primitive.index)]["event_type"]
-            .value_counts().sort_index().items()
+            key: int(value) for key, value in sorted(release_counts.items())
         },
         "accumulated_event_strain": {
-            "signed_shear": float(shear_increment.fillna(0.0).sum()),
-            "signed_volumetric": float(volumetric_increment.fillna(0.0).sum()),
+            "signed_shear": signed_shear,
+            "signed_volumetric": signed_volumetric,
         },
     }
 

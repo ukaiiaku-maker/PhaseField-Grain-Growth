@@ -47,14 +47,26 @@ def event_ledger_has_rows(path: str | Path) -> bool:
     return path.stat().st_size > 0
 
 
-def read_event_ledger(path: str | Path):
+def read_event_ledger(path: str | Path, columns: Iterable[str] | None = None):
     """Load any supported event-ledger representation as a pandas DataFrame."""
     import pandas as pd
 
     path = Path(path)
+    selected = list(columns) if columns is not None else None
     if path.is_dir() or path.suffix == ".parquet":
-        return pd.read_parquet(path)
-    return pd.read_csv(path)
+        return pd.read_parquet(path, columns=selected)
+    if selected is None:
+        return pd.read_csv(path)
+    available = list(pd.read_csv(path, nrows=0).columns)
+    present = [name for name in selected if name in available]
+    # Retain row count even for legacy ledgers containing none of the requested
+    # columns, then materialize missing fixed-schema fields as nullable values.
+    load_columns = present or available[:1]
+    frame = pd.read_csv(path, usecols=load_columns)
+    for name in selected:
+        if name not in frame:
+            frame[name] = pd.NA
+    return frame[selected]
 
 
 class EventLedger:

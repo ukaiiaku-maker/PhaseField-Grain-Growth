@@ -125,7 +125,9 @@ def _representative_figure(path: Path, target: Path) -> None:
             neighbor_axis.scatter(grain["neighbors"].to_numpy(float)[:-1], rate, s=7, alpha=0.35)
     event_path = event_ledger_path(path)
     if event_ledger_has_rows(event_path):
-        events = _activation_rows(read_event_ledger(event_path))
+        events = _activation_rows(read_event_ledger(
+            event_path, columns=["event_type", "time"]
+        ))
         if not events.empty and "time" in events:
             event_types = sorted(events["event_type"].dropna().unique())
             colors = {name: f"C{index % 10}" for index, name in enumerate(event_types)}
@@ -168,21 +170,23 @@ def _boundary_figure(paths: list[Path], target: Path) -> None:
 
 
 def _event_figure(paths: list[Path], target: Path) -> None:
-    frames = []
+    waits = []
+    type_counts = {}
     for path in paths:
         event_path = event_ledger_path(path)
         if event_ledger_has_rows(event_path):
-            frame = read_event_ledger(event_path)
+            frame = read_event_ledger(
+                event_path, columns=["event_type", "entity_id", "time"]
+            )
             if not frame.empty:
-                frame["realization"] = len(frames)
-                frames.append(frame)
-    if not frames:
+                events = _activation_rows(frame)
+                for event_type, count in events["event_type"].value_counts().items():
+                    type_counts[str(event_type)] = type_counts.get(str(event_type), 0) + int(count)
+                for _, entity in events.groupby("entity_id", dropna=False):
+                    differences = np.diff(np.sort(entity["time"].to_numpy(float)))
+                    waits.extend(differences[differences > 0].tolist())
+    if not type_counts:
         return
-    events = _activation_rows(pd.concat(frames, ignore_index=True))
-    waits = []
-    for _, entity in events.groupby(["realization", "entity_id"], dropna=False):
-        differences = np.diff(np.sort(entity["time"].to_numpy(float)))
-        waits.extend(differences[differences > 0].tolist())
     sizes = []
     for path in paths:
         tracks = load_tracks(path / "grain_tracks.csv")
@@ -200,8 +204,8 @@ def _event_figure(paths: list[Path], target: Path) -> None:
     if len(ordered):
         axes[2].loglog(ordered, 1.0 - np.arange(len(ordered)) / len(ordered), color="C2")
     axes[2].set(xlabel="grain burst area increment", ylabel="CCDF")
-    type_counts = events["event_type"].value_counts().sort_index()
-    axes[3].barh(type_counts.index.astype(str), type_counts.to_numpy(), color="C3")
+    event_types = sorted(type_counts)
+    axes[3].barh(event_types, [type_counts[name] for name in event_types], color="C3")
     axes[3].set(xlabel="primitive event count", ylabel="event type")
     _save(fig, target)
 
