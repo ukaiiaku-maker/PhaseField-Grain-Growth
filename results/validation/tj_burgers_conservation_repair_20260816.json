@@ -5,6 +5,12 @@
     "results/campaigns/20260816T055128Z-3d79a43322",
     "results/campaigns/20260816T020439Z-970230dc4c"
   ],
+  "excluded_campaign_audit": {
+    "artifact_audit_git_sha": "007201a",
+    "runs_audited": 10,
+    "J1_campaign_manifest_sha256": "9d012cd2b30797311b800fab4242fa92bad2f69f19273e87c9574466fdaf3e8a",
+    "J2_campaign_manifest_sha256": "a299d3debd16bdade7f6e969989cac486c6f225606d3babf47ab98ffb882e94f"
+  },
   "additional_affected_regimes_in_original_matrix": ["Q1", "E1", "SC3"],
   "observations": {
     "J1_checkpoint_step_range": [2340, 2816],
