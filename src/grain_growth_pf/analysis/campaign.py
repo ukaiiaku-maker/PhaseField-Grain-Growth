@@ -450,7 +450,10 @@ def analyze_group(run_dirs: list[Path], bootstrap_samples: int = 500) -> tuple[d
     bootstrap_iterations = 1 if len(fit_radii) == 1 else bootstrap_samples
     for _ in range(bootstrap_iterations):
         selection = rng.integers(0, len(fit_radii), len(fit_radii))
-        sample_fit = fit_growth_law(time, fit_radii[selection].mean(axis=0), transient_fraction=0.0)
+        sample_fit = fit_growth_law(
+            time, fit_radii[selection].mean(axis=0), transient_fraction=0.0,
+            initial_exponents=(fit.exponent,),
+        )
         bootstrap_n.append(sample_fit.exponent)
         # K has exponent-dependent units. Its interval is therefore evaluated
         # at the ensemble best-fit n while n itself is bootstrapped freely.
@@ -687,7 +690,10 @@ def analyze_campaign(campaign_dir: str | Path, output: str | Path | None = None,
                 event_count = sum(observations[index][0] for index in selection)
                 exposure = sum(observations[index][1] for index in selection)
                 sampled_event_rates.append(event_count / exposure if exposure > 0 else 0.0)
-            sample_fit = fit_common_exponent(series_times, sampled_mean_radii)
+            sample_fit = fit_common_exponent(
+                series_times, sampled_mean_radii,
+                initial_exponents=(common.exponent,),
+            )
             bootstrap_n.append(sample_fit.exponent)
             bootstrap_k.append(sample_fit.coefficients)
             if observable and np.all(sample_fit.coefficients > 0):

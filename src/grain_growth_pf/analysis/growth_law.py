@@ -77,7 +77,8 @@ def _linear_for_n(time: np.ndarray, radius: np.ndarray, exponent: float) -> tupl
 
 
 def fit_growth_law(time: np.ndarray, radius: np.ndarray, n_bounds: tuple[float, float] = (1.0, 6.0),
-                   transient_fraction: float = 0.2) -> GrowthFit:
+                   transient_fraction: float = 0.2,
+                   initial_exponents: tuple[float, ...] | None = None) -> GrowthFit:
     time, radius = np.asarray(time, float), np.asarray(radius, float)
     valid = np.isfinite(time) & np.isfinite(radius) & (radius > 0)
     time, radius = time[valid], radius[valid]
@@ -97,7 +98,7 @@ def fit_growth_law(time: np.ndarray, radius: np.ndarray, n_bounds: tuple[float, 
         return (prediction - radius) / radius_scale
 
     candidates = []
-    for initial_exponent in (1.01, 2.0, 3.0, 5.5):
+    for initial_exponent in initial_exponents or (1.01, 2.0, 3.0, 5.5):
         initial_exponent = float(np.clip(initial_exponent, *n_bounds))
         initial_coefficient = max(
             float(np.polyfit(shifted_time, radius**initial_exponent, 1)[0]), 1e-15
@@ -166,7 +167,9 @@ def fit_growth_law_fixed_exponent(time: np.ndarray, radius: np.ndarray, exponent
 
 
 def fit_common_exponent(time_series: list[np.ndarray], radius_series: list[np.ndarray],
-                        n_bounds: tuple[float, float] = (1.0, 6.0)) -> CommonExponentFit:
+                        n_bounds: tuple[float, float] = (1.0, 6.0),
+                        initial_exponents: tuple[float, ...] | None = None,
+                        ) -> CommonExponentFit:
     """Jointly fit one exponent and a separate coefficient at each condition."""
     if len(time_series) != len(radius_series) or not time_series:
         raise ValueError("time and radius series must be nonempty and paired")
@@ -197,7 +200,7 @@ def fit_common_exponent(time_series: list[np.ndarray], radius_series: list[np.nd
         return np.concatenate(residuals)
 
     candidates = []
-    for initial_exponent in (1.01, 2.0, 3.0, 5.5):
+    for initial_exponent in initial_exponents or (1.01, 2.0, 3.0, 5.5):
         initial_exponent = float(np.clip(initial_exponent, *n_bounds))
         initial_coefficients = [
             max(float(np.polyfit(time, radius**initial_exponent, 1)[0]), 1e-15)
@@ -225,10 +228,14 @@ def bootstrap_exponent(time: np.ndarray, radii_by_realization: np.ndarray, sampl
                        seed: int, transient_fraction: float = 0.2) -> tuple[float, float]:
     rng = np.random.default_rng(seed)
     radii = np.asarray(radii_by_realization, float)
+    center = fit_growth_law(
+        time, radii.mean(axis=0), transient_fraction=transient_fraction
+    ).exponent
     estimates = []
     for _ in range(samples):
         selection = rng.integers(0, len(radii), len(radii))
         estimates.append(fit_growth_law(
-            time, radii[selection].mean(axis=0), transient_fraction=transient_fraction
+            time, radii[selection].mean(axis=0), transient_fraction=transient_fraction,
+            initial_exponents=(center,),
         ).exponent)
     return tuple(np.quantile(estimates, [0.025, 0.975]))

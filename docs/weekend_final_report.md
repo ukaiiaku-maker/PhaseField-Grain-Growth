@@ -15,7 +15,7 @@
   `results/campaigns/20260815T115547Z-af440f638c` (165 conditions; running).
 - Independent 256-square convergence campaign:
   `results/campaigns/20260815T083416Z-49423c71d0` (completed).
-- Current fast suite: 85 tests passed in 65.27 seconds under the live
+- Current fast suite: 85 tests passed in 52.33 seconds under the live
   14-worker production load.
 - Python 3.13.5, NumPy 2.1.3, SciPy 1.15.3.
 

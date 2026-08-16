@@ -3,7 +3,7 @@
   "suite": "PYTHONPATH=src pytest -q",
   "passed": 85,
   "failed": 0,
-  "duration_seconds": 65.27,
+  "duration_seconds": 52.33,
   "python": "3.13.5",
   "numpy": "2.1.3",
   "scipy": "1.15.3",
