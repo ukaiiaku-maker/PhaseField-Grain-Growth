@@ -143,6 +143,11 @@ the TJ identity, signed packet Burgers increment, bare barrier, and the actual
 residual-energy-adjusted effective barrier used by the cumulative hazard. This
 makes low-mode failure frequency and the sampled failure-barrier distribution
 direct observables rather than post-hoc guesses.
+Campaign diagnostics report endpoint-failure incidence per completed GB mode
+event, the low-barrier share, TJ and barrier-family counts, and quantiles of the
+bare barrier, effective barrier, residual-energy shift, and packet Burgers
+magnitude. The incidence is explicitly not called a probability: it can exceed
+one because a single boundary event can constrain both endpoint TJs.
 
 ## Atomic-to-PF event kinematics
 

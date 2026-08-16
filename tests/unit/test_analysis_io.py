@@ -198,13 +198,18 @@ def test_event_rate_observation_retains_zero_event_exposure(tmp_path):
 
 def test_event_diagnostics_separates_primitive_rows_and_climb_resistance(tmp_path):
     pd.DataFrame({
-        "time": [1.0, 1.0, 2.0, 3.0, 3.0],
-        "entity_id": ["gb", "gb", "gb", "gb", "gb"],
+        "time": [1.0, 1.0, 1.0, 2.0, 3.0, 3.0],
+        "entity_id": ["gb", "gb", "tj:1-2-3", "gb", "gb", "gb"],
         "event_type": ["activation_hit", "compatibility_release",
-                       "climb_nucleation", "climb_exchange", "climb_quota_completion"],
-        "instantaneous_rate": [4.0, 4.0, 2.0, 1.0, 1.0],
-        "shear_strain_increment": [0.0, 0.2, 0.0, 0.0, 0.1],
-        "volumetric_strain_increment": [0.0, 0.0, 0.0, 0.0, 0.3],
+                       "tj_compatibility_failure", "climb_nucleation",
+                       "climb_exchange", "climb_quota_completion"],
+        "instantaneous_rate": [4.0, 4.0, 4.0, 2.0, 1.0, 1.0],
+        "shear_strain_increment": [0.0, 0.2, 0.0, 0.0, 0.0, 0.1],
+        "volumetric_strain_increment": [0.0, 0.0, 0.0, 0.0, 0.0, 0.3],
+        "barrier_type": ["easy", "easy", "easy", "climb", "climb", "climb"],
+        "DeltaG0": [0.2, 0.2, 0.2, 0.6, 0.6, 0.6],
+        "effective_DeltaG": [0.18, 0.18, 0.27, 0.6, 0.6, 0.6],
+        "burgers_vector_b": ["[0.1, 0.0]"] * 6,
     }).to_csv(tmp_path / "events.csv", index=False)
     detail = _event_diagnostics([tmp_path])
     assert detail["primitive_event_counts"] == {
@@ -217,6 +222,16 @@ def test_event_diagnostics_separates_primitive_rows_and_climb_resistance(tmp_pat
         detail["climb_expected_resistance_fraction"]["climb_exchange"], 2 / 3
     )
     assert np.isclose(detail["accumulated_event_strain"]["signed_shear"], 0.3)
+    tj = detail["tj_compatibility_failures"]
+    assert tj["endpoint_failure_rows"] == 1
+    assert tj["completed_gb_mode_events"] == 1
+    assert tj["low_barrier_failure_rows"] == 1
+    assert tj["unique_tj_entities"] == 1
+    assert np.isclose(tj["endpoint_failure_incidence_per_mode_event"], 1.0)
+    assert np.isclose(
+        tj["residual_energy_barrier_shift_ev"]["quantiles"]["q50"], 0.07
+    )
+    assert np.isclose(tj["packet_burgers_magnitude"]["quantiles"]["q50"], 0.1)
 
 def test_analytical_limits():
     t = np.arange(4.0)

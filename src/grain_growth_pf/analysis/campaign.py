@@ -372,9 +372,18 @@ def _event_diagnostics(run_dirs: list[Path]) -> dict[str, object]:
     signed_shear = 0.0
     signed_volumetric = 0.0
     runs_with_events = 0
+    mode_event_count = 0
+    tj_failure_count = 0
+    tj_failure_families: Counter[str] = Counter()
+    tj_failure_entities: set[str] = set()
+    tj_bare_barriers: list[float] = []
+    tj_effective_barriers: list[float] = []
+    tj_barrier_shifts: list[float] = []
+    tj_burgers_magnitudes: list[float] = []
     columns = [
         "event_type", "entity_id", "time", "instantaneous_rate",
         "shear_strain_increment", "volumetric_strain_increment",
+        "barrier_type", "DeltaG0", "effective_DeltaG", "burgers_vector_b",
     ]
     for run_dir in run_dirs:
         path = event_ledger_path(run_dir)
@@ -386,8 +395,33 @@ def _event_diagnostics(run_dirs: list[Path]) -> dict[str, object]:
         runs_with_events += 1
         primitive = _activation_rows(frame)
         primitive_counts.update(map(str, primitive["event_type"].dropna()))
-        releases = frame.loc[~frame.index.isin(primitive.index), "event_type"]
+        release_mask = ~frame.index.isin(primitive.index)
+        release_mask &= frame["event_type"] != "tj_compatibility_failure"
+        releases = frame.loc[release_mask, "event_type"]
         release_counts.update(map(str, releases.dropna()))
+        mode_event_count += int(frame["event_type"].isin({
+            "disconnection_mode", "compatibility_release",
+        }).sum())
+        failures = frame[frame["event_type"] == "tj_compatibility_failure"]
+        if not failures.empty:
+            tj_failure_count += len(failures)
+            tj_failure_families.update(map(str, failures["barrier_type"].dropna()))
+            tj_failure_entities.update(map(str, failures["entity_id"].dropna()))
+            bare = pd.to_numeric(failures["DeltaG0"], errors="coerce").to_numpy(float)
+            effective = pd.to_numeric(
+                failures["effective_DeltaG"], errors="coerce"
+            ).to_numpy(float)
+            finite_pair = np.isfinite(bare) & np.isfinite(effective)
+            tj_bare_barriers.extend(bare[np.isfinite(bare)].tolist())
+            tj_effective_barriers.extend(effective[np.isfinite(effective)].tolist())
+            tj_barrier_shifts.extend((effective[finite_pair] - bare[finite_pair]).tolist())
+            for raw_burgers in failures["burgers_vector_b"].dropna():
+                try:
+                    vector = np.asarray(json.loads(str(raw_burgers)), dtype=float)
+                except (TypeError, ValueError, json.JSONDecodeError):
+                    continue
+                if vector.size and np.all(np.isfinite(vector)):
+                    tj_burgers_magnitudes.append(float(np.linalg.norm(vector)))
         for _, entity in primitive.groupby("entity_id", dropna=False):
             differences = np.diff(np.sort(entity["time"].to_numpy(float)))
             waiting_times.extend(differences[differences > 0].tolist())
@@ -421,6 +455,7 @@ def _event_diagnostics(run_dirs: list[Path]) -> dict[str, object]:
     resistance_fraction = {
         key: value / total_resistance for key, value in finite_resistance.items()
     } if total_resistance else {}
+    easy_failures = int(tj_failure_families.get("easy", 0))
     return {
         "primitive_event_counts": dict(sorted(primitive_counts.items())),
         "waiting_times_by_entity": _quantiles(waiting_times),
@@ -432,6 +467,27 @@ def _event_diagnostics(run_dirs: list[Path]) -> dict[str, object]:
         "accumulated_event_strain": {
             "signed_shear": signed_shear,
             "signed_volumetric": signed_volumetric,
+        },
+        "tj_compatibility_failures": {
+            "endpoint_failure_rows": int(tj_failure_count),
+            "completed_gb_mode_events": int(mode_event_count),
+            "endpoint_failure_incidence_per_mode_event": (
+                float(tj_failure_count / mode_event_count) if mode_event_count else np.nan
+            ),
+            "low_barrier_failure_rows": easy_failures,
+            "fraction_of_failure_rows_low_barrier": (
+                float(easy_failures / tj_failure_count) if tj_failure_count else np.nan
+            ),
+            "unique_tj_entities": len(tj_failure_entities),
+            "counts_by_barrier_type": dict(sorted(tj_failure_families.items())),
+            "bare_barrier_ev": _quantiles(tj_bare_barriers),
+            "effective_barrier_ev": _quantiles(tj_effective_barriers),
+            "residual_energy_barrier_shift_ev": _quantiles(tj_barrier_shifts),
+            "packet_burgers_magnitude": _quantiles(tj_burgers_magnitudes),
+            "incidence_note": (
+                "Endpoint-failure rows divided by completed GB mode events; this is not "
+                "a probability and may exceed one because one event can constrain two TJs."
+            ),
         },
     }
 
