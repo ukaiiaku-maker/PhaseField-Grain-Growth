@@ -211,6 +211,20 @@ stages, expected `1/r` resistance is 99.15% transport, 0.74% exchange, and
 0.11% nucleation. This is corrected interim evidence; matched cross-regime
 inference still awaits the exact composite.
 
+The corrected explicit-compatibility J1 replacement is complete for five
+seeds at 900 K. It is physically stagnant under the objective observability
+gate: characteristic radius changes by only 1.023% (minimum required 2%) while
+the mean grain population falls from 200.0 to 186.2, so the analysis reports
+`n=NaN` and `K=0` rather than a bound-dependent exponent. The retained event
+statistics show strong intermittency (CV `3.23145`, Fano `291.36`, burstiness
+`0.44233`), 71.70% stationary intervals, 60.45% reverse motion, and velocity--
+curvature `R²=6.73e-6` across 3,606,707 primitive events. There are 426,780
+TJ endpoint-failure rows, an incidence of 13.43% per completed GB mode event;
+60.55% of those failures involve nominally easy modes. TJ activation accounts
+for 97.07% of the event-conditioned expected residence. This demonstrates a
+strong intrinsic compatibility arrest, but not the requested coexistence of
+strong jerkiness with sustained smooth scaling in this parameterization.
+
 Final analysis reads checkpointed event ledgers in bounded-memory batches. A
 production regression over 31,255,548 primitive rows produced a byte-identical
 summary and identical diagnostics apart from sub-`8e-12` summation-order roundoff,
@@ -333,9 +347,9 @@ immutable source campaign completes.
 | Q13 | Which parameters maximize jerkiness without destroying realistic mean scaling? | None of the 12 completed search candidates passes the strict scaling gate. `JK-L24-K3-SPARSE` is closest (`n=1.188`, CI `[1.000,1.798]`, CV 1.811) but remains rejected; the high-barrier candidate has the largest CV (3.111) and also fails scaling. |
 | Q14 | Can anisotropic stress/curvature selection from an isotropic discrete mode spectrum generate effective shear coupling? | Mode-selection regressions pass; production magnitude awaits E/SC results. |
 | Q15 | Can effective shear coupling acquire temperature dependence through Arrhenius mode occupation rather than an imposed coupling factor? | Pending event-resolved temperature series. |
-| Q16 | How often do low-barrier modes fail explicit TJ compatibility? | Explicit compatibility/failure ledgers are implemented; pending J1/J2 completion. |
-| Q17 | What barrier distribution is sampled during TJ compatibility failures? | Barrier samples are retained per event; pending J1/J2 completion. |
-| Q18 | Does explicit Burgers conservation yield long waits and abrupt TJ motion? | Conservation and residual-storage tests pass; production comparison awaits J1/J2/J3 aggregation. |
+| Q16 | How often do low-barrier modes fail explicit TJ compatibility? | In corrected J1, 426,780 endpoint failures occur across 3,178,918 completed GB mode events (13.43% incidence); 60.55% of failure rows are nominally easy modes. J2 comparison remains pending. |
+| Q17 | What barrier distribution is sampled during TJ compatibility failures? | Corrected J1 bare barriers have median 0.29 eV, 75th percentile 0.35 eV, and 99th percentile 0.59 eV; residual work broadens effective barriers from zero to 0.769 eV. |
+| Q18 | Does explicit Burgers conservation yield long waits and abrupt TJ motion? | Yes for J1: TJ activation contributes 97.07% of event-conditioned expected residence while trajectories have CV 3.231 and 71.70% stationary intervals. The matched J1/J2/J3 comparison awaits J2. |
 | Q19 | How sensitive are growth and jerkiness to minimum Burgers magnitude and mode discreteness? | Discrete minimum-Burgers tests pass; production sensitivity awaits matched regime fits. |
 | Q20 | Can the geometric TJ surrogate reproduce explicit-mode scaling and intermittency? | J3 replacement is complete; final answer awaits J1/J2 and the composite. |
 | Q21 | What accumulated strain fractions are shear, climb, and mixed? | Signed shear and volumetric event sums are available; final fractions await SC aggregation. |

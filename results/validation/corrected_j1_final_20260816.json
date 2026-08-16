@@ -1,0 +1,71 @@
+{
+  "status": "passed_stagnant_physical_result",
+  "campaign": "results/campaigns/20260816T160354Z-188fe232c6",
+  "regime": "J1",
+  "temperature_K": 900.0,
+  "realizations": 5,
+  "steps_per_realization": 3500,
+  "fit_window": {
+    "start": 82.4800000000017,
+    "end": 140.00000000000642,
+    "samples": 720,
+    "initial_mean_grain_count": 200.0,
+    "end_mean_grain_count": 186.2
+  },
+  "kinetic_observability": {
+    "observable": false,
+    "relative_radius_change": 0.010232915227086517,
+    "minimum_required_relative_radius_change": 0.02,
+    "reason": "growth_law_suppressed_for_stagnant_or_censored_ensemble"
+  },
+  "growth_exponent": null,
+  "growth_coefficient": 0.0,
+  "jerkiness_CV": 3.2314528883144207,
+  "Fano": 291.36356103246123,
+  "burstiness": 0.4423272639282243,
+  "stationary_fraction": 0.7169975018373385,
+  "motion_top_1pct": 0.21957166729562835,
+  "motion_top_5pct": 0.5475119494532061,
+  "motion_top_10pct": 0.7254806620397033,
+  "reverse_motion_fraction": 0.6045355850917231,
+  "velocity_curvature_R2": 0.000006731314964104646,
+  "primitive_event_count": 3606707,
+  "primitive_event_counts": {
+    "activation_hit": 3178918,
+    "tj_activation_hit": 427789
+  },
+  "event_conditioned_resistance_fraction": {
+    "gb_activation_hit": 0.029298238725817306,
+    "tj_activation_hit": 0.9707017612741826
+  },
+  "tj_compatibility_failures": {
+    "endpoint_failure_rows": 426780,
+    "completed_gb_mode_events": 3178918,
+    "endpoint_failure_incidence_per_mode_event": 0.13425322704140213,
+    "low_barrier_failure_rows": 258423,
+    "fraction_of_failure_rows_low_barrier": 0.6055180655138479,
+    "unique_tj_entities": 16642,
+    "counts_by_barrier_type": {
+      "easy": 258423,
+      "intermediate": 140426,
+      "high": 27931
+    },
+    "bare_barrier_ev_quantiles": {
+      "q00": 0.29000000000000004,
+      "q50": 0.29000000000000004,
+      "q75": 0.35000000000000003,
+      "q99": 0.5900000000000001,
+      "q100": 0.5900000000000001
+    },
+    "effective_barrier_ev_quantiles": {
+      "q00": 0.0,
+      "q50": 0.24467069792015234,
+      "q75": 0.29000000000000004,
+      "q99": 0.4528048962881451,
+      "q100": 0.769047902692261
+    }
+  },
+  "simulation_git_sha": "990c3a0d96e29290e13612387c32576f16cf993e",
+  "analysis_git_sha": "52bc412c95c9812dd4c7ef2234034dbc35822284",
+  "interpretation": "Corrected explicit TJ compatibility produces strong intermittency, near-complete velocity-curvature decorrelation, frequent reverse motion, and physical stagnation rather than a measurable growth exponent. Event-conditioned expected residence is dominated by TJ activation."
+}
