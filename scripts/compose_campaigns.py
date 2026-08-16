@@ -13,7 +13,12 @@ if __name__ == "__main__":
     parser.add_argument("campaigns", nargs="+")
     parser.add_argument("--output-root", default="results/campaigns")
     parser.add_argument("--expected-runs", type=int)
+    parser.add_argument(
+        "--prefer-later-duplicates", action="store_true",
+        help="Replace a duplicate regime/temperature/seed with the later source campaign.",
+    )
     arguments = parser.parse_args()
     print(compose_completed_campaigns(
-        arguments.campaigns, arguments.output_root, arguments.expected_runs
+        arguments.campaigns, arguments.output_root, arguments.expected_runs,
+        arguments.prefer_later_duplicates,
     ))

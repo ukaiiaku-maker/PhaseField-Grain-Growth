@@ -55,3 +55,35 @@ def test_composite_campaign_accepts_only_unique_completed_runs(tmp_path):
     assert len(manifest["runs"]) == 2
     with pytest.raises(ValueError, match="expected 3"):
         compose_completed_campaigns(sources, tmp_path / "other", expected_runs=3)
+
+
+def test_composite_can_prefer_a_later_corrected_duplicate(tmp_path):
+    sources = []
+    for label in ("superseded", "corrected"):
+        source = tmp_path / label
+        run = source / "run"
+        run.mkdir(parents=True)
+        (run / "manifest.json").write_text(json.dumps({
+            "status": "completed",
+            "config": {
+                "regime": "J2", "seed": 9,
+                "pf": {"temperature": 900.0},
+            },
+        }))
+        (source / "campaign_manifest.json").write_text(json.dumps({"runs": [str(run)]}))
+        sources.append(source)
+
+    with pytest.raises(ValueError, match="duplicate completed realization"):
+        compose_completed_campaigns(sources, tmp_path / "strict")
+    composite = compose_completed_campaigns(
+        sources, tmp_path / "preferred", expected_runs=1,
+        prefer_later_duplicates=True,
+    )
+    manifest = json.loads((composite / "campaign_manifest.json").read_text())
+    assert manifest["runs"] == [str(sources[1] / "run")]
+    assert manifest["duplicate_policy"] == "prefer_later"
+    assert manifest["replacements"] == [{
+        "regime": "J2", "temperature": 900.0, "seed": 9,
+        "superseded_run": str(sources[0] / "run"),
+        "replacement_run": str(sources[1] / "run"),
+    }]

@@ -95,11 +95,12 @@ def enumerate_campaign(spec: dict[str, Any]) -> list[ModelConfig]:
 
 def compose_completed_campaigns(
     source_campaigns: list[str | Path], root: str | Path = "results/campaigns",
-    expected_runs: int | None = None,
+    expected_runs: int | None = None, prefer_later_duplicates: bool = False,
 ) -> Path:
     """Create an immutable analysis manifest from completed, unique realizations."""
     selected: dict[tuple[str, float, int], str] = {}
     provenance = []
+    replacements = []
     for source in map(Path, source_campaigns):
         campaign = json.loads((source / "campaign_manifest.json").read_text())
         accepted = 0
@@ -117,9 +118,14 @@ def compose_completed_campaigns(
                 int(config["seed"]),
             )
             if key in selected:
-                raise ValueError(
-                    f"duplicate completed realization {key}: {selected[key]} and {run}"
-                )
+                if not prefer_later_duplicates:
+                    raise ValueError(
+                        f"duplicate completed realization {key}: {selected[key]} and {run}"
+                    )
+                replacements.append({
+                    "regime": key[0], "temperature": key[1], "seed": key[2],
+                    "superseded_run": selected[key], "replacement_run": str(run),
+                })
             selected[key] = str(run)
             accepted += 1
         provenance.append({"campaign": str(source), "completed_runs_accepted": accepted})
@@ -138,6 +144,8 @@ def compose_completed_campaigns(
         "runs": ordered,
         "runs_total": len(ordered),
         "source_campaigns": provenance,
+        "duplicate_policy": "prefer_later" if prefer_later_duplicates else "error",
+        "replacements": replacements,
         "composition_git_sha": git_sha(),
     }, indent=2) + "\n")
     return target
