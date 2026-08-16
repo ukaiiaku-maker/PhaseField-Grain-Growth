@@ -1,9 +1,9 @@
 {
   "date": "2026-08-15",
   "suite": "PYTHONPATH=src pytest -q",
-  "passed": 85,
+  "passed": 87,
   "failed": 0,
-  "duration_seconds": 47.99,
+  "duration_seconds": 62.22,
   "python": "3.13.5",
   "numpy": "2.1.3",
   "scipy": "1.15.3",

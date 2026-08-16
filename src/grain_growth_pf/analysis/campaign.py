@@ -20,7 +20,11 @@ from grain_growth_pf.analysis.growth_law import (
     scan_growth_exponent,
 )
 from grain_growth_pf.analysis.jerkiness import jerkiness_metrics
-from grain_growth_pf.io.event_ledger import event_ledger_path
+from grain_growth_pf.io.event_ledger import (
+    event_ledger_has_rows,
+    event_ledger_path,
+    read_event_ledger,
+)
 from grain_growth_pf.io.provenance import git_sha
 
 
@@ -306,9 +310,9 @@ def _nanmean_values(values: list[float]) -> float:
 
 def _event_statistics(run_dir: Path) -> tuple[int, float]:
     path = event_ledger_path(run_dir)
-    if not path.exists() or path.stat().st_size == 0:
+    if not event_ledger_has_rows(path):
         return 0, np.nan
-    events = pd.read_csv(path)
+    events = read_event_ledger(path)
     if events.empty:
         return 0, np.nan
     events = _activation_rows(events)
@@ -335,9 +339,9 @@ def _event_rate_observation(run_dir: Path) -> tuple[int, float]:
         exposure = float(np.trapezoid(
             counts.to_numpy(float), counts.index.to_numpy(float)
         ))
-    if not event_path.exists() or event_path.stat().st_size == 0:
+    if not event_ledger_has_rows(event_path):
         return 0, exposure
-    events = _activation_rows(pd.read_csv(event_path))
+    events = _activation_rows(read_event_ledger(event_path))
     return len(events), exposure
 
 
@@ -361,9 +365,9 @@ def _event_diagnostics(run_dirs: list[Path]) -> dict[str, object]:
     frames = []
     for run_index, run_dir in enumerate(run_dirs):
         path = event_ledger_path(run_dir)
-        if not path.exists() or path.stat().st_size == 0:
+        if not event_ledger_has_rows(path):
             continue
-        frame = pd.read_csv(path)
+        frame = read_event_ledger(path)
         if frame.empty:
             continue
         frame["realization"] = run_index

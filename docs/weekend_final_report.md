@@ -16,7 +16,7 @@
   campaigns replace the rejected/interrupted SC4, P1, J1, J2, and J3 entries.
 - Independent 256-square convergence campaign:
   `results/campaigns/20260815T083416Z-49423c71d0` (completed).
-- Current fast suite: 85 tests passed in 47.99 seconds under the live
+- Current fast suite: 87 tests passed in 62.22 seconds under the live
   production load.
 - Python 3.13.5, NumPy 2.1.3, SciPy 1.15.3.
 

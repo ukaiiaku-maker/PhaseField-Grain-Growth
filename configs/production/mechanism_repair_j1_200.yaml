@@ -57,3 +57,4 @@ base:
     tj_barrier_ev: 0.55
     tj_attempt_frequency: 1000.0
     compress_event_ledger: true
+    event_ledger_format: parquet

@@ -3,6 +3,7 @@ import gzip
 import json
 
 import numpy as np
+import pandas as pd
 
 from grain_growth_pf.config import ModelConfig, PFConfig
 from grain_growth_pf.disconnections.mode import ModeDriving
@@ -483,6 +484,39 @@ def test_checkpoint_truncates_buffered_compressed_outputs_on_resume(tmp_path):
         assert "orphan" not in {row["run_id"] for row in csv.DictReader(handle)}
     assert sum(1 for _ in (output / "grain_tracks.csv").open()) == track_lines
     assert sum(1 for _ in (output / "boundary_tracks.csv").open()) == boundary_lines
+
+
+def test_checkpoint_truncates_parquet_event_parts_on_resume(tmp_path):
+    config = ModelConfig(
+        regime="parquet-restart", seed=47,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01),
+        compatibility_model="explicit_modes", active_modules=("event_modes",),
+        output_cadence=1, max_steps=2, termination_grains=1,
+        parameters={
+            "initial_grains": 5, "event_ledger_format": "parquet",
+            "attempt_frequency": 100.0, "barrier_core_ev": 0.0,
+            "b_coefficient_ev": 0.0, "h_coefficient_ev": 0.0,
+        },
+    )
+    output = tmp_path / "parquet-restart"
+    simulation = EventResolvedSimulation(config, output)
+    simulation.solver.step()
+    simulation.snapshot = simulation.tracker.update(simulation.solver.labels)
+    simulation._update_physics()
+    simulation._write_tracks()
+    simulation._save_checkpoint()
+    committed_parts = sorted((output / "events.parquet").glob("part-*.parquet"))
+
+    simulation.ledger.write({"run_id": "orphan", "event_id": "orphan"})
+    simulation.ledger.checkpoint()
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+    assert len(list((output / "events.parquet").glob("part-*.parquet"))) > len(committed_parts)
+
+    resumed = EventResolvedSimulation(config, output, resume=True)
+    resumed.ledger.close(); resumed.track_handle.close(); resumed.boundary_handle.close()
+    events = pd.read_parquet(output / "events.parquet")
+    assert "orphan" not in set(events["run_id"])
+    assert sorted((output / "events.parquet").glob("part-*.parquet")) == committed_parts
 
 
 def test_named_temperature_and_tj_particle_regimes_are_distinct(tmp_path):

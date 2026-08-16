@@ -12,7 +12,11 @@ import pandas as pd
 
 from grain_growth_pf.analysis.campaign import _activation_rows, _fit_window, analyze_campaign
 from grain_growth_pf.analysis.grain_tracks import ensemble_radius, load_tracks
-from grain_growth_pf.io.event_ledger import event_ledger_path
+from grain_growth_pf.io.event_ledger import (
+    event_ledger_has_rows,
+    event_ledger_path,
+    read_event_ledger,
+)
 
 
 def _save(fig: plt.Figure, target: Path) -> None:
@@ -120,8 +124,8 @@ def _representative_figure(path: Path, target: Path) -> None:
             rate_axis.plot(grain["time"].to_numpy(float)[1:], rate, lw=0.8)
             neighbor_axis.scatter(grain["neighbors"].to_numpy(float)[:-1], rate, s=7, alpha=0.35)
     event_path = event_ledger_path(path)
-    if event_path.exists() and event_path.stat().st_size:
-        events = _activation_rows(pd.read_csv(event_path))
+    if event_ledger_has_rows(event_path):
+        events = _activation_rows(read_event_ledger(event_path))
         if not events.empty and "time" in events:
             event_types = sorted(events["event_type"].dropna().unique())
             colors = {name: f"C{index % 10}" for index, name in enumerate(event_types)}
@@ -167,8 +171,8 @@ def _event_figure(paths: list[Path], target: Path) -> None:
     frames = []
     for path in paths:
         event_path = event_ledger_path(path)
-        if event_path.exists() and event_path.stat().st_size:
-            frame = pd.read_csv(event_path)
+        if event_ledger_has_rows(event_path):
+            frame = read_event_ledger(event_path)
             if not frame.empty:
                 frame["realization"] = len(frames)
                 frames.append(frame)

@@ -33,7 +33,13 @@ from grain_growth_pf.analysis.campaign import (
     _trajectory_distributions,
 )
 from grain_growth_pf.disconnections.mode import K_B_EV
-from grain_growth_pf.io.event_ledger import EVENT_FIELDS, EventLedger
+from grain_growth_pf.io.event_ledger import (
+    EVENT_FIELDS,
+    EventLedger,
+    event_ledger_has_rows,
+    event_ledger_path,
+    read_event_ledger,
+)
 from grain_growth_pf.io.provenance import write_manifest
 from grain_growth_pf.analysis.jerkiness import jerkiness_metrics
 from grain_growth_pf.analysis.plots import _local_exponent
@@ -260,6 +266,32 @@ def test_gzip_event_ledger_truncates_to_checkpoint_member(tmp_path):
     resumed.close()
     rows = pd.read_csv(target)
     assert rows["run_id"].tolist() == ["kept", "resumed"]
+
+
+def test_parquet_event_ledger_truncates_to_checkpoint_part(tmp_path):
+    target = tmp_path / "events.parquet"
+    ledger = EventLedger(target)
+    ledger.write({"run_id": "kept", "event_id": "gb:1-2:0:1", "step": 1})
+    offset = ledger.checkpoint()
+    ledger.write({"run_id": "discarded", "event_id": "gb:1-2:0:2", "step": 2})
+    ledger.checkpoint()
+    ledger.close()
+
+    resumed = EventLedger(target)
+    resumed.truncate(offset)
+    resumed.write({
+        "run_id": "resumed", "event_id": "gb:1-2:0:3", "step": 2,
+        "position": np.asarray([1.5, 2.5]),
+    })
+    resumed.checkpoint()
+    resumed.close()
+
+    assert event_ledger_path(tmp_path) == target
+    assert event_ledger_has_rows(target)
+    rows = read_event_ledger(target)
+    assert rows["run_id"].tolist() == ["kept", "resumed"]
+    assert rows["step"].tolist() == [1, 2]
+    assert rows["position"].iloc[1] == "[1.5, 2.5]"
 
 
 def test_manifest_can_pin_launch_revision(tmp_path):

@@ -245,8 +245,13 @@ class EventResolvedSimulation:
             float(config.parameters.get("particle_radius", 1.5)), config.pf.shape,
             config.seed + 991,
         ) if particle_modules else None
+        event_format = str(config.parameters.get("event_ledger_format", "csv")).lower()
+        if event_format not in {"csv", "parquet"}:
+            raise ValueError(f"unsupported event_ledger_format {event_format!r}")
         event_name = (
-            "events.csv.gz"
+            "events.parquet"
+            if event_format == "parquet"
+            else "events.csv.gz"
             if bool(config.parameters.get("compress_event_ledger", False))
             else "events.csv"
         )
