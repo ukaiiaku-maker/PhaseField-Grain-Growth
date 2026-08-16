@@ -182,10 +182,25 @@ flushing made valid high-rate J ledgers grow to multiple gigabytes.
 Geometry-gate regressions now cover both paths. Event ledgers support
 checkpoint-member gzip and fixed-schema Zstandard Parquet; the latter commits
 atomic parts and truncates by the authoritative checkpoint part count. The
-definitive SC4 repair completed
+first Parquet J1/J2 rerun then exposed a separate physical conservation error:
+both endpoints received the same Burgers increment, TJ relaxation omitted the
+configured packet factor, strict unresolved TJs continued accepting GB events,
+and the finite-residual model lacked its declared positive-definite back stress.
+Those zero-traceback but residual-runaway campaigns are preserved and excluded.
+The repaired model applies opposite endpoint signs, packet-consistent relaxing
+modes, nearest-domain TJ adjacency, strict-state gating, and event-by-event
+residual-energy rate feedback. The same audit found positive eigenstrain
+self-work in the FFT backend, opposite to both elastic-energy stability and the
+explicit minus sign in Qiu's PF elastic driving. The corrected self-stress is
+the negative energy derivative. Q1, E1, SC3, SC4, and J2 are therefore rerun
+whole alongside J1. A corrected 64x64 production-path smoke generated 266 J1
+and 1,002 J2 ledger rows in 20 steps, with J2 residual norm bounded by 0.707,
+rather than the prior attempt-limited explosion. The now-superseded SC4 repair completed
 five seeds with zero tracebacks and gives `n=1.3248` (95% CI
 `[1.0000, 2.2126]`), `K=0.1763`, jerkiness CV `1.162`, and Fano factor
-`280.95`; final cross-regime interpretation still awaits the composite.
+`280.95`; it is retained as diagnostic evidence but excluded from inference
+because it used the autocatalytic full-field sign. Final cross-regime
+interpretation awaits the corrected full-field/TJ campaign and composite.
 
 ## 7. Growth-law results
 

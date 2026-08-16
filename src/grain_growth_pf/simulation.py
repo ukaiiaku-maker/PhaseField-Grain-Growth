@@ -22,6 +22,7 @@ from grain_growth_pf.disconnections.spectrum import isotropic_surrogate_library
 from grain_growth_pf.encounters.geometric_hazard import GeometricEncounterClock
 from grain_growth_pf.entities.gb_segment import GBSegment
 from grain_growth_pf.entities.tracker import EntityTracker
+from grain_growth_pf.entities.triple_junction import TripleJunction
 from grain_growth_pf.io.event_ledger import EventLedger
 from grain_growth_pf.io.checkpoints import atomic_savez_compressed, atomic_write_text
 from grain_growth_pf.io.provenance import file_sha256, git_sha, write_manifest
@@ -460,6 +461,22 @@ class EventResolvedSimulation:
                 (mode.activation_vacancies for mode in candidates), dtype=float
             )
         )
+        if "tj_burgers_residual" in self.config.active_modules:
+            stiffness = float(self.config.parameters.get("tj_residual_stiffness_ev", 1.0))
+            if stiffness <= 0 or not np.isfinite(stiffness):
+                raise ValueError("tj_residual_stiffness_ev must be finite and positive")
+            packet = float(self.config.parameters.get("packet_size", 1.0))
+            event_burgers = packet * burgers
+            residual_energy_change = np.zeros(len(candidates), dtype=float)
+            for tj, sign in self._signed_boundary_tjs(segment):
+                residual = np.asarray(tj.residual_burgers, dtype=float)
+                updated = residual[None, :] + sign * event_burgers
+                residual_energy_change += 0.5 * stiffness * (
+                    np.sum(updated * updated, axis=1) - float(residual @ residual)
+                )
+            # A positive residual-energy increment raises the activation
+            # barrier; a relaxing mode receives the corresponding back-stress work.
+            work -= residual_energy_change
         effective_barriers = np.maximum(0.0, barriers - work)
         rates = prefactors * np.exp(
             -effective_barriers / (K_B_EV * self.config.pf.temperature)
@@ -495,13 +512,23 @@ class EventResolvedSimulation:
             value += self.full_field.resolved_shear(position, tangent, normal)
         return float(value)
 
-    def _index_boundary_tjs(self) -> dict[str, tuple[Any, ...]]:
+    def _index_boundary_tjs(self) -> dict[str, tuple[TripleJunction, ...]]:
         """Index the (normally zero to two) TJs adjoining each GB domain."""
-        indexed: dict[str, list[Any]] = {}
+        indexed: dict[str, list[TripleJunction]] = {}
         for tj in self.snapshot.triple_junctions.values():
             for boundary_id in tj.adjoining_boundaries:
                 indexed.setdefault(boundary_id, []).append(tj)
-        return {boundary_id: tuple(tjs) for boundary_id, tjs in indexed.items()}
+        return {
+            boundary_id: tuple(sorted(tjs, key=lambda tj: tj.entity_id))
+            for boundary_id, tjs in indexed.items()
+        }
+
+    def _signed_boundary_tjs(
+        self, segment: GBSegment,
+    ) -> tuple[tuple[TripleJunction, float], ...]:
+        """Return deterministic opposite endpoint signs for a GB disconnection."""
+        tjs = self._boundary_to_tjs.get(segment.entity_id, ())
+        return tuple((tj, 1.0 if index % 2 == 0 else -1.0) for index, tj in enumerate(tjs))
 
     def _record_event(self, domain: DomainPhysics, segment: GBSegment, mode: DisconnectionMode,
                       rate: float, driving: ModeDriving, event_type: str, delta_length: float,
@@ -525,8 +552,8 @@ class EventResolvedSimulation:
             strain_increment = 0.5 * (plastic_distortion + plastic_distortion.T)
             strain_increment += dq * domain.formation_volume * np.eye(2)
             self.full_field.add_event(position, strain_increment)
-        for tj in self._boundary_to_tjs.get(segment.entity_id, ()):
-            tj.add_burgers(b)
+        for tj, sign in self._signed_boundary_tjs(segment):
+            tj.add_burgers(sign * b)
         ds_release = mode.delta_s * packet
         released = domain.shear.release(ds_release)
         q_release = domain.free_volume.accommodate(abs(dq) if dq else mode.delta_q * packet)
@@ -562,6 +589,55 @@ class EventResolvedSimulation:
         })
         if released >= 0:
             domain.blocked = False
+
+    def _advance_tj_coupled_mode_flux(
+        self, domain: DomainPhysics, segment: GBSegment, delta_length: float,
+        ledger_position: str, field_position: tuple[int, int] | None,
+    ) -> None:
+        """Advance GB events while updating TJ compatibility after each passage."""
+        modules = set(self.config.active_modules)
+        strict = "tj_burgers_strict" in modules
+        attached = self._signed_boundary_tjs(segment)
+        remaining = float(self.config.pf.time_step)
+        current_time = self.solver.time - remaining
+        tolerance = 16 * np.finfo(float).eps * max(1.0, remaining)
+        while remaining > tolerance:
+            if strict and any(
+                np.linalg.norm(tj.residual_burgers) > 1e-10 for tj, _ in attached
+            ):
+                break
+            candidates, rates, normal_pressure, resolved_shear, vacancy_mu = (
+                self._activation_rates(domain, segment)
+            )
+            total_rate = float(rates.sum())
+            completions, hits = self._advance_activation(
+                domain, total_rate, remaining, current_time,
+                stop_after_completion=True,
+            )
+            self._record_activation_hits(
+                domain, total_rate, hits, segment=segment, position=ledger_position
+            )
+            if not completions:
+                break
+            completion = completions[0]
+            selected = (
+                int(domain.rng.choice(len(candidates), p=rates / total_rate))
+                if total_rate else 0
+            )
+            mode = candidates[selected]
+            driving = self._mode_driving(
+                normal_pressure, resolved_shear, vacancy_mu, selected
+            )
+            self._record_event(
+                domain, segment, mode, total_rate, driving,
+                "disconnection_mode", delta_length, completion.time,
+                ledger_position=ledger_position, field_position=field_position,
+            )
+            consumed = max(0.0, completion.time - current_time)
+            remaining -= consumed
+            current_time = completion.time
+            if strict and attached:
+                break
 
     def _stage_rates(self, domain: DomainPhysics,
                      segment: GBSegment) -> tuple[float, float, float]:
@@ -703,8 +779,27 @@ class EventResolvedSimulation:
                     domain.blocked = True
                     self._begin_activation_window(domain)
             if domain.blocked:
+                packet = float(self.config.parameters.get("packet_size", 1.0))
+                target = -tj.residual_burgers
+                mode = min(
+                    self.modes,
+                    key=lambda candidate: np.linalg.norm(
+                        packet * np.asarray(candidate.burgers) - target
+                    ),
+                )
+                increment = packet * np.asarray(mode.burgers)
+                barrier = float(self.config.parameters.get("tj_barrier_ev", 0.6))
+                if "tj_burgers_residual" in modules:
+                    stiffness = float(
+                        self.config.parameters.get("tj_residual_stiffness_ev", 1.0)
+                    )
+                    before = float(tj.residual_burgers @ tj.residual_burgers)
+                    after_vector = tj.residual_burgers + increment
+                    after = float(after_vector @ after_vector)
+                    barrier += 0.5 * stiffness * (after - before)
+                effective_barrier = max(0.0, barrier)
                 rate = float(self.config.parameters.get("tj_attempt_frequency", 1e3)) * np.exp(
-                    -float(self.config.parameters.get("tj_barrier_ev", 0.6)) / (K_B_EV * self.config.pf.temperature))
+                    -effective_barrier / (K_B_EV * self.config.pf.temperature))
                 completions, hits = self._advance_activation(
                     domain, rate, self.config.pf.time_step,
                     self.solver.time - self.config.pf.time_step,
@@ -719,10 +814,10 @@ class EventResolvedSimulation:
                 if completions:
                     domain.event_counter += 1
                     if explicit_residual:
-                        target = -tj.residual_burgers
-                        mode = min(self.modes, key=lambda m: np.linalg.norm(np.asarray(m.burgers) - target))
-                        tj.add_burgers(np.asarray(mode.burgers))
-                    domain.blocked = bool("tj_burgers_strict" in modules and np.linalg.norm(tj.residual_burgers) > 1e-10)
+                        tj.add_burgers(increment)
+                    domain.blocked = bool(
+                        explicit_residual and np.linalg.norm(tj.residual_burgers) > 1e-10
+                    )
                     self.ledger.write({
                         "run_id": self.run_id, "time": completions[0].time,
                         "step": self.solver.step_number,
@@ -882,30 +977,35 @@ class EventResolvedSimulation:
                   and self.solver.step_number > 0):
                 # Event-resolved easy-mode flux; completion changes finite hidden
                 # kinematics even when it does not gate mobility.
-                candidates, rates, normal_pressure, resolved_shear, vacancy_mu = self._activation_rates(
-                    domain, segment
-                )
-                total_rate = float(rates.sum())
-                completions, hits = self._advance_activation(
-                    domain, total_rate, cfg.pf.time_step,
-                    self.solver.time - cfg.pf.time_step,
-                )
-                self._record_activation_hits(
-                    domain, total_rate, hits, segment=segment, position=ledger_position
-                )
-                for completion in completions:
-                    if total_rate:
-                        selected = int(domain.rng.choice(len(candidates), p=rates / total_rate))
-                    else:
-                        selected = 0
-                    mode = candidates[selected]
-                    driving = self._mode_driving(
-                        normal_pressure, resolved_shear, vacancy_mu, selected
+                if modules.intersection({"tj_burgers_strict", "tj_burgers_residual"}):
+                    self._advance_tj_coupled_mode_flux(
+                        domain, segment, delta_length, ledger_position, field_position
                     )
-                    self._record_event(domain, segment, mode, total_rate, driving,
-                                       "disconnection_mode", delta_length, completion.time,
-                                       ledger_position=ledger_position,
-                                       field_position=field_position)
+                else:
+                    candidates, rates, normal_pressure, resolved_shear, vacancy_mu = self._activation_rates(
+                        domain, segment
+                    )
+                    total_rate = float(rates.sum())
+                    completions, hits = self._advance_activation(
+                        domain, total_rate, cfg.pf.time_step,
+                        self.solver.time - cfg.pf.time_step,
+                    )
+                    self._record_activation_hits(
+                        domain, total_rate, hits, segment=segment, position=ledger_position
+                    )
+                    for completion in completions:
+                        if total_rate:
+                            selected = int(domain.rng.choice(len(candidates), p=rates / total_rate))
+                        else:
+                            selected = 0
+                        mode = candidates[selected]
+                        driving = self._mode_driving(
+                            normal_pressure, resolved_shear, vacancy_mu, selected
+                        )
+                        self._record_event(domain, segment, mode, total_rate, driving,
+                                           "disconnection_mode", delta_length, completion.time,
+                                           ledger_position=ledger_position,
+                                           field_position=field_position)
 
             self._advance_climb(domain, segment, delta_length)
 
@@ -1069,6 +1169,16 @@ class EventResolvedSimulation:
                     self._update_physics()
                 stored_shear = sum(d.shear.energy for d in self.domains.values())
                 stored_free_volume = sum(d.free_volume.energy for d in self.domains.values())
+                tj_stiffness = float(
+                    self.config.parameters.get("tj_residual_stiffness_ev", 1.0)
+                )
+                stored_tj = (
+                    0.5 * tj_stiffness * sum(
+                        float(tj.residual_burgers @ tj.residual_burgers)
+                        for tj in self.snapshot.triple_junctions.values()
+                    )
+                    if "tj_burgers_residual" in self.config.active_modules else 0.0
+                )
                 dissipated_shear = sum(d.shear.dissipated_energy for d in self.domains.values())
                 dissipated_free_volume = sum(
                     d.free_volume.dissipated_energy for d in self.domains.values()
@@ -1076,9 +1186,10 @@ class EventResolvedSimulation:
                 self.energy_records.append({
                     "time": diag.time,
                     "interfacial": diag.interfacial_energy,
-                    "stored": stored_shear + stored_free_volume,
+                    "stored": stored_shear + stored_free_volume + stored_tj,
                     "stored_shear": stored_shear,
                     "stored_free_volume": stored_free_volume,
+                    "stored_tj_residual": stored_tj,
                     "dissipated_shear": dissipated_shear,
                     "dissipated_free_volume": dissipated_free_volume,
                 })

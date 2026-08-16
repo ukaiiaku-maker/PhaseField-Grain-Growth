@@ -1,0 +1,45 @@
+{
+  "date_utc": "2026-08-16",
+  "excluded_campaigns": [
+    "results/campaigns/20260816T055128Z-c5fbecf30c",
+    "results/campaigns/20260816T055128Z-3d79a43322",
+    "results/campaigns/20260816T020439Z-970230dc4c"
+  ],
+  "additional_affected_regimes_in_original_matrix": ["Q1", "E1", "SC3"],
+  "observations": {
+    "J1_checkpoint_step_range": [2340, 2816],
+    "J2_checkpoint_step_range": [524, 540],
+    "active_grains_in_every_run": 200,
+    "J2_event_rows_at_step_526_in_one_seed": 21709202,
+    "J2_recent_parquet_part_interval_seconds_range": [195.18606960773468, 218.86178505420685]
+  },
+  "root_causes": [
+    "A GB event added the same Burgers vector to both adjoining TJs instead of opposite signed endpoint increments.",
+    "A TJ relaxation used one microscopic mode vector while the arriving GB event used the configured packet-scaled vector.",
+    "Strict unresolved TJs pinned PF pixels but did not gate further event-resolved GB arrivals.",
+    "The finite-residual J2 mode declared a positive-definite residual energy but did not include its energy change in candidate barriers.",
+    "All completions in a PF step were selected using rates computed before the first completion changed the TJ residual state.",
+    "The FFT eigenstrain closure returned positive self-work and therefore amplified like-signed transformation strain; the Qiu reference PF update instead applies its elastic driving with an explicit minus sign."
+  ],
+  "repairs": [
+    "Assign deterministic opposite signs to the two endpoints of each persistent GB domain.",
+    "Use the same packet factor for arrival and relaxing modes.",
+    "Stop strict GB flux after its first incompatible arrival and gate adjoining GBs until exact relaxation.",
+    "Add Delta E_TJ = K_TJ (|B+DeltaB|^2-|B|^2)/2 to finite-residual activation barriers.",
+    "Recompute the admissible mode spectrum and rates after every TJ-coupled first passage over the remaining timestep.",
+    "Bind each TJ to the nearest correlation domain on each of its three GBs rather than every domain sharing those grain pairs.",
+    "Use the negative elastic-energy derivative as the full-field self-stress and require negative source self-work."
+  ],
+  "corrected_smoke": {
+    "shape": [64, 64],
+    "steps": 20,
+    "initial_grains": 35,
+    "J1_event_rows": 266,
+    "J1_residual_mean": 0.5547945205479452,
+    "J1_residual_max": 1.0,
+    "J2_event_rows": 1002,
+    "J2_residual_mean": 0.12578260521202353,
+    "J2_residual_max": 0.7071067811865477
+  },
+  "admission_policy": "The excluded campaigns remain immutable diagnostic evidence. No checkpoint containing the same-sign residual or autocatalytic full-field state is admitted into repaired production; Q1, E1, SC3, SC4, J1, and J2 are rerun whole from time zero."
+}

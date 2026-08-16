@@ -94,3 +94,4 @@ regimes:
     modules: [arrhenius_intrinsic, tj_burgers_residual]
     compatibility_model: explicit_modes
     mechanics_backend: qiu_full_field
+    parameters: {tj_residual_stiffness_ev: 1.0}

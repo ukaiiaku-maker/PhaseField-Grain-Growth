@@ -58,6 +58,13 @@ def test_boundary_domain_split_merge_and_tj_reconnection_retire_state():
     assert all(
         split.boundaries[key].free_volume_deficit == 0.0 for key in split_keys[1:]
     )
+    for tj in split.triple_junctions.values():
+        assert len(tj.adjoining_boundaries) == 3
+        adjoining_pairs = {
+            tuple(sorted((split.boundaries[key].grain_i, split.boundaries[key].grain_j)))
+            for key in tj.adjoining_boundaries
+        }
+        assert adjoining_pairs == {(0, 1), (0, 2), (1, 2)}
 
     tracker.domain_length = 100.0
     merged = tracker.update(three_grain_labels())

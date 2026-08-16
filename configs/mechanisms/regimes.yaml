@@ -67,5 +67,9 @@ regimes:
   E1: {modules: [event_modes, shear_feedback], compatibility_model: explicit_modes, mechanics_backend: qiu_full_field}
   E2: {modules: [event_modes, shear_feedback], compatibility_model: explicit_modes, mechanics_backend: local_memory}
   J1: {modules: [tj_burgers_strict], compatibility_model: explicit_modes, mechanics_backend: none}
-  J2: {modules: [tj_burgers_residual], compatibility_model: explicit_modes, mechanics_backend: qiu_full_field}
+  J2:
+    modules: [tj_burgers_residual]
+    compatibility_model: explicit_modes
+    mechanics_backend: qiu_full_field
+    parameters: {tj_residual_stiffness_ev: 1.0}
   J3: {modules: [tj_geometric_surrogate], compatibility_model: geometric_surrogate, mechanics_backend: none}

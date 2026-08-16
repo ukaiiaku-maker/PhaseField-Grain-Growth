@@ -56,11 +56,13 @@ class QiuFullField:
         sigma_hat[0, 0] += lam * trace
         sigma_hat[1, 1] += lam * trace
         sigma_hat[:, :, 0, 0] = 0.0
-        self.stress = np.fft.ifftn(sigma_hat, axes=(-2, -1)).real
+        # Stress is the negative derivative of elastic energy with respect to
+        # the imposed eigenstrain. The minus sign makes the self-field oppose
+        # an additional like-signed transformation instead of amplifying it.
+        self.stress = -np.fft.ifftn(sigma_hat, axes=(-2, -1)).real
         return self.stress
 
     def resolved_shear(self, position: tuple[int, int], tangent: NDArray[np.float64],
                        normal: NDArray[np.float64]) -> float:
         y, x = position[0] % self.shape[0], position[1] % self.shape[1]
         return float(np.asarray(tangent) @ self.stress[:, :, y, x] @ np.asarray(normal))
-

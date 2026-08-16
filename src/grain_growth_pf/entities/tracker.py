@@ -183,9 +183,22 @@ class EntityTracker:
                     delta -= np.round(delta / box) * box
                 tj.travel_distance += float(np.linalg.norm(delta) * self.dx)
             tj.position = position
-            tj.adjoining_boundaries = set().union(*(
-                keys_by_pair.get(tuple(sorted(pair)), set()) for pair in combinations(tri, 2)
-            ))
+            adjoining = set()
+            junction_position = np.asarray(position, dtype=float)
+            for pair in combinations(tri, 2):
+                pair_keys = keys_by_pair.get(tuple(sorted(pair)), set())
+                if not pair_keys:
+                    continue
+
+                def distance_squared(boundary_id: str) -> float:
+                    delta = seen_boundaries[boundary_id].points - junction_position
+                    if self.periodic:
+                        box = np.asarray(labels.shape, dtype=float)
+                        delta -= np.round(delta / box) * box
+                    return float(np.min(np.sum(delta * delta, axis=1)))
+
+                adjoining.add(min(pair_keys, key=lambda item: (distance_squared(item), item)))
+            tj.adjoining_boundaries = adjoining
             tj.age += 1
             seen_tj[key] = tj
 

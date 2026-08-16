@@ -633,3 +633,127 @@ def test_output_cadence_does_not_change_stochastic_trajectory(tmp_path):
     with (tmp_path / "sparse" / "events.csv").open() as handle:
         sparse_events = [{k: v for k, v in row.items() if k != "run_id"} for row in csv.DictReader(handle)]
     assert frequent_events == sparse_events
+
+
+def test_gb_event_adds_opposite_burgers_increments_at_its_two_tjs(tmp_path):
+    config = ModelConfig(
+        regime="J2", seed=141,
+        pf=PFConfig(shape=(28, 28), interface_width=3, time_step=0.01),
+        mechanics_backend="qiu_full_field", compatibility_model="explicit_modes",
+        active_modules=("tj_burgers_residual",),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={"initial_grains": 10, "packet_size": 2.0},
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "signed-tj")
+    segment = next(
+        segment for segment in simulation.snapshot.boundaries.values()
+        if len(simulation._boundary_to_tjs.get(segment.entity_id, ())) == 2
+    )
+    domain = simulation.domains[segment.entity_id]
+    mode = simulation.modes[0]
+    attached = simulation._boundary_to_tjs[segment.entity_id]
+    before = [tj.residual_burgers.copy() for tj in attached]
+    simulation._record_event(
+        domain, segment, mode, 1.0, ModeDriving(), "signed-test", 0.0
+    )
+    increments = [tj.residual_burgers - old for tj, old in zip(attached, before)]
+    expected = 2.0 * np.asarray(mode.burgers)
+    assert np.allclose(increments[0], expected)
+    assert np.allclose(increments[1], -expected)
+    assert np.allclose(increments[0] + increments[1], 0.0)
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
+def test_finite_tj_residual_back_stress_favors_relaxing_mode(tmp_path):
+    config = ModelConfig(
+        regime="J2", seed=142,
+        pf=PFConfig(shape=(28, 28), interface_width=3, time_step=0.01),
+        mechanics_backend="qiu_full_field", compatibility_model="explicit_modes",
+        active_modules=("tj_burgers_residual",),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={
+            "initial_grains": 10, "packet_size": 2.0,
+            "tj_residual_stiffness_ev": 2.0,
+        },
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "tj-back-stress")
+    segment = next(
+        segment for segment in simulation.snapshot.boundaries.values()
+        if simulation._boundary_to_tjs.get(segment.entity_id)
+    )
+    first_tj, first_sign = simulation._signed_boundary_tjs(segment)[0]
+    first_tj.residual_burgers[:] = (first_sign, 0.0)
+    candidates, rates, *_ = simulation._activation_rates(
+        simulation.domains[segment.entity_id], segment
+    )
+    positive = next(
+        index for index, mode in enumerate(candidates)
+        if np.allclose(mode.burgers, (0.25, 0.0)) and mode.step_height > 0
+    )
+    negative = next(
+        index for index, mode in enumerate(candidates)
+        if np.allclose(mode.burgers, (-0.25, 0.0)) and mode.step_height > 0
+    )
+    relaxing, increasing = (negative, positive) if first_sign > 0 else (positive, negative)
+    assert rates[relaxing] > rates[increasing]
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
+def test_strict_tj_residual_gates_additional_gb_events(tmp_path):
+    config = ModelConfig(
+        regime="J1", seed=143,
+        pf=PFConfig(shape=(28, 28), interface_width=3, time_step=0.01),
+        compatibility_model="explicit_modes", active_modules=("tj_burgers_strict",),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={"initial_grains": 10, "attempt_frequency": 1e6},
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "strict-tj-gate")
+    segment = next(
+        segment for segment in simulation.snapshot.boundaries.values()
+        if simulation._boundary_to_tjs.get(segment.entity_id)
+    )
+    domain = simulation.domains[segment.entity_id]
+    domain.activation.clock.threshold = 0.0
+    simulation.solver.step_number = 1
+    simulation.solver.time = config.pf.time_step
+    position = json.dumps(segment.points.mean(axis=0).tolist())
+    field_position = tuple(segment.points[len(segment.points) // 2].astype(int))
+    simulation._advance_tj_coupled_mode_flux(
+        domain, segment, 0.0, position, field_position
+    )
+    first_count = domain.event_counter
+    assert first_count == 2  # one primitive hit and one completed mode event
+    assert any(
+        np.linalg.norm(tj.residual_burgers) > 0
+        for tj in simulation._boundary_to_tjs[segment.entity_id]
+    )
+    simulation._advance_tj_coupled_mode_flux(
+        domain, segment, 0.0, position, field_position
+    )
+    assert domain.event_counter == first_count
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
+def test_strict_tj_relaxation_uses_the_same_packet_scale(tmp_path):
+    config = ModelConfig(
+        regime="J1", seed=144,
+        pf=PFConfig(shape=(28, 28), interface_width=3, time_step=0.01),
+        compatibility_model="explicit_modes", active_modules=("tj_burgers_strict",),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={
+            "initial_grains": 10, "packet_size": 2.0,
+            "tj_barrier_ev": 0.0, "tj_attempt_frequency": 1e6,
+        },
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "strict-tj-packet")
+    tj = next(iter(simulation.snapshot.triple_junctions.values()))
+    domain = simulation.tj_domains[tj.entity_id]
+    tj.residual_burgers[:] = (0.5, 0.0)
+    domain.blocked = True
+    domain.activation.clock.threshold = 0.0
+    simulation.solver.step_number = 1
+    simulation.solver.time = config.pf.time_step
+    simulation._update_tj_physics(np.ones(config.pf.shape))
+    assert np.linalg.norm(tj.residual_burgers) < 1e-12
+    assert not domain.blocked
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()

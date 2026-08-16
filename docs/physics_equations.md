@@ -110,7 +110,7 @@ ds=\beta\,dx_n-s\,dt/\tau_s-\sum_k\Delta s_k,
 v_n=M[\Gamma\kappa+\beta\tau_{\rm int}+\psi].
 \]
 
-The sign therefore follows the energy gradient. Reverse-curvature motion is possible only when the internal term opposes and exceeds capillarity. The `qiu_full_field` backend instead accumulates symmetric event eigenstrain, applies a periodic isotropic Fourier incompatibility projector, and computes plane-strain stress \(\sigma=2\mu\epsilon^{inc}+\lambda\operatorname{tr}(\epsilon^{inc})I\), with the zero wavevector removed. It is a nonlocal independently implemented surrogate, not a bitwise port of Qiu's line kernel.
+The sign therefore follows the energy gradient. Reverse-curvature motion is possible only when the internal term opposes and exceeds capillarity. The `qiu_full_field` backend instead accumulates symmetric event eigenstrain, applies a periodic isotropic Fourier incompatibility projector, and computes the physical self-stress as the negative energy derivative, \(\sigma=-[2\mu\epsilon^{inc}+\lambda\operatorname{tr}(\epsilon^{inc})I]\), with the zero wavevector removed. Consequently \(\int\sigma:\epsilon^*\,dV<0\) for a nonzero isolated source and \(-\tfrac12\int\sigma:\epsilon^*\,dV>0\) is stored elastic energy. This sign also matches the explicit minus sign on Qiu's elastic PF driving term. The backend is a nonlocal independently implemented surrogate, not a bitwise port of Qiu's line kernel.
 
 At a TJ, event Burgers increments are conserved in a persistent residual \(\mathbf B_{TJ}\), with
 
@@ -118,7 +118,26 @@ At a TJ, event Burgers increments are conserved in a persistent residual \(\math
 E_{TJ}=\tfrac12\mathbf B_{TJ}^T\mathbf K_{TJ}\mathbf B_{TJ}.
 \]
 
-Strict mode combinations require zero residual and compatible net step. Finite-residual configurations retain the state until a later event relaxes it.
+The two endpoints of a GB receive opposite signed packet increments,
+\(+N_{disc}\mathbf b_m\) and \(-N_{disc}\mathbf b_m\), so a closed network
+does not acquire Burgers vector merely because a boundary event occurred.
+Strict mode combinations admit one arrival and gate every adjoining GB until a
+packet-scaled secondary mode restores zero residual and compatible net step.
+Finite-residual configurations retain the state until later events relax it.
+For a candidate signed endpoint increment \(\Delta\mathbf B_m\), its barrier
+contains the positive-definite residual-energy change
+
+\[
+\Delta E_{TJ,m}=\tfrac12K_{TJ}\left(
+|\mathbf B_{TJ}+\Delta\mathbf B_m|^2-|\mathbf B_{TJ}|^2\right).
+\]
+
+Thus residual-increasing modes are suppressed and residual-relaxing modes are
+favored by a thermodynamic back stress. Because this event changes the next
+mode rates, the cumulative-hazard integrator stops at each passage, updates the
+TJ state, recomputes the full candidate spectrum, and then advances through the
+remaining PF-step time. TJ relaxation uses the same \(N_{disc}\) packet factor
+as the arriving GB event; residual Burgers vector is never erased directly.
 
 ## Atomic-to-PF event kinematics
 
