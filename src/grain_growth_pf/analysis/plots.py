@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from pathlib import Path
 
 import matplotlib
@@ -10,13 +11,27 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from grain_growth_pf.analysis.campaign import _activation_rows, _fit_window, analyze_campaign
+from grain_growth_pf.analysis.campaign import ACTIVATION_EVENT_TYPES, _fit_window, analyze_campaign
 from grain_growth_pf.analysis.grain_tracks import ensemble_radius, load_tracks
 from grain_growth_pf.io.event_ledger import (
     event_ledger_has_rows,
     event_ledger_path,
-    read_event_ledger,
+    iter_event_ledger,
 )
+
+
+def _ledger_has_primitive_events(path: Path) -> bool:
+    return any(
+        frame["event_type"].isin(ACTIVATION_EVENT_TYPES).any()
+        for frame in iter_event_ledger(path, columns=["event_type"])
+    )
+
+
+def _primitive_batch(frame: pd.DataFrame, has_primitive: bool) -> pd.DataFrame:
+    return (
+        frame[frame["event_type"].isin(ACTIVATION_EVENT_TYPES)]
+        if has_primitive else frame
+    )
 
 
 def _save(fig: plt.Figure, target: Path) -> None:
@@ -138,13 +153,23 @@ def _representative_figure(path: Path, target: Path) -> None:
             neighbor_axis.scatter(grain["neighbors"].to_numpy(float)[:-1], rate, s=7, alpha=0.35)
     event_path = event_ledger_path(path)
     if event_ledger_has_rows(event_path):
-        events = _activation_rows(read_event_ledger(
-            event_path, columns=["event_type", "time"]
-        ))
-        if not events.empty and "time" in events:
-            event_types = sorted(events["event_type"].dropna().unique())
+        has_primitive = _ledger_has_primitive_events(event_path)
+        type_counts: Counter[str] = Counter()
+        samples = []
+        sample_count = 0
+        for frame in iter_event_ledger(event_path, columns=["event_type", "time"]):
+            events = _primitive_batch(frame, has_primitive)
+            type_counts.update(map(str, events["event_type"].dropna()))
+            if sample_count < 300:
+                selected_events = events.head(300 - sample_count)
+                if not selected_events.empty:
+                    samples.append(selected_events)
+                    sample_count += len(selected_events)
+        if samples:
+            events = pd.concat(samples, ignore_index=True)
+            event_types = sorted(type_counts)
             colors = {name: f"C{index % 10}" for index, name in enumerate(event_types)}
-            for _, event in events.head(300).iterrows():
+            for _, event in events.iterrows():
                 event_time = float(event["time"])
                 color = colors.get(event.get("event_type"), "k")
                 for axis in (area_axis, radius_axis, rate_axis):
@@ -183,21 +208,34 @@ def _boundary_figure(paths: list[Path], target: Path) -> None:
 
 
 def _event_figure(paths: list[Path], target: Path) -> None:
-    waits = []
-    type_counts = {}
+    waits: list[np.ndarray] = []
+    type_counts: Counter[str] = Counter()
     for path in paths:
         event_path = event_ledger_path(path)
         if event_ledger_has_rows(event_path):
-            frame = read_event_ledger(
+            has_primitive = _ledger_has_primitive_events(event_path)
+            last_entity_time: dict[str, float] = {}
+            for frame in iter_event_ledger(
                 event_path, columns=["event_type", "entity_id", "time"]
-            )
-            if not frame.empty:
-                events = _activation_rows(frame)
-                for event_type, count in events["event_type"].value_counts().items():
-                    type_counts[str(event_type)] = type_counts.get(str(event_type), 0) + int(count)
-                for _, entity in events.groupby("entity_id", dropna=False):
-                    differences = np.diff(np.sort(entity["time"].to_numpy(float)))
-                    waits.extend(differences[differences > 0].tolist())
+            ):
+                events = _primitive_batch(frame, has_primitive)
+                type_counts.update(map(str, events["event_type"].dropna()))
+                for entity_id, entity in events.groupby("entity_id", dropna=False):
+                    times = pd.to_numeric(entity["time"], errors="coerce").to_numpy(float)
+                    times = np.sort(times[np.isfinite(times)])
+                    if not len(times):
+                        continue
+                    entity_key = str(entity_id)
+                    previous = last_entity_time.get(entity_key)
+                    sequence = (
+                        np.concatenate(([previous], times))
+                        if previous is not None else times
+                    )
+                    differences = np.diff(sequence)
+                    differences = differences[differences > 0]
+                    if len(differences):
+                        waits.append(differences)
+                    last_entity_time[entity_key] = float(times[-1])
     if not type_counts:
         return
     sizes = []
@@ -206,7 +244,8 @@ def _event_figure(paths: list[Path], target: Path) -> None:
         for _, grain in tracks.groupby("grain_id"):
             increments = np.abs(np.diff(grain.sort_values("time")["area"].to_numpy(float)))
             sizes.extend(increments[increments > 1e-12].tolist())
-    waits, sizes = np.asarray(waits), np.asarray(sizes)
+    waits = np.concatenate(waits) if waits else np.asarray([])
+    sizes = np.asarray(sizes)
     fig, axes = plt.subplots(2, 2, figsize=(9, 7))
     axes = axes.flat
     axes[0].hist(waits, bins=35, density=True, color="C0", alpha=0.8)
@@ -225,7 +264,13 @@ def _event_figure(paths: list[Path], target: Path) -> None:
 
 def _tj_failure_figure(paths: list[Path], target: Path) -> bool:
     """Plot explicit TJ endpoint-failure incidence and sampled barriers."""
-    frames = []
+    family_counts: Counter[str] = Counter()
+    tj_entities: set[str] = set()
+    bare_samples: list[np.ndarray] = []
+    effective_samples: list[np.ndarray] = []
+    shift_samples: list[np.ndarray] = []
+    burgers = []
+    failure_count = 0
     columns = [
         "event_type", "entity_id", "barrier_type", "DeltaG0",
         "effective_DeltaG", "burgers_vector_b",
@@ -234,30 +279,37 @@ def _tj_failure_figure(paths: list[Path], target: Path) -> bool:
         event_path = event_ledger_path(path)
         if not event_ledger_has_rows(event_path):
             continue
-        frame = read_event_ledger(event_path, columns=columns)
-        failures = frame[frame["event_type"] == "tj_compatibility_failure"]
-        if not failures.empty:
-            frames.append(failures)
-    if not frames:
+        for frame in iter_event_ledger(event_path, columns=columns):
+            failures = frame[frame["event_type"] == "tj_compatibility_failure"]
+            if failures.empty:
+                continue
+            failure_count += len(failures)
+            family_counts.update(map(str, failures["barrier_type"].fillna("unlabeled")))
+            tj_entities.update(map(str, failures["entity_id"].dropna()))
+            bare = pd.to_numeric(failures["DeltaG0"], errors="coerce").to_numpy(float)
+            effective = pd.to_numeric(
+                failures["effective_DeltaG"], errors="coerce"
+            ).to_numpy(float)
+            bare_samples.append(bare[np.isfinite(bare)])
+            effective_samples.append(effective[np.isfinite(effective)])
+            finite_pair = np.isfinite(bare) & np.isfinite(effective)
+            shift_samples.append(effective[finite_pair] - bare[finite_pair])
+            for raw in failures["burgers_vector_b"].dropna():
+                try:
+                    vector = np.asarray(json.loads(str(raw)), dtype=float)
+                except (TypeError, ValueError, json.JSONDecodeError):
+                    continue
+                if vector.size and np.all(np.isfinite(vector)):
+                    burgers.append(float(np.linalg.norm(vector)))
+    if not failure_count:
         return False
-    failures = pd.concat(frames, ignore_index=True)
-    bare = pd.to_numeric(failures["DeltaG0"], errors="coerce").to_numpy(float)
-    effective = pd.to_numeric(
-        failures["effective_DeltaG"], errors="coerce"
-    ).to_numpy(float)
-    finite_pair = np.isfinite(bare) & np.isfinite(effective)
-    burgers = []
-    for raw in failures["burgers_vector_b"].dropna():
-        try:
-            vector = np.asarray(json.loads(str(raw)), dtype=float)
-        except (TypeError, ValueError, json.JSONDecodeError):
-            continue
-        if vector.size and np.all(np.isfinite(vector)):
-            burgers.append(float(np.linalg.norm(vector)))
+    bare = np.concatenate(bare_samples) if bare_samples else np.asarray([])
+    effective = np.concatenate(effective_samples) if effective_samples else np.asarray([])
+    shifts = np.concatenate(shift_samples) if shift_samples else np.asarray([])
 
     fig, axes = plt.subplots(2, 2, figsize=(10, 7))
-    family_counts = failures["barrier_type"].fillna("unlabeled").value_counts()
-    axes[0, 0].barh(family_counts.index.astype(str), family_counts.to_numpy(), color="C0")
+    families = sorted(family_counts)
+    axes[0, 0].barh(families, [family_counts[name] for name in families], color="C0")
     axes[0, 0].set(xlabel="endpoint-failure rows", ylabel="mode family",
                    title="failure incidence by barrier family")
     axes[0, 1].hist(bare[np.isfinite(bare)], bins=35, alpha=0.65, label="bare")
@@ -266,17 +318,16 @@ def _tj_failure_figure(paths: list[Path], target: Path) -> bool:
     axes[0, 1].set(xlabel="barrier (eV)", ylabel="count",
                    title="sampled failure barriers")
     axes[0, 1].legend(frameon=False)
-    axes[1, 0].hist(effective[finite_pair] - bare[finite_pair], bins=35, color="C2")
+    axes[1, 0].hist(shifts, bins=35, color="C2")
     axes[1, 0].axvline(0.0, color="0.4", ls="--", lw=1)
     axes[1, 0].set(xlabel=r"$\Delta G_{effective}-\Delta G_0$ (eV)", ylabel="count",
                    title="residual-energy barrier shift")
     axes[1, 1].hist(burgers, bins=35, color="C3")
     axes[1, 1].set(xlabel="packet Burgers magnitude", ylabel="count",
                    title="failed endpoint increment")
-    unique_tjs = failures["entity_id"].dropna().nunique()
     fig.suptitle(
-        f"TJ compatibility failures — {len(failures):,} endpoint rows, "
-        f"{unique_tjs:,} TJ entities"
+        f"TJ compatibility failures — {failure_count:,} endpoint rows, "
+        f"{len(tj_entities):,} TJ entities"
     )
     _save(fig, target)
     return True

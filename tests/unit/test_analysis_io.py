@@ -47,7 +47,9 @@ from grain_growth_pf.io.provenance import write_manifest
 from grain_growth_pf.analysis.jerkiness import jerkiness_metrics
 from grain_growth_pf.analysis.plots import (
     _arrhenius_figure,
+    _event_figure,
     _local_exponent,
+    _representative_figure,
     _tj_failure_figure,
 )
 
@@ -124,6 +126,39 @@ def test_tj_failure_plot_separates_bare_and_residual_adjusted_barriers(tmp_path)
     assert _tj_failure_figure([tmp_path], target)
     assert target.with_suffix(".png").exists()
     assert target.with_suffix(".pdf").exists()
+
+
+def test_event_plots_stream_primitive_rows_across_batches(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "grain_growth_pf.analysis.plots.iter_event_ledger",
+        lambda path, columns: iter_event_ledger(path, columns, batch_size=2),
+    )
+    areas = np.asarray([9.0, 10.0, 12.0, 8.0, 7.0, 6.0])
+    pd.DataFrame({
+        "run_id": ["plot"] * 6,
+        "time": [0.0, 1.0, 2.0] * 2,
+        "step": [0, 1, 2] * 2,
+        "grain_id": [1, 1, 1, 2, 2, 2],
+        "area": areas,
+        "radius": np.sqrt(areas / np.pi),
+        "perimeter": [12.0, 13.0, 14.0, 11.0, 10.0, 9.0],
+        "neighbors": [4, 4, 5, 4, 3, 3],
+    }).to_csv(tmp_path / "grain_tracks.csv", index=False)
+    pd.DataFrame({
+        "event_type": [
+            "activation_hit", "compatibility_release", "activation_hit",
+            "compatibility_release", "activation_hit",
+        ],
+        "entity_id": ["gb:1"] * 5,
+        "time": [0.25, 0.25, 0.75, 0.75, 1.25],
+    }).to_csv(tmp_path / "events.csv", index=False)
+    representative = tmp_path / "representative"
+    event_statistics = tmp_path / "event-statistics"
+    _representative_figure(tmp_path, representative)
+    _event_figure([tmp_path], event_statistics)
+    for target in (representative, event_statistics):
+        assert target.with_suffix(".png").exists()
+        assert target.with_suffix(".pdf").exists()
 
 
 def test_stagnant_ensemble_suppresses_growth_law_without_losing_diagnostics(tmp_path):
