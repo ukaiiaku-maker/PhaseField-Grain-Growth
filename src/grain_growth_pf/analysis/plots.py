@@ -469,7 +469,7 @@ def plot_campaign(campaign_dir: str | Path, output_dir: str | Path | None = None
     _save(fig, output / "mechanism-comparison")
 
     for regime, group in summary.groupby("regime"):
-        if len(group) < 4 or np.any(group["K"] <= 0):
+        if len(group) < 4:
             continue
         ordered = group.sort_values("temperature")
         detail = detail_by_key.get((regime, float(ordered["temperature"].iloc[0])), {})

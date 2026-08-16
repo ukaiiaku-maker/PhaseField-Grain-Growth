@@ -1,0 +1,9 @@
+{
+  "status": "passed",
+  "growth_coefficients": [0.0, 0.0, 0.0, 0.0],
+  "temperature_points_K": [800.0, 900.0, 1000.0, 1100.0],
+  "growth_panel": "fit suppressed as physically unobservable",
+  "event_level_panel": "retained with activation energy, confidence interval, and adjacent-temperature slopes",
+  "focused_tests": "2 passed, 17 deselected in 12.84 s",
+  "full_suite": "102 passed in 89.25 s"
+}

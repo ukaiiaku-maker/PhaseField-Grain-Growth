@@ -113,6 +113,31 @@ def test_arrhenius_plot_includes_global_and_local_diagnostics(tmp_path):
     assert (tmp_path / "arrhenius.pdf").exists()
 
 
+def test_arrhenius_plot_retains_event_fit_when_growth_is_stagnant(tmp_path):
+    temperatures = np.asarray([800.0, 900.0, 1000.0, 1100.0])
+    summary = pd.DataFrame({
+        "temperature": temperatures, "K": np.zeros(4), "K_ci": np.zeros(4),
+    })
+    detail = {
+        "temperatures": temperatures.tolist(),
+        "activation_energy_ev": None,
+        "activation_energy_95pct": None,
+        "local_activation_midpoint_temperature": [],
+        "local_activation_energy_ev": [],
+        "event_level": {
+            "rates": [1.0, 2.0, 4.0, 8.0],
+            "activation_energy_ev": 0.55,
+            "activation_energy_95pct": [0.50, 0.60],
+            "local_activation_midpoint_temperature": [850.0, 950.0, 1050.0],
+            "local_activation_energy_ev": [0.50, 0.55, 0.60],
+        },
+    }
+    target = tmp_path / "stagnant-arrhenius"
+    _arrhenius_figure("J2", summary, detail, target)
+    assert target.with_suffix(".png").exists()
+    assert target.with_suffix(".pdf").exists()
+
+
 def test_tj_failure_plot_separates_bare_and_residual_adjusted_barriers(tmp_path):
     pd.DataFrame({
         "event_type": ["tj_compatibility_failure"] * 3 + ["disconnection_mode"],

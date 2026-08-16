@@ -16,7 +16,7 @@
   campaigns replace the rejected/interrupted SC4, P1, J1, J2, and J3 entries.
 - Independent 256-square convergence campaign:
   `results/campaigns/20260815T083416Z-49423c71d0` (completed).
-- Current fast suite: 101 tests passed in 85.40 seconds under the live
+- Current fast suite: 102 tests passed in 89.25 seconds under the live
   production load.
 - Python 3.13.5, NumPy 2.1.3, SciPy 1.15.3.
 
@@ -248,6 +248,8 @@ Arrhenius curvature are retained. A grain-growth activation fit is suppressed
 when any series changes radius by less than 2%, rather than assigning a
 spurious activation energy to stagnation. Results are **pending production
 inference**.
+The plotting path applies the same distinction: it retains event-level
+Arrhenius and local-slope panels even when every growth coefficient is zero.
 
 ## 9. Intermittency and constrained optimization
 
