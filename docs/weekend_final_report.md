@@ -16,7 +16,7 @@
   campaigns replace the rejected/interrupted SC4, P1, J1, J2, and J3 entries.
 - Independent 256-square convergence campaign:
   `results/campaigns/20260815T083416Z-49423c71d0` (completed).
-- Current fast suite: 99 tests passed in 79.49 seconds under the live
+- Current fast suite: 100 tests passed in 79.52 seconds under the live
   production load.
 - Python 3.13.5, NumPy 2.1.3, SciPy 1.15.3.
 
@@ -207,6 +207,13 @@ Final analysis reads checkpointed event ledgers in bounded-memory batches. A
 production regression over 31,255,548 primitive rows produced a byte-identical
 summary and identical diagnostics apart from sub-`8e-12` summation-order roundoff,
 while reducing observed RSS by at least 68.2% (5.66 GB to 1.84 GB).
+
+TJ residual Burgers vectors and the other persistent TJ entity fields are now
+part of the authoritative restart archive. The live J1/J2 repair runs were
+verified to have started fresh after the earlier campaign restart, rather than
+resuming from a checkpoint lacking those fields; they remain valid while
+uninterrupted. The scope audit is in
+`results/validation/tj_checkpoint_state_20260816.json`.
 
 ## 7. Growth-law results
 

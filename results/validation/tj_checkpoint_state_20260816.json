@@ -1,0 +1,24 @@
+{
+  "status": "passed",
+  "finding": "Persistent TripleJunction state was retained across in-process tracker updates but was absent from simulation checkpoints.",
+  "fixed_state": [
+    "travel_distance",
+    "compatible",
+    "residual_burgers",
+    "event_history",
+    "age"
+  ],
+  "authoritative_storage": "checkpoint_state_json embedded in checkpoint.npz, with checkpoint.json as the companion human-readable copy",
+  "backward_compatibility": "Older checkpoints without triple_junctions load geometric defaults; no unsupported vector is inferred from scalar energy.",
+  "production_scope_audit": {
+    "campaign": "results/campaigns/20260816T160354Z-188fe232c6",
+    "restart_git_sha": "990c3a0d96e29290e13612387c32576f16cf993e",
+    "J1_at_restart": "queued_then_started_fresh",
+    "J2_at_restart": "queued_then_started_fresh",
+    "J1_or_J2_resumed_from_incomplete_checkpoint": false,
+    "current_J1_J2_valid_if_uninterrupted": true,
+    "operational_constraint": "Do not interrupt the active J1/J2 workers created from the older simulation revision; all later launches include persistent TJ checkpoint state."
+  },
+  "focused_restart_tests": "6 passed, 22 deselected in 9.12 s",
+  "full_suite": "100 passed in 79.52 s"
+}

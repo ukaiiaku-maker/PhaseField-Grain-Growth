@@ -1119,6 +1119,16 @@ class EventResolvedSimulation:
             "time": self.solver.time, "step_number": self.solver.step_number,
             "domains": {key: domain.state_dict() for key, domain in self.domains.items()},
             "tj_domains": {key: domain.state_dict() for key, domain in self.tj_domains.items()},
+            "triple_junctions": {
+                key: {
+                    "travel_distance": junction.travel_distance,
+                    "compatible": junction.compatible,
+                    "residual_burgers": junction.residual_burgers.tolist(),
+                    "event_history": junction.event_history,
+                    "age": junction.age,
+                }
+                for key, junction in self.snapshot.triple_junctions.items()
+            },
             "energy_records": self.energy_records,
             "accumulated_shear_strain": self.accumulated_shear_strain,
             "accumulated_volumetric_strain": self.accumulated_volumetric_strain,
@@ -1190,6 +1200,20 @@ class EventResolvedSimulation:
             periodic=self.config.pf.boundary_conditions == "periodic",
         )
         self.snapshot = self.tracker.update(self.solver.labels)
+        for key, junction_state in state.get("triple_junctions", {}).items():
+            if key not in self.snapshot.triple_junctions:
+                continue
+            junction = self.snapshot.triple_junctions[key]
+            junction.travel_distance = float(junction_state.get("travel_distance", 0.0))
+            junction.compatible = bool(junction_state.get("compatible", True))
+            residual = np.asarray(
+                junction_state.get("residual_burgers", [0.0, 0.0]), dtype=float
+            )
+            if residual.shape != (2,) or not np.all(np.isfinite(residual)):
+                raise ValueError(f"invalid checkpointed TJ residual for {key}")
+            junction.residual_burgers = residual
+            junction.event_history = list(junction_state.get("event_history", []))
+            junction.age = int(junction_state.get("age", junction.age))
         for key, domain_state in state["domains"].items():
             if key in self.snapshot.boundaries:
                 domain = self._new_domain(self.snapshot.boundaries[key])

@@ -457,6 +457,40 @@ def test_checkpoint_archive_is_authoritative_if_metadata_replacement_is_interrup
     resumed.ledger.close(); resumed.track_handle.close(); resumed.boundary_handle.close()
 
 
+def test_checkpoint_restores_persistent_triple_junction_state(tmp_path):
+    config = ModelConfig(
+        regime="J2", seed=145,
+        pf=PFConfig(shape=(24, 24), interface_width=3, time_step=0.01,
+                    intrinsic_mobility=0.1, adaptive_stepping=True),
+        compatibility_model="explicit_modes",
+        active_modules=("tj_burgers_residual",),
+        output_cadence=1, max_steps=2, termination_grains=1,
+        parameters={"initial_grains": 12, "equilibration_steps": 0,
+                    "event_domain_length": 100.0},
+    )
+    output = tmp_path / "tj-state-restart"
+    simulation = EventResolvedSimulation(config, output)
+    assert simulation.snapshot.triple_junctions
+    key = sorted(simulation.snapshot.triple_junctions)[0]
+    junction = simulation.snapshot.triple_junctions[key]
+    junction.travel_distance = 2.75
+    junction.compatible = False
+    junction.residual_burgers = np.asarray([0.3, -0.4])
+    junction.event_history = ["stored-test-event"]
+    junction.age = 17
+    simulation._save_checkpoint()
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+    resumed = EventResolvedSimulation(config, output, resume=True)
+    restored = resumed.snapshot.triple_junctions[key]
+    assert np.array_equal(restored.residual_burgers, [0.3, -0.4])
+    assert restored.travel_distance == 2.75
+    assert restored.compatible is False
+    assert restored.event_history == ["stored-test-event"]
+    assert restored.age == 17
+    resumed.ledger.close(); resumed.track_handle.close(); resumed.boundary_handle.close()
+
+
 def test_checkpoint_truncates_buffered_compressed_outputs_on_resume(tmp_path):
     config = ModelConfig(
         regime="compressed-restart", seed=46,
