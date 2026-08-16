@@ -42,7 +42,7 @@ class EventLedger:
         empty = not self.path.exists() or self.path.stat().st_size == 0
         if self.path.suffix == ".gz":
             self._handle = gzip.open(
-                self.path, "at", newline="", encoding="utf-8", compresslevel=6
+                self.path, "at", newline="", encoding="utf-8", compresslevel=1
             )
         else:
             self._handle = self.path.open(
