@@ -42,7 +42,7 @@ from grain_growth_pf.io.event_ledger import (
 )
 from grain_growth_pf.io.provenance import write_manifest
 from grain_growth_pf.analysis.jerkiness import jerkiness_metrics
-from grain_growth_pf.analysis.plots import _local_exponent
+from grain_growth_pf.analysis.plots import _arrhenius_figure, _local_exponent
 
 
 def test_growth_and_activation_recover_inputs():
@@ -76,6 +76,32 @@ def test_growth_and_activation_recover_inputs():
 
     local = _local_exponent(time, radius, half_window=20)
     assert np.allclose(local[np.isfinite(local)], 3.0, atol=0.05)
+
+
+def test_arrhenius_plot_includes_global_and_local_diagnostics(tmp_path):
+    temperatures = np.asarray([800.0, 900.0, 1000.0, 1100.0])
+    coefficients = np.asarray([0.5, 0.8, 1.1, 1.4])
+    summary = pd.DataFrame({
+        "temperature": temperatures, "K": coefficients,
+        "K_ci": 0.05 * coefficients,
+    })
+    detail = {
+        "temperatures": temperatures.tolist(),
+        "activation_energy_ev": 0.42,
+        "activation_energy_95pct": [0.38, 0.46],
+        "local_activation_midpoint_temperature": [850.0, 950.0, 1050.0],
+        "local_activation_energy_ev": [0.40, 0.42, 0.44],
+        "event_level": {
+            "rates": [1.0, 2.0, 4.0, 8.0],
+            "activation_energy_ev": 0.55,
+            "activation_energy_95pct": [0.50, 0.60],
+            "local_activation_midpoint_temperature": [850.0, 950.0, 1050.0],
+            "local_activation_energy_ev": [0.50, 0.55, 0.60],
+        },
+    }
+    _arrhenius_figure("synthetic", summary, detail, tmp_path / "arrhenius")
+    assert (tmp_path / "arrhenius.png").exists()
+    assert (tmp_path / "arrhenius.pdf").exists()
 
 
 def test_ensemble_radius_reports_independent_size_measures():

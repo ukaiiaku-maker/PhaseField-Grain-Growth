@@ -210,6 +210,106 @@ def _event_figure(paths: list[Path], target: Path) -> None:
     _save(fig, target)
 
 
+def _arrhenius_figure(regime: str, group: pd.DataFrame,
+                      temperature_fit: dict, target: Path) -> None:
+    """Plot global and adjacent-temperature activation diagnostics."""
+    ordered = group.sort_values("temperature")
+    temperatures = ordered["temperature"].to_numpy(float)
+    inverse_temperature = 1.0 / temperatures
+    coefficients = ordered["K"].to_numpy(float)
+    coefficient_error = ordered["K_ci"].to_numpy(float)
+    fig, axes = plt.subplots(2, 2, figsize=(10, 7))
+
+    growth_axis = axes[0, 0]
+    valid_growth = np.isfinite(coefficients) & (coefficients > 0)
+    if np.any(valid_growth):
+        growth_axis.errorbar(
+            inverse_temperature[valid_growth], np.log(coefficients[valid_growth]),
+            yerr=np.divide(
+                coefficient_error[valid_growth], coefficients[valid_growth],
+                out=np.zeros(np.count_nonzero(valid_growth)),
+                where=coefficients[valid_growth] > 0,
+            ), marker="o", capsize=3, ls="none",
+        )
+    growth_q = temperature_fit.get("activation_energy_ev")
+    growth_interval = temperature_fit.get("activation_energy_95pct")
+    if np.count_nonzero(valid_growth) >= 2 and growth_q is not None:
+        slope, intercept = np.polyfit(
+            inverse_temperature[valid_growth], np.log(coefficients[valid_growth]), 1
+        )
+        fit_x = np.linspace(
+            inverse_temperature[valid_growth].min(),
+            inverse_temperature[valid_growth].max(), 100,
+        )
+        growth_axis.plot(fit_x, slope * fit_x + intercept, "k--", lw=1)
+        label = f"Q = {float(growth_q):.3f} eV"
+        if growth_interval:
+            label += f"\n95% CI [{growth_interval[0]:.3f}, {growth_interval[1]:.3f}]"
+    else:
+        label = "growth activation fit suppressed\n(insufficient observable growth)"
+    growth_axis.text(0.03, 0.04, label, transform=growth_axis.transAxes, fontsize=8)
+    growth_axis.set(
+        xlabel=r"$1/T$ (K$^{-1}$)", ylabel=r"$\ln K_n$",
+        title="coarse-grained growth",
+    )
+
+    event_level = temperature_fit.get("event_level", {})
+    event_rates = np.asarray(event_level.get("rates", []), dtype=float)
+    event_temperatures = np.asarray(
+        temperature_fit.get("temperatures", temperatures), dtype=float
+    )
+    event_axis = axes[0, 1]
+    valid_event = (event_rates > 0) & np.isfinite(event_rates)
+    if len(event_rates) and np.count_nonzero(valid_event):
+        event_x = 1.0 / event_temperatures[valid_event]
+        event_y = np.log(event_rates[valid_event])
+        event_axis.plot(event_x, event_y, "o", color="C1")
+        event_q = event_level.get("activation_energy_ev")
+        event_interval = event_level.get("activation_energy_95pct")
+        if np.count_nonzero(valid_event) >= 2 and event_q is not None:
+            slope, intercept = np.polyfit(event_x, event_y, 1)
+            fit_x = np.linspace(event_x.min(), event_x.max(), 100)
+            event_axis.plot(fit_x, slope * fit_x + intercept, "k--", lw=1)
+            event_label = f"Q = {float(event_q):.3f} eV"
+            if event_interval:
+                event_label += (
+                    f"\n95% CI [{event_interval[0]:.3f}, {event_interval[1]:.3f}]"
+                )
+        else:
+            event_label = "event activation fit suppressed\n(censored/zero-rate temperature)"
+    else:
+        event_label = "no primitive-event rate series"
+    event_axis.text(0.03, 0.04, event_label, transform=event_axis.transAxes, fontsize=8)
+    event_axis.set(
+        xlabel=r"$1/T$ (K$^{-1}$)", ylabel="ln primitive event rate",
+        title="event-level activation",
+    )
+
+    local_growth_temperature = np.asarray(
+        temperature_fit.get("local_activation_midpoint_temperature", []), dtype=float
+    )
+    local_growth_q = np.asarray(
+        temperature_fit.get("local_activation_energy_ev", []), dtype=float
+    )
+    if len(local_growth_temperature):
+        axes[1, 0].plot(local_growth_temperature, local_growth_q, "o-", color="C2")
+    axes[1, 0].set(xlabel="temperature (K)", ylabel="local Q (eV)",
+                   title="adjacent growth slopes / curvature")
+
+    local_event_temperature = np.asarray(
+        event_level.get("local_activation_midpoint_temperature", []), dtype=float
+    )
+    local_event_q = np.asarray(
+        event_level.get("local_activation_energy_ev", []), dtype=float
+    )
+    if len(local_event_temperature):
+        axes[1, 1].plot(local_event_temperature, local_event_q, "o-", color="C3")
+    axes[1, 1].set(xlabel="temperature (K)", ylabel="local event Q (eV)",
+                   title="adjacent event slopes / crossover")
+    fig.suptitle(f"{regime} Arrhenius diagnostics")
+    _save(fig, target)
+
+
 def plot_campaign(campaign_dir: str | Path, output_dir: str | Path | None = None,
                   summary_path: str | Path | None = None) -> Path:
     campaign_dir = Path(campaign_dir)
@@ -248,21 +348,9 @@ def plot_campaign(campaign_dir: str | Path, output_dir: str | Path | None = None
         if len(group) < 4 or np.any(group["K"] <= 0):
             continue
         ordered = group.sort_values("temperature")
-        fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-        axes[0].errorbar(1.0 / ordered["temperature"], np.log(ordered["K"]),
-                         yerr=ordered["K_ci"] / ordered["K"], marker="o", capsize=3)
-        axes[0].set(xlabel=r"$1/T$ (K$^{-1}$)", ylabel=r"$\ln K_n$",
-                    title="coarse-grained growth")
         detail = detail_by_key.get((regime, float(ordered["temperature"].iloc[0])), {})
         temperature_fit = detail.get("temperature_series_fit", {})
-        event_level = temperature_fit.get("event_level", {})
-        event_rates = np.asarray(event_level.get("rates", []), dtype=float)
-        temperatures = np.asarray(temperature_fit.get("temperatures", []), dtype=float)
-        valid = (event_rates > 0) & np.isfinite(event_rates)
-        if len(event_rates) and np.count_nonzero(valid) >= 2:
-            axes[1].plot(1.0 / temperatures[valid], np.log(event_rates[valid]), "o-")
-        axes[1].set(xlabel=r"$1/T$ (K$^{-1}$)", ylabel="ln primitive event rate",
-                    title="event-level activation")
-        fig.suptitle(f"{regime} Arrhenius diagnostics")
-        _save(fig, output / f"{regime}-arrhenius")
+        _arrhenius_figure(
+            regime, ordered, temperature_fit, output / f"{regime}-arrhenius"
+        )
     return output
