@@ -41,6 +41,40 @@
     "J1_all_seeds": "results/campaigns/20260816T033908Z-7ae2f1e60a",
     "J2_all_seeds": "results/campaigns/20260816T033908Z-7840d8f94b"
   },
+  "completed_replacement_audits": {
+    "SC4": {
+      "campaign": "results/campaigns/20260816T020439Z-970230dc4c",
+      "status": "completed",
+      "runs_completed": 5,
+      "tracebacks": 0,
+      "simulation_git_sha": "9007c3c6b5e624c581240e1c193d2df5a86670c6",
+      "analysis_git_sha": "24f42bd3b8f6ea59f80cdd6fc3a12aeadb759b39",
+      "restart_artifacts_hashed": 10,
+      "terminal_cadence_audit": [
+        {"seed": 5101, "manifest_steps_completed": 2430, "checkpoint_step": 2430, "final_grains": 60},
+        {"seed": 5102, "manifest_steps_completed": 2351, "checkpoint_step": 2350, "final_grains": 60},
+        {"seed": 5103, "manifest_steps_completed": 2307, "checkpoint_step": 2306, "final_grains": 60},
+        {"seed": 5104, "manifest_steps_completed": 2683, "checkpoint_step": 2682, "final_grains": 60},
+        {"seed": 5105, "manifest_steps_completed": 2925, "checkpoint_step": 2924, "final_grains": 60}
+      ],
+      "terminal_cadence_note": "This campaign launched before the final off-cadence checkpoint correction. Seed 5101 terminated on the two-step output cadence; the other four manifests truthfully record one additional terminal integration step beyond the last checkpoint/trajectory sample. No terminal state was relabeled or reconstructed.",
+      "growth_fit": {
+        "n": 1.3247681587248024,
+        "n_95pct": [1.0000000000000002, 2.2126188369696633],
+        "K": 0.17632217434903197,
+        "K_95pct": [0.15976725720153345, 0.19510826089877223],
+        "r_squared": 0.9982088650895999
+      },
+      "intermittency": {
+        "jerkiness_CV": 1.1623701973445741,
+        "Fano": 280.95257289043167,
+        "number_of_events": 3698123
+      },
+      "summary": "results/campaigns/20260816T020439Z-970230dc4c/mechanism_summary.csv",
+      "diagnostics": "results/campaigns/20260816T020439Z-970230dc4c/mechanism_summary_diagnostics.json",
+      "plots": "results/campaigns/20260816T020439Z-970230dc4c/plots"
+    }
+  },
   "preserved_scheduling_attempts_excluded": [
     {
       "campaign": "results/campaigns/20260816T022954Z-b7da7df52e",
