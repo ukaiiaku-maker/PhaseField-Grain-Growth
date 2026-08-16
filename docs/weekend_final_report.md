@@ -135,11 +135,12 @@ output-cadence invariance.
 
 ### Qiu-type benchmarks
 
-`results/validation/qiu_regression_benchmarks.json` passes. In the matched
+`results/validation/qiu_regression_benchmarks_213728b2.json` passes on a clean
+post-sign-correction revision. In the matched
 24-grain polycrystal, full-field shear reduces velocity-curvature correlation
-from 0.4358 to 0.3877 and raises active reverse-curvature motion from 12.70% to
-30.85%. The four-grain benchmark raises active reverse motion from 3.09% to
-11.38%. Eigenstrain, nonlocal stress, elastic feedback, and phase-field
+from 0.4358 to 0.3897 and raises active reverse-curvature motion from 12.70% to
+15.35%. The four-grain benchmark raises active reverse motion from 3.09% to
+4.18%. Eigenstrain, nonlocal stress, elastic feedback, and phase-field
 divergence are all finite.
 
 ### Baseline ensemble scaling
