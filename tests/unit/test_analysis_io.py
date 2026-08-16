@@ -221,6 +221,13 @@ def test_event_diagnostics_separates_primitive_rows_and_climb_resistance(tmp_pat
     assert np.isclose(
         detail["climb_expected_resistance_fraction"]["climb_exchange"], 2 / 3
     )
+    residence = detail["event_conditioned_expected_residence"]
+    assert np.isclose(residence["activation_hit"]["quantiles"]["q50"], 0.25)
+    assert np.isclose(residence["climb_nucleation"]["quantiles"]["q50"], 0.5)
+    assert np.isclose(residence["climb_exchange"]["quantiles"]["q50"], 1.0)
+    fractions = detail["event_conditioned_resistance_fraction"]
+    assert np.isclose(sum(fractions.values()), 1.0)
+    assert fractions["climb_exchange"] > fractions["climb_nucleation"]
     assert np.isclose(detail["accumulated_event_strain"]["signed_shear"], 0.3)
     tj = detail["tj_compatibility_failures"]
     assert tj["endpoint_failure_rows"] == 1

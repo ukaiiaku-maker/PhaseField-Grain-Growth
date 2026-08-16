@@ -258,8 +258,13 @@ ranking and immutable hashes are in
 For serial climb, every primitive stage transition records its instantaneous
 rate and hazard threshold. Analysis converts rates to expected residence times
 and reports the nucleation/exchange/transport fraction of total expected
-resistance. Event shear and volumetric strain are summed separately. Comparative
-mechanism results are **pending production inference**.
+resistance. It also reports event-conditioned `1/r` distributions and normalized
+shares for every observed primitive type, separating GB/shear-compatible,
+TJ-compatible, nucleation, exchange, and transport passages. Those shares are
+explicitly diagnostics at observed events, not causal probabilities; matched
+blocked-time comparisons remain necessary for Q8/Q9. Event shear and volumetric
+strain are summed separately. Comparative mechanism results are **pending
+production inference**.
 
 ## 11. Scientific questions Q1--Q24
 

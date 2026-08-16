@@ -369,6 +369,7 @@ def _event_diagnostics(run_dirs: list[Path]) -> dict[str, object]:
     release_counts: Counter[str] = Counter()
     waiting_times: list[float] = []
     stage_samples: dict[str, list[float]] = {}
+    primitive_residence_samples: dict[str, list[float]] = {}
     signed_shear = 0.0
     signed_volumetric = 0.0
     runs_with_events = 0
@@ -425,6 +426,14 @@ def _event_diagnostics(run_dirs: list[Path]) -> dict[str, object]:
         for _, entity in primitive.groupby("entity_id", dropna=False):
             differences = np.diff(np.sort(entity["time"].to_numpy(float)))
             waiting_times.extend(differences[differences > 0].tolist())
+        for event_type, rows in primitive.groupby("event_type"):
+            rates = pd.to_numeric(
+                rows["instantaneous_rate"], errors="coerce"
+            ).to_numpy(float)
+            rates = rates[np.isfinite(rates) & (rates > 0)]
+            primitive_residence_samples.setdefault(str(event_type), []).extend(
+                (1.0 / rates).tolist()
+            )
         stage_rows = primitive[primitive["event_type"].isin({
             "climb_nucleation", "climb_exchange", "climb_transport",
         })]
@@ -455,12 +464,35 @@ def _event_diagnostics(run_dirs: list[Path]) -> dict[str, object]:
     resistance_fraction = {
         key: value / total_resistance for key, value in finite_resistance.items()
     } if total_resistance else {}
+    primitive_resistance = {
+        event_type: float(np.mean(samples))
+        for event_type, samples in primitive_residence_samples.items() if samples
+    }
+    primitive_total = sum(
+        value for value in primitive_resistance.values() if np.isfinite(value)
+    )
+    primitive_resistance_fraction = {
+        key: value / primitive_total
+        for key, value in primitive_resistance.items() if np.isfinite(value)
+    } if primitive_total else {}
     easy_failures = int(tj_failure_families.get("easy", 0))
     return {
         "primitive_event_counts": dict(sorted(primitive_counts.items())),
         "waiting_times_by_entity": _quantiles(waiting_times),
         "climb_expected_stage_residence": stage_residence,
         "climb_expected_resistance_fraction": resistance_fraction,
+        "event_conditioned_expected_residence": {
+            key: _quantiles(samples)
+            for key, samples in sorted(primitive_residence_samples.items())
+        },
+        "event_conditioned_resistance_fraction": dict(sorted(
+            primitive_resistance_fraction.items()
+        )),
+        "event_conditioned_resistance_note": (
+            "Mean 1/r at observed primitive first passages, normalized across event "
+            "types present in this group; an event-conditioned diagnostic, not a "
+            "causal probability or a substitute for blocked-time comparison."
+        ),
         "release_summary_counts": {
             key: int(value) for key, value in sorted(release_counts.items())
         },
