@@ -16,7 +16,7 @@
   campaigns replace the rejected/interrupted SC4, P1, J1, J2, and J3 entries.
 - Independent 256-square convergence campaign:
   `results/campaigns/20260815T083416Z-49423c71d0` (completed).
-- Current fast suite: 87 tests passed in 62.22 seconds under the live
+- Current fast suite: 95 tests passed in 69.47 seconds under the live
   production load.
 - Python 3.13.5, NumPy 2.1.3, SciPy 1.15.3.
 
@@ -237,10 +237,21 @@ burst CCDF, per-entity event waiting times, primitive event types, active-domain
 fraction, and velocity correlations with curvature, shear, free-volume deficit,
 neighbor number, and simultaneous topological neighbors.
 
-The 60-run jerkiness search varies correlation length, `K`, encounter density,
-barrier, and packet renewal duration. Pareto ranking maximizes CV/Fano/burstiness
-subject to positive growth and an exponent near 2 (or a CI containing 2).
-Results are **pending production inference**.
+The completed 60-run jerkiness search varies correlation length, `K`, encounter
+density, barrier, and packet renewal duration. Pareto ranking maximizes
+CV/Fano/burstiness subject to positive growth and an exponent near 2 (or a CI
+containing 2). None of the 12 five-seed candidates passes that strict scaling
+gate, so no candidate is relabeled as physically admissible. The closest is
+`JK-L24-K3-SPARSE`, with `n=1.188` (95% CI `[1.000,1.798]`), trajectory
+CV `1.811`, and Fano factor `4.09`; its CI still excludes 2. At fixed 24-pixel
+correlation length, persistent `K=1,3,5` raises trajectory CV from
+`1.435` to `1.704` to `1.905` and waiting-time burstiness from `-0.075` to
+`-0.018` to `0.025`, while event-count Fano falls from `53.28` to `38.94`
+to `32.87`. Thus increasing `K` is not a scalar increase in “jerkiness”:
+trajectory concentration rises while count overdispersion falls. The complete
+ranking and immutable hashes are in
+`results/campaigns/20260816T025109Z-c0b1b0f774/pareto_summary.csv` and
+`results/validation/jerkiness_search_200_completion.json`.
 
 ## 10. Shear, climb, and resistance attribution
 
@@ -261,16 +272,16 @@ immutable source campaign completes.
 | Q1 | Can high-barrier compatibility events yield strong grain-scale jerkiness with smooth ensemble scaling? | SC4 already gives CV `1.162` and ensemble-fit `R²=0.9982`; final answer awaits the matched 165-condition composite. |
 | Q2 | How does geometric encounter measure set the coarse-grained exponent? | Pending the G-series and explicit-versus-surrogate composite comparison. |
 | Q3 | How do single-hit Poisson and multihit kinetics differ? | Engine-level exponential/Erlang/packet predictions pass; production-scale comparison awaits the composite. |
-| Q4 | Does increasing `K` raise or lower intermittency at fixed spatial correlation? | Pending the 60-run jerkiness search. |
+| Q4 | Does increasing `K` raise or lower intermittency at fixed spatial correlation? | In the completed L24 series, K=1→3→5 raises trajectory CV (1.435→1.704→1.905) and burstiness (-0.075→-0.018→0.025), but lowers event-count Fano (53.28→38.94→32.87); the answer is metric dependent, consistent with multihit self-averaging of event counts. |
 | Q5 | Can reduced shear memory reproduce Qiu-like velocity-curvature decorrelation without full elasticity? | Validation benchmarks show decorrelation for the full-field backend; final reduced-versus-full comparison awaits E1/E2 and S-series aggregation. |
-| Q6 | Can shear memory generate reverse-curvature migration? | Qiu-type benchmarks show active reverse motion rises from 12.70% to 30.85% in the matched full-field case; production attribution awaits the composite. |
+| Q6 | Can shear memory generate reverse-curvature migration? | Corrected-sign Qiu-type benchmarks show active reverse motion rises from 12.70% to 15.35% in the matched full-field case; production attribution awaits the composite. |
 | Q7 | Can climb alone generate intermittency and velocity-curvature decorrelation? | Pending C1--C5 composite results. |
 | Q8 | What resistance fractions arise from nucleation, exchange, transport, shear, and TJ compatibility? | Primitive-stage rates and exposure diagnostics are implemented; final fractions await C/J/SC aggregation. |
 | Q9 | Are simultaneous shear and climb additive in residence time, strongly coupled, or dominated by one process? | Pending SC1--SC4 matched comparison. |
 | Q10 | How does apparent grain-growth activation compare with imposed microscopic barriers? | Fixed-geometry validation recovers 0.65 eV to within 0.0016 eV; production answer awaits both temperature campaigns. |
 | Q11 | Can similar apparent activation energies coexist with very different mobilities? | Pending paired temperature-series inference. |
 | Q12 | Under what conditions does physical stagnation occur? | Stagnation rejection criteria are implemented; production boundaries await mechanism and temperature summaries. |
-| Q13 | Which parameters maximize jerkiness without destroying realistic mean scaling? | Pending constrained Pareto analysis of the 60-run search. |
+| Q13 | Which parameters maximize jerkiness without destroying realistic mean scaling? | None of the 12 completed search candidates passes the strict scaling gate. `JK-L24-K3-SPARSE` is closest (`n=1.188`, CI `[1.000,1.798]`, CV 1.811) but remains rejected; the high-barrier candidate has the largest CV (3.111) and also fails scaling. |
 | Q14 | Can anisotropic stress/curvature selection from an isotropic discrete mode spectrum generate effective shear coupling? | Mode-selection regressions pass; production magnitude awaits E/SC results. |
 | Q15 | Can effective shear coupling acquire temperature dependence through Arrhenius mode occupation rather than an imposed coupling factor? | Pending event-resolved temperature series. |
 | Q16 | How often do low-barrier modes fail explicit TJ compatibility? | Explicit compatibility/failure ledgers are implemented; pending J1/J2 completion. |
