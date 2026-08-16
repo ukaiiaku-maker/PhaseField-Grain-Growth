@@ -93,6 +93,56 @@ def enumerate_campaign(spec: dict[str, Any]) -> list[ModelConfig]:
     return result
 
 
+def compose_completed_campaigns(
+    source_campaigns: list[str | Path], root: str | Path = "results/campaigns",
+    expected_runs: int | None = None,
+) -> Path:
+    """Create an immutable analysis manifest from completed, unique realizations."""
+    selected: dict[tuple[str, float, int], str] = {}
+    provenance = []
+    for source in map(Path, source_campaigns):
+        campaign = json.loads((source / "campaign_manifest.json").read_text())
+        accepted = 0
+        for raw_run in campaign.get("runs", []):
+            run = Path(raw_run)
+            manifest_path = run / "manifest.json"
+            if not manifest_path.exists():
+                continue
+            manifest = json.loads(manifest_path.read_text())
+            if manifest.get("status") != "completed":
+                continue
+            config = manifest["config"]
+            key = (
+                str(config["regime"]), float(config["pf"]["temperature"]),
+                int(config["seed"]),
+            )
+            if key in selected:
+                raise ValueError(
+                    f"duplicate completed realization {key}: {selected[key]} and {run}"
+                )
+            selected[key] = str(run)
+            accepted += 1
+        provenance.append({"campaign": str(source), "completed_runs_accepted": accepted})
+    if expected_runs is not None and len(selected) != expected_runs:
+        raise ValueError(
+            f"composite has {len(selected)} completed runs, expected {expected_runs}"
+        )
+    ordered = [selected[key] for key in sorted(selected)]
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    identity = canonical_hash({"runs": ordered})[:10]
+    target = Path(root) / f"{stamp}-composite-{identity}"
+    target.mkdir(parents=True, exist_ok=False)
+    atomic_write_text(target / "campaign_manifest.json", json.dumps({
+        "status": "completed",
+        "composite": True,
+        "runs": ordered,
+        "runs_total": len(ordered),
+        "source_campaigns": provenance,
+        "composition_git_sha": git_sha(),
+    }, indent=2) + "\n")
+    return target
+
+
 def launch_campaign(spec_path: str | Path, root: str | Path = "results/campaigns",
                     processes: int | None = None) -> Path:
     with Path(spec_path).open(encoding="utf-8") as handle:
