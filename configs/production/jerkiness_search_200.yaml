@@ -34,6 +34,7 @@ base:
     packet_size: 2.0
     packet_window_time: 1.0
     pinned_mobility_fraction: 0.0
+    compress_event_ledger: true
 regimes:
   JK-L6-K1:
     modules: [gb_compatibility, single_hit_poisson]

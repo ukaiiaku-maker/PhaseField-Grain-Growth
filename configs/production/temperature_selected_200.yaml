@@ -56,3 +56,4 @@ base:
     particle_radius: 1.2
     tj_barrier_ev: 0.55
     tj_attempt_frequency: 1000.0
+    compress_event_ledger: true
