@@ -42,7 +42,11 @@ from grain_growth_pf.io.event_ledger import (
 )
 from grain_growth_pf.io.provenance import write_manifest
 from grain_growth_pf.analysis.jerkiness import jerkiness_metrics
-from grain_growth_pf.analysis.plots import _arrhenius_figure, _local_exponent
+from grain_growth_pf.analysis.plots import (
+    _arrhenius_figure,
+    _local_exponent,
+    _tj_failure_figure,
+)
 
 
 def test_growth_and_activation_recover_inputs():
@@ -102,6 +106,21 @@ def test_arrhenius_plot_includes_global_and_local_diagnostics(tmp_path):
     _arrhenius_figure("synthetic", summary, detail, tmp_path / "arrhenius")
     assert (tmp_path / "arrhenius.png").exists()
     assert (tmp_path / "arrhenius.pdf").exists()
+
+
+def test_tj_failure_plot_separates_bare_and_residual_adjusted_barriers(tmp_path):
+    pd.DataFrame({
+        "event_type": ["tj_compatibility_failure"] * 3 + ["disconnection_mode"],
+        "entity_id": ["tj:1", "tj:1", "tj:2", "gb:1"],
+        "barrier_type": ["easy", "easy", "rare", "easy"],
+        "DeltaG0": [0.2, 0.2, 0.8, 0.2],
+        "effective_DeltaG": [0.25, 0.18, 1.0, 0.2],
+        "burgers_vector_b": ["[0.1, 0.0]", "[-0.1, 0.0]", "[0.0, 0.2]", ""],
+    }).to_csv(tmp_path / "events.csv", index=False)
+    target = tmp_path / "tj-failures"
+    assert _tj_failure_figure([tmp_path], target)
+    assert target.with_suffix(".png").exists()
+    assert target.with_suffix(".pdf").exists()
 
 
 def test_ensemble_radius_reports_independent_size_measures():

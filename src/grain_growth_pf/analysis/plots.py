@@ -210,6 +210,65 @@ def _event_figure(paths: list[Path], target: Path) -> None:
     _save(fig, target)
 
 
+def _tj_failure_figure(paths: list[Path], target: Path) -> bool:
+    """Plot explicit TJ endpoint-failure incidence and sampled barriers."""
+    frames = []
+    columns = [
+        "event_type", "entity_id", "barrier_type", "DeltaG0",
+        "effective_DeltaG", "burgers_vector_b",
+    ]
+    for path in paths:
+        event_path = event_ledger_path(path)
+        if not event_ledger_has_rows(event_path):
+            continue
+        frame = read_event_ledger(event_path, columns=columns)
+        failures = frame[frame["event_type"] == "tj_compatibility_failure"]
+        if not failures.empty:
+            frames.append(failures)
+    if not frames:
+        return False
+    failures = pd.concat(frames, ignore_index=True)
+    bare = pd.to_numeric(failures["DeltaG0"], errors="coerce").to_numpy(float)
+    effective = pd.to_numeric(
+        failures["effective_DeltaG"], errors="coerce"
+    ).to_numpy(float)
+    finite_pair = np.isfinite(bare) & np.isfinite(effective)
+    burgers = []
+    for raw in failures["burgers_vector_b"].dropna():
+        try:
+            vector = np.asarray(json.loads(str(raw)), dtype=float)
+        except (TypeError, ValueError, json.JSONDecodeError):
+            continue
+        if vector.size and np.all(np.isfinite(vector)):
+            burgers.append(float(np.linalg.norm(vector)))
+
+    fig, axes = plt.subplots(2, 2, figsize=(10, 7))
+    family_counts = failures["barrier_type"].fillna("unlabeled").value_counts()
+    axes[0, 0].barh(family_counts.index.astype(str), family_counts.to_numpy(), color="C0")
+    axes[0, 0].set(xlabel="endpoint-failure rows", ylabel="mode family",
+                   title="failure incidence by barrier family")
+    axes[0, 1].hist(bare[np.isfinite(bare)], bins=35, alpha=0.65, label="bare")
+    axes[0, 1].hist(effective[np.isfinite(effective)], bins=35, alpha=0.65,
+                    label="effective")
+    axes[0, 1].set(xlabel="barrier (eV)", ylabel="count",
+                   title="sampled failure barriers")
+    axes[0, 1].legend(frameon=False)
+    axes[1, 0].hist(effective[finite_pair] - bare[finite_pair], bins=35, color="C2")
+    axes[1, 0].axvline(0.0, color="0.4", ls="--", lw=1)
+    axes[1, 0].set(xlabel=r"$\Delta G_{effective}-\Delta G_0$ (eV)", ylabel="count",
+                   title="residual-energy barrier shift")
+    axes[1, 1].hist(burgers, bins=35, color="C3")
+    axes[1, 1].set(xlabel="packet Burgers magnitude", ylabel="count",
+                   title="failed endpoint increment")
+    unique_tjs = failures["entity_id"].dropna().nunique()
+    fig.suptitle(
+        f"TJ compatibility failures — {len(failures):,} endpoint rows, "
+        f"{unique_tjs:,} TJ entities"
+    )
+    _save(fig, target)
+    return True
+
+
 def _arrhenius_figure(regime: str, group: pd.DataFrame,
                       temperature_fit: dict, target: Path) -> None:
     """Plot global and adjacent-temperature activation diagnostics."""
@@ -335,6 +394,7 @@ def plot_campaign(campaign_dir: str | Path, output_dir: str | Path | None = None
         _representative_figure(paths[0], output / f"{stem}-representative-grains")
         _boundary_figure(paths, output / f"{stem}-velocity-curvature")
         _event_figure(paths, output / f"{stem}-event-statistics")
+        _tj_failure_figure(paths, output / f"{stem}-tj-compatibility-failures")
 
     fig, axis = plt.subplots(figsize=(7, 5))
     for (regime, temperature), paths in grouped.items():
