@@ -1,5 +1,6 @@
 {
   "analysis_git_sha": "f47c5dee0e5d01aef24f2ac1f1380344275a674a",
+  "post_commit_validation_git_sha": "b5b2dc35ac784f3f31f6af9f0481862120a5ee20",
   "status": "passed",
   "temperatures_K": [
     800.0,
