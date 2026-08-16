@@ -225,6 +225,136 @@ def launch_campaign(spec_path: str | Path, root: str | Path = "results/campaigns
     return campaign_dir
 
 
+def resume_campaign(campaign_path: str | Path, processes: int | None = None) -> Path:
+    """Resume an interrupted campaign in place, including runs not yet started.
+
+    Exact checkpoints remain authoritative. A run marked completed is reused
+    only if it reached a configured stopping condition; this also repairs
+    legacy manifests that could label a KeyboardInterrupt as completion.
+    """
+    campaign_dir = Path(campaign_path)
+    manifest_path = campaign_dir / "campaign_manifest.json"
+    campaign = json.loads(manifest_path.read_text())
+    if "source_spec" not in campaign or "specification" not in campaign:
+        raise ValueError("campaign does not retain a resumable source specification")
+
+    spec_path = Path(campaign["source_spec"])
+    spec = deepcopy(campaign["specification"])
+    if "regime_catalog" in spec:
+        catalog_path = (spec_path.parent / spec["regime_catalog"]).resolve()
+        with catalog_path.open(encoding="utf-8") as handle:
+            catalog = yaml.safe_load(handle)["regimes"]
+        names = spec.pop("regime_names", list(catalog))
+        spec["regimes"] = {name: catalog[name] for name in names}
+    configs = enumerate_campaign(spec)
+    initial_files = campaign.get("initial_condition_files", {})
+    configs = [replace(
+        config,
+        parameters={
+            **config.parameters,
+            **({"initial_state_file": initial_files.get(str(config.seed), initial_files.get(config.seed))}
+               if initial_files.get(str(config.seed), initial_files.get(config.seed)) else {}),
+        },
+    ) for config in configs]
+
+    run_paths = [Path(path) for path in campaign["runs"]]
+    available = set(run_paths)
+    config_paths: list[tuple[ModelConfig, Path]] = []
+    for config in configs:
+        prefix = f"{config.regime}-T{config.pf.temperature:g}-s{config.seed}-"
+        matches = [path for path in available if path.name.startswith(prefix)]
+        if len(matches) != 1:
+            raise ValueError(f"expected one campaign run matching {prefix}, found {len(matches)}")
+        path = matches[0]
+        available.remove(path)
+        config_paths.append((config, path))
+    if available:
+        raise ValueError(f"campaign contains unmatched runs: {sorted(map(str, available))}")
+
+    code_sha = git_sha()
+    payloads: list[tuple[dict[str, Any], str, bool, str]] = []
+    reused: list[str] = []
+    resumed: list[str] = []
+    started: list[str] = []
+    provenance: dict[str, dict[str, Any]] = {}
+    for config, path in config_paths:
+        run_manifest_path = path / "manifest.json"
+        run_manifest = json.loads(run_manifest_path.read_text()) if run_manifest_path.exists() else None
+        checkpoint_path = path / "checkpoint.json"
+        arrays_path = path / "checkpoint.npz"
+        checkpoint = json.loads(checkpoint_path.read_text()) if checkpoint_path.exists() else None
+        reached_step_limit = bool(
+            run_manifest and int(run_manifest.get("steps_completed", -1)) >= config.max_steps
+        )
+        reached_grain_limit = bool(
+            run_manifest and int(run_manifest.get("final_grains", config.termination_grains + 1))
+            <= config.termination_grains
+        )
+        if run_manifest and run_manifest.get("status") == "completed" and (
+            reached_step_limit or reached_grain_limit
+        ):
+            reused.append(str(path))
+            continue
+        if checkpoint is not None and arrays_path.exists():
+            resumed.append(str(path))
+            provenance[str(path)] = {
+                "source_git_sha": run_manifest.get("git_sha") if run_manifest else None,
+                "source_config_sha256": run_manifest.get("config_sha256") if run_manifest else None,
+                "checkpoint_step": int(checkpoint["step_number"]),
+                "checkpoint_time": float(checkpoint["time"]),
+                "resumed_git_sha": code_sha,
+            }
+            payloads.append((config.to_dict(), str(path), True, code_sha))
+            continue
+        if not path.exists():
+            started.append(str(path))
+            payloads.append((config.to_dict(), str(path), False, code_sha))
+            continue
+        raise ValueError(f"incomplete run lacks an exact checkpoint: {path}")
+
+    history = list(campaign.get("restart_history", []))
+    history.append({
+        "time_utc": datetime.now(timezone.utc).isoformat(),
+        "git_sha": code_sha,
+        "reused_completed": reused,
+        "resumed_runs": resumed,
+        "started_queued_runs": started,
+        "restart_provenance": provenance,
+    })
+    workers = min(processes or max(1, mp.cpu_count() - 1), len(payloads)) if payloads else 0
+    running_manifest = {
+        **campaign,
+        "status": "running",
+        "workers": workers,
+        "restart_history": history,
+        "failed_runs": [],
+    }
+    atomic_write_text(manifest_path, json.dumps(running_manifest, indent=2) + "\n")
+
+    if workers == 0:
+        outcomes = []
+    elif workers == 1:
+        outcomes = [_run_one(payload) for payload in payloads]
+    else:
+        with mp.get_context("spawn").Pool(workers) as pool:
+            outcomes = pool.map(_run_one, payloads, chunksize=1)
+    failures = [outcome["path"] for outcome in outcomes if outcome["status"] != "completed"]
+    for path, restart in provenance.items():
+        run_manifest_path = Path(path) / "manifest.json"
+        if run_manifest_path.exists():
+            run_manifest = json.loads(run_manifest_path.read_text())
+            run_history = list(run_manifest.get("restart_history", []))
+            run_history.append(restart)
+            run_manifest["restart_history"] = run_history
+            atomic_write_text(run_manifest_path, json.dumps(run_manifest, indent=2) + "\n")
+    atomic_write_text(manifest_path, json.dumps({
+        **running_manifest,
+        "status": "failed" if failures else "completed",
+        "failed_runs": failures,
+    }, indent=2) + "\n")
+    return campaign_dir
+
+
 def extend_campaign(source_campaigns: list[str | Path], max_steps: int,
                     termination_grains: int, root: str | Path = "results/campaigns",
                     processes: int | None = None) -> Path:

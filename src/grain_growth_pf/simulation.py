@@ -1087,7 +1087,7 @@ class EventResolvedSimulation:
                     self._save_checkpoint()
                 if update_entities and len(self.snapshot.grains) <= self.config.termination_grains:
                     break
-        except Exception as exc:
+        except BaseException as exc:
             failure = f"{type(exc).__name__}: {exc}"
             raise
         finally:
