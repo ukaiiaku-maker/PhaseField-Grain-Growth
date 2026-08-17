@@ -283,6 +283,20 @@ coefficient has only `Q_app=0.143697 eV` (95% CI
 `[0.127936,0.159105]`, `R²=0.99981`). The common exponent is at the lower
 scan bound `n=1`; trajectory CV falls from 1.705 to 1.361 over 800--1100 K
 while event-count Fano rises from 43.3 to 230.8.
+
+The completed T2 persistent-TJ family also gives common `n=1.000` at the
+lower scan bound, with coefficients increasing from `0.041912` at 800 K to
+`0.126131` at 1100 K. Grain-growth activation is `0.275837 eV` (95% CI
+`[0.251763,0.304763]`, Arrhenius `R²=0.99605`); event-rate activation is
+`0.266257 eV` (95% CI `[0.257348,0.274163]`, `R²=0.99926`). The local growth
+slopes range from 0.238 to 0.317 eV, whereas local event slopes decline from
+0.278 to 0.244 eV. This curvature accompanies a changing event-conditioned
+resistance mix: the TJ share falls from 85.25% at 800 K to 66.67% at 1100 K.
+Grain-scale CV falls from 2.266 to 1.450 and stationary fraction from 66.51%
+to 45.68%, while velocity--curvature `R²` remains below `7.1e-4` at every
+temperature. Persistent TJ compatibility therefore preserves measurable
+ensemble kinetics while producing strong, temperature-dependent intermittency.
+
 The plotting path applies the same distinction: it retains event-level
 Arrhenius and local-slope panels even when every growth coefficient is zero.
 
@@ -341,8 +355,8 @@ immutable source campaign completes.
 | Q7 | Can climb alone generate intermittency and velocity-curvature decorrelation? | Pending C1--C5 composite results. |
 | Q8 | What resistance fractions arise from nucleation, exchange, transport, shear, and TJ compatibility? | In corrected SC4, serial climb `1/r` resistance is 99.15% transport, 0.74% exchange, and 0.11% nucleation; final shear/TJ attribution awaits C/J/SC aggregation. |
 | Q9 | Are simultaneous shear and climb additive in residence time, strongly coupled, or dominated by one process? | Corrected SC4 is transport-dominated in observed-event resistance, but causal comparison remains pending the SC1--SC4 matched composite. |
-| Q10 | How does apparent grain-growth activation compare with imposed microscopic barriers? | B1 recovers an imposed 0.45 eV as 0.450000 eV (95% CI `[0.437646,0.462170]`). In G2, event-level Q recovers the 0.25 eV barrier as 0.250122 eV, but growth Q is only 0.143697 eV: the coarse-grained apparent barrier need not equal the microscopic first-passage barrier. |
-| Q11 | Can similar apparent activation energies coexist with very different mobilities? | Pending paired temperature-series inference. |
+| Q10 | How does apparent grain-growth activation compare with imposed microscopic barriers? | B1 recovers an imposed 0.45 eV as 0.450000 eV (95% CI `[0.437646,0.462170]`). In G2, event-level Q recovers 0.25 eV as 0.250122 eV but growth Q is 0.143697 eV. In T2, event and growth Q are 0.266257 and 0.275837 eV despite mixed 0.25/0.55 eV channels. Coarse-grained Q is an emergent observable. |
+| Q11 | Can similar apparent activation energies coexist with very different mobilities? | Yes provisionally: G2 event Q=0.2501 eV and T2 event Q=0.2663 eV are close, while their growth coefficients differ substantially (for example 0.10734 versus 0.06991 at 900 K) because their compatibility statistics differ. Final paired inference awaits all selected regimes. |
 | Q12 | Under what conditions does physical stagnation occur? | Stagnation rejection criteria are implemented; production boundaries await mechanism and temperature summaries. |
 | Q13 | Which parameters maximize jerkiness without destroying realistic mean scaling? | None of the 12 completed search candidates passes the strict scaling gate. `JK-L24-K3-SPARSE` is closest (`n=1.188`, CI `[1.000,1.798]`, CV 1.811) but remains rejected; the high-barrier candidate has the largest CV (3.111) and also fails scaling. |
 | Q14 | Can anisotropic stress/curvature selection from an isotropic discrete mode spectrum generate effective shear coupling? | Mode-selection regressions pass; production magnitude awaits E/SC results. |
@@ -355,7 +369,7 @@ immutable source campaign completes.
 | Q21 | What accumulated strain fractions are shear, climb, and mixed? | Signed shear and volumetric event sums are available; final fractions await SC aggregation. |
 | Q22 | Does apparent grain rotation emerge from event-wise tangential displacement? | Not directly identifiable: orientations are fixed and no grain-rigid-body rotation state is evolved. Event tangential strain is retained, but this remains a stated model limitation. |
 | Q23 | At what temperature does the dominant difficult event cross from shear/TJ compatibility to climb/point-defect control? | Pending the fully physical temperature campaign. |
-| Q24 | Does that crossover curve the Arrhenius plot or change the growth exponent? | Pending common-exponent, local-slope, and Arrhenius-curvature analysis. |
+| Q24 | Does that crossover curve the Arrhenius plot or change the growth exponent? | T2 retains common `n=1` but shows local growth Q from 0.238 to 0.317 eV as its event-conditioned TJ resistance falls from 85.25% to 66.67%; full coupled-regime inference remains pending. |
 
 ## 12. Unexpected physics and preserved failures
 

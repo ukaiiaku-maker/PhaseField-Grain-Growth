@@ -1,0 +1,85 @@
+{
+  "status": "passed",
+  "campaign": "results/campaigns/20260816T143704Z-004ca4c536",
+  "regime": "T2",
+  "temperatures_K": [800.0, 900.0, 1000.0, 1100.0],
+  "realizations_per_temperature": 5,
+  "input_barriers_ev": {"gb_core": 0.25, "tj": 0.55},
+  "common_growth_exponent": 1.0000000000000009,
+  "common_growth_exponent_95pct": [1.0000000000000002, 1.0000000000000553],
+  "growth_coefficients": [
+    0.041911887508680815,
+    0.0699060967803703,
+    0.09504496495744297,
+    0.12613107618629602
+  ],
+  "growth_activation_energy_ev": 0.2758373251880254,
+  "growth_activation_energy_95pct": [0.25176324698012903, 0.30476314535751037],
+  "growth_arrhenius_r_squared": 0.9960473791349564,
+  "local_growth_activation_energy_ev": [
+    0.31741087537484347,
+    0.23824988022830687,
+    0.268230624522465
+  ],
+  "event_counts": [329167, 313789, 317080, 312832],
+  "event_rates_per_domain_time": [
+    0.641053705042546,
+    1.0029834209147088,
+    1.416341511438492,
+    1.8314918809043497
+  ],
+  "event_activation_energy_ev": 0.26625665947751315,
+  "event_activation_energy_95pct": [0.25734837709704345, 0.27416306995141887],
+  "event_arrhenius_r_squared": 0.9992645802533012,
+  "local_event_activation_energy_ev": [
+    0.27772556537726945,
+    0.2676443323738165,
+    0.2436629362881351
+  ],
+  "jerkiness_CV_by_temperature": [
+    2.2657616806416265,
+    1.811342904983381,
+    1.5624946097529198,
+    1.4504008050915687
+  ],
+  "Fano_by_temperature": [
+    64.3230872432123,
+    96.88311204145306,
+    157.96009041739404,
+    251.98539664445948
+  ],
+  "burstiness_by_temperature": [
+    0.2521553406719709,
+    0.11470432757901423,
+    0.01422338477352495,
+    -0.04224512756348706
+  ],
+  "reverse_motion_fraction_by_temperature": [
+    0.471211249192082,
+    0.5060689940156546,
+    0.5514698892927568,
+    0.5835213682766479
+  ],
+  "velocity_curvature_R2_by_temperature": [
+    0.000016829069213458086,
+    0.00015953113784914787,
+    0.0007093943734211378,
+    0.0005565411822388184
+  ],
+  "stationary_fraction_by_temperature": [
+    0.6650991697076409,
+    0.5754646837966542,
+    0.5005650455409503,
+    0.45677827914718516
+  ],
+  "tj_event_conditioned_resistance_fraction_by_temperature": [
+    0.8525140520150505,
+    0.7848506601473958,
+    0.7221254517652468,
+    0.6667224259892464
+  ],
+  "bootstrap_samples": 500,
+  "simulation_git_sha": "990c3a0d96e29290e13612387c32576f16cf993e",
+  "analysis_git_sha": "a4ee5b0c2a278d420862f45b663b018a00fe9f77",
+  "interpretation": "Persistent TJ compatibility produces measurable linear-growth scaling and strong grain-scale intermittency. Event and growth activation energies are close but not identical, and the event-conditioned TJ resistance fraction decreases systematically with temperature."
+}
