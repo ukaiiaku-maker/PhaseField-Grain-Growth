@@ -340,11 +340,13 @@ slopes equal to 0.45 eV within `4e-11`. Its common exponent is `1.63449`
 (95% CI `[1.43851,1.82699]`) over a 70.2% radius increase. The remaining
 selected and fully physical families remain **pending production inference**.
 
-The selected campaign has completed 204/240 runs: B1, G2, T2, S2, C2--C5,
-SC3, and P2 each have all 20 matched temperature/seed conditions. The remaining
-P4 conditions continue with zero tracebacks. The fully
+The selected campaign has completed 210/240 runs: B1, G2, T2, S2, C2--C5,
+SC3, and P2 each have all 20 matched temperature/seed conditions, and P4 is
+10/20. The remaining P4 conditions continue with zero tracebacks before the
+queued J2 family. The fully
 physical campaign is running at `results/campaigns/20260817T082103Z-01b68e843b` with
-220 enumerated conditions and 10 workers; all initially verified manifests
+220 enumerated conditions and 10 workers; five families are complete and
+FP-C4 is in progress. All initially verified manifests
 record clean SHA `878081a206a4b75f243ddfd25821b252c954a87c`. An earlier 10-run
 launch that recorded a dirty SHA is preserved but excluded from inference.
 The completed G2 persistent-multihit family provides the first production
