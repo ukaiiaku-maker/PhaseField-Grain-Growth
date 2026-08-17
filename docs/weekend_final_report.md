@@ -159,8 +159,13 @@ The finalized matrix contains B0--B1, G1--G3, T1--T3, S1--S3, C1--C5,
 SC1--SC4, P1--P5, Q0--Q1, E0--E2, and J1--J3, each with five matched
 realizations at 900 K. The original campaign contributes 146 valid completed
 conditions; corrected whole-condition campaigns supply the remaining 19.
-Results remain **pending production inference** until the five-seed J1 and J2
-repairs complete and the exact 165-condition composite is assembled.
+The exact 165-condition composite is complete, audited, analyzed, and plotted.
+It contains 33 regimes with five matched realizations at 900 K and zero
+tracebacks. Fifteen superseded Q1/E1/SC3 duplicates are replaced by the later
+corrected runs; corrected SC4/J1/J2 and P1/J3 conditions supply the previously
+missing inference set. The authoritative table is
+`results/production_summaries/mechanism_composite_165_summary.csv` and 256
+PNG/PDF plot files are under `results/plots/mechanism_composite_165/`.
 
 Four superseded partial matrices remain preserved. The first diagnosed tracker
 throughput; the second stopped before climb runs after detecting unwired
@@ -254,7 +259,7 @@ uninterrupted. The scope audit is in
 
 ## 7. Growth-law results
 
-**Pending production inference.** Final tables will report free and fixed-`n=2`
+The exact composite reports free and fixed-`n=2`
 fits, objective topology windows, realization bootstrap intervals, exponent
 profiles, local exponents, residual autocorrelation, radius-measure sensitivity,
 population-band sensitivity, and source-manuscript Class-B/Class-C comparators.
@@ -264,6 +269,14 @@ is classified as stagnant/censored before nonlinear fitting: its summary reports
 intermittency, and TJ-failure diagnostics are still retained. This prevents an
 optimizer from assigning a bound-dependent exponent and tiny positive growth
 coefficient to an exactly flat trajectory.
+
+At 900 K, B0/B1 give `n=1.6308/1.6345`; P4 gives `n=1.3935`; 23 activated
+regimes reach the lower scan bound `n=1`; P2/P3 reach the upper bound `n=6`;
+and J1/J2 are censored as physically stagnant. The mechanism coefficients span
+more than five orders of magnitude. Among activated families, event-rich
+E1/SC3 have Fano factors 16,588/15,700 and velocity--curvature `R²` below
+`2.3e-5`, while SC4 has CV 1.172 and Fano 584.8. This breadth is a result, not
+a claim that every bound-limited exponent is uniquely identified.
 
 ## 8. Temperature and activation-energy campaigns
 
@@ -434,6 +447,20 @@ PYTHONPATH=src python scripts/run_campaign.py \
   configs/production/temperature_fully_physical_200.yaml --processes 10
 PYTHONPATH=src python scripts/run_campaign.py \
   configs/production/jerkiness_search_200.yaml --processes 10
+
+PYTHONPATH=src python scripts/compose_campaigns.py \
+  results/campaigns/20260815T115547Z-af440f638c \
+  results/campaigns/20260816T020915Z-e91786f3cd \
+  results/campaigns/20260816T022756Z-876f84d9c9 \
+  results/campaigns/20260816T160354Z-188fe232c6 \
+  --expected-runs 165 --prefer-later-duplicates
+PYTHONPATH=src python scripts/analyze_campaign.py \
+  results/campaigns/20260817T042553Z-composite-28a9a5a185 \
+  --output results/production_summaries/mechanism_composite_165_summary.csv
+PYTHONPATH=src python scripts/plot_campaign.py \
+  results/campaigns/20260817T042553Z-composite-28a9a5a185 \
+  --summary results/production_summaries/mechanism_composite_165_summary.csv \
+  --output results/plots/mechanism_composite_165
 
 PYTHONPATH=src python scripts/analyze_campaign.py results/campaigns/<campaign> \
   --output results/production_summaries/<name>.csv

@@ -1,0 +1,9 @@
+{
+  "status": "rejected_provenance_preserved",
+  "campaign": "results/campaigns/20260817T080953Z-01b68e843b",
+  "configured_runs": 220,
+  "runs_started_before_interrupt": 10,
+  "recorded_simulation_git_sha": "2fbdc74a6cb53ff00a8afa4a6987892edd3605a2-dirty",
+  "reason": "The authoritative composite summary and plots were uncommitted when the campaign launched, so manifests recorded a dirty SHA. The physics was not diagnosed as faulty, but archival production inference requires an exact clean commit.",
+  "action": "The launcher and its workers were stopped without deleting the campaign. Composite outputs are committed before a clean fully physical relaunch."
+}
