@@ -297,6 +297,19 @@ to 45.68%, while velocity--curvature `R²` remains below `7.1e-4` at every
 temperature. Persistent TJ compatibility therefore preserves measurable
 ensemble kinetics while producing strong, temperature-dependent intermittency.
 
+The completed S2 stochastic shear-relaxation family has common `n=1.000`,
+with growth `Q_app=0.101674 eV` (95% CI `[0.083684,0.118337]`, Arrhenius
+`R²=0.98044`) and event-rate activation `0.196481 eV` (95% CI
+`[0.186468,0.206294]`, `R²=0.99506`). Its local growth slope falls from
+0.131 to 0.069 eV and local event slope from 0.221 to 0.157 eV. Across
+800--1100 K, reverse-motion fraction rises from 56.94% to 72.00% while
+velocity--curvature `R²` remains between 0.0014 and 0.0028. Velocity has a
+negative correlation with stored internal shear (`-0.074` to `-0.085`),
+consistent with the implemented negative energy derivative, and accumulated
+signed shear-event strain rises from 18.15 to 29.03. This is direct production
+evidence that reduced local memory can generate Qiu-like decorrelation and
+reverse-curvature migration without a full-field solve.
+
 The plotting path applies the same distinction: it retains event-level
 Arrhenius and local-slope panels even when every growth coefficient is zero.
 
@@ -350,12 +363,12 @@ immutable source campaign completes.
 | Q2 | How does geometric encounter measure set the coarse-grained exponent? | Pending the G-series and explicit-versus-surrogate composite comparison. |
 | Q3 | How do single-hit Poisson and multihit kinetics differ? | Engine-level exponential/Erlang/packet predictions pass; production-scale comparison awaits the composite. |
 | Q4 | Does increasing `K` raise or lower intermittency at fixed spatial correlation? | In the completed L24 series, K=1→3→5 raises trajectory CV (1.435→1.704→1.905) and burstiness (-0.075→-0.018→0.025), but lowers event-count Fano (53.28→38.94→32.87); the answer is metric dependent, consistent with multihit self-averaging of event counts. |
-| Q5 | Can reduced shear memory reproduce Qiu-like velocity-curvature decorrelation without full elasticity? | Validation benchmarks show decorrelation for the full-field backend; final reduced-versus-full comparison awaits E1/E2 and S-series aggregation. |
-| Q6 | Can shear memory generate reverse-curvature migration? | Corrected-sign Qiu-type benchmarks show active reverse motion rises from 12.70% to 15.35% in the matched full-field case; production attribution awaits the composite. |
+| Q5 | Can reduced shear memory reproduce Qiu-like velocity-curvature decorrelation without full elasticity? | Yes. In the completed S2 series, velocity--curvature `R²` is only 0.0014--0.0028 across 800--1100 K, while velocity correlates negatively with stored shear (`-0.074` to `-0.085`). Matched full-field magnitude comparison still awaits the composite. |
+| Q6 | Can shear memory generate reverse-curvature migration? | Yes. S2 reverse-motion fraction increases from 56.94% at 800 K to 72.00% at 1100 K; the negative velocity--stored-shear correlation verifies that reversal emerges from mechanical back force. |
 | Q7 | Can climb alone generate intermittency and velocity-curvature decorrelation? | Pending C1--C5 composite results. |
 | Q8 | What resistance fractions arise from nucleation, exchange, transport, shear, and TJ compatibility? | In corrected SC4, serial climb `1/r` resistance is 99.15% transport, 0.74% exchange, and 0.11% nucleation; final shear/TJ attribution awaits C/J/SC aggregation. |
 | Q9 | Are simultaneous shear and climb additive in residence time, strongly coupled, or dominated by one process? | Corrected SC4 is transport-dominated in observed-event resistance, but causal comparison remains pending the SC1--SC4 matched composite. |
-| Q10 | How does apparent grain-growth activation compare with imposed microscopic barriers? | B1 recovers an imposed 0.45 eV as 0.450000 eV (95% CI `[0.437646,0.462170]`). In G2, event-level Q recovers 0.25 eV as 0.250122 eV but growth Q is 0.143697 eV. In T2, event and growth Q are 0.266257 and 0.275837 eV despite mixed 0.25/0.55 eV channels. Coarse-grained Q is an emergent observable. |
+| Q10 | How does apparent grain-growth activation compare with imposed microscopic barriers? | B1 recovers 0.45 eV exactly within uncertainty. G2 gives event/growth Q of 0.250122/0.143697 eV; T2 gives 0.266257/0.275837 eV; S2 gives 0.196481/0.101674 eV. Coarse-grained Q is an emergent observable and can be far below the event-level slope. |
 | Q11 | Can similar apparent activation energies coexist with very different mobilities? | Yes provisionally: G2 event Q=0.2501 eV and T2 event Q=0.2663 eV are close, while their growth coefficients differ substantially (for example 0.10734 versus 0.06991 at 900 K) because their compatibility statistics differ. Final paired inference awaits all selected regimes. |
 | Q12 | Under what conditions does physical stagnation occur? | Stagnation rejection criteria are implemented; production boundaries await mechanism and temperature summaries. |
 | Q13 | Which parameters maximize jerkiness without destroying realistic mean scaling? | None of the 12 completed search candidates passes the strict scaling gate. `JK-L24-K3-SPARSE` is closest (`n=1.188`, CI `[1.000,1.798]`, CV 1.811) but remains rejected; the high-barrier candidate has the largest CV (3.111) and also fails scaling. |

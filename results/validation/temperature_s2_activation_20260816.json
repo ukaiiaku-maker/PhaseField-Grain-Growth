@@ -1,0 +1,84 @@
+{
+  "status": "passed",
+  "campaign": "results/campaigns/20260816T143704Z-004ca4c536",
+  "regime": "S2",
+  "temperatures_K": [800.0, 900.0, 1000.0, 1100.0],
+  "realizations_per_temperature": 5,
+  "common_growth_exponent": 1.0000000000000007,
+  "common_growth_exponent_95pct": [1.0000000000000002, 1.000000000000004],
+  "growth_coefficients": [
+    0.14282515295155027,
+    0.1765217241220377,
+    0.19832983338816362,
+    0.21332615885782422
+  ],
+  "growth_activation_energy_ev": 0.10167428254749879,
+  "growth_activation_energy_95pct": [0.08368364803038049, 0.11833735492475045],
+  "growth_arrhenius_r_squared": 0.9804382070995719,
+  "local_growth_activation_energy_ev": [
+    0.13142501671979223,
+    0.09034305894312968,
+    0.069093662200821
+  ],
+  "event_counts": [70179, 82972, 95134, 107657],
+  "event_rates_per_domain_time": [
+    0.47687425873808215,
+    0.6809257412449465,
+    0.8750417818791962,
+    1.032398024599123
+  ],
+  "event_activation_energy_ev": 0.19648089462524507,
+  "event_activation_energy_95pct": [0.1864681253477879, 0.20629400199815642],
+  "event_arrhenius_r_squared": 0.9950622423319064,
+  "local_event_activation_energy_ev": [
+    0.22100382946843802,
+    0.19452470074066858,
+    0.1567533511034746
+  ],
+  "jerkiness_CV_by_temperature": [
+    1.436610730878257,
+    1.362726210191412,
+    1.3182150948478626,
+    1.3067196902312115
+  ],
+  "Fano_by_temperature": [
+    63.37820991605364,
+    107.81916087974123,
+    157.64801573239757,
+    189.1470177252207
+  ],
+  "reverse_motion_fraction_by_temperature": [
+    0.5693628673708113,
+    0.6479030430373512,
+    0.6974145321587523,
+    0.7200140918535747
+  ],
+  "velocity_curvature_R2_by_temperature": [
+    0.0014174044189813988,
+    0.0028136687161868586,
+    0.0018026610287582335,
+    0.002663220790350188
+  ],
+  "velocity_internal_shear_correlation_by_temperature": [
+    -0.07350788086891175,
+    -0.08027685578256821,
+    -0.0851278527593913,
+    -0.0833086020663746
+  ],
+  "stationary_fraction_by_temperature": [
+    0.44821940425870616,
+    0.40978797379473086,
+    0.3868305519919342,
+    0.38066874865217415
+  ],
+  "signed_shear_event_strain_by_temperature": [
+    18.14906141493058,
+    21.7612575954861,
+    25.243842230902775,
+    29.03342013888884
+  ],
+  "bootstrap_samples": 500,
+  "simulation_git_sha": "990c3a0d96e29290e13612387c32576f16cf993e",
+  "analysis_git_sha": "2ac3d814393ced10843189cb609f6756b4d9e36d",
+  "interpretation": "Local shear memory produces measurable linear-growth scaling, near-complete velocity-curvature decorrelation, frequent reverse motion, and a negative velocity-internal-shear correlation. Event activation substantially exceeds emergent growth activation, and both have decreasing local slopes with temperature."
+}
