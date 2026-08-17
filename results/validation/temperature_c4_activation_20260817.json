@@ -1,0 +1,68 @@
+{
+  "status": "passed",
+  "campaign": "results/campaigns/20260816T143704Z-004ca4c536",
+  "regime": "C4",
+  "temperatures_K": [800.0, 900.0, 1000.0, 1100.0],
+  "realizations_per_temperature": 5,
+  "common_growth_exponent": 1.0000000000000058,
+  "common_growth_exponent_95pct": [1.0000000000000002, 1.0000000000013856],
+  "growth_coefficients": [
+    0.05735552707161441,
+    0.08178498908807597,
+    0.11824759417926203,
+    0.16330320547650917
+  ],
+  "growth_activation_energy_ev": 0.26469308601291563,
+  "growth_activation_energy_95pct": [0.24165007369794728, 0.288602418056482],
+  "growth_arrhenius_r_squared": 0.993983964674135,
+  "local_growth_activation_energy_ev": [
+    0.2201501532556159,
+    0.2859388584058605,
+    0.30601076080747003
+  ],
+  "event_counts": [536164, 551555, 572810, 574394],
+  "event_domain_time_exposure": [
+    372474.30000001664,
+    247789.3599999994,
+    183217.8199999968,
+    140368.79999999772
+  ],
+  "event_rates_per_domain_time": [
+    1.4394657564293054,
+    2.2259026779842417,
+    3.126388033653113,
+    4.092034697169238
+  ],
+  "event_activation_energy_ev": 0.26434644927463175,
+  "event_activation_energy_95pct": [0.2623256642492782, 0.2668830892676123],
+  "event_arrhenius_r_squared": 0.9998417033756293,
+  "local_event_activation_energy_ev": [
+    0.27044737991322204,
+    0.2634700023060289,
+    0.25514232135840986
+  ],
+  "jerkiness_CV_by_temperature": [
+    1.323779274394326,
+    1.1427695478466329,
+    1.058168188139547,
+    1.0156051020599444
+  ],
+  "Fano_by_temperature": [63.188362, 108.673774, 188.643170, 316.909979],
+  "burstiness_by_temperature": [
+    -0.07108449217853954,
+    -0.1742935295060565,
+    -0.23517768030987352,
+    -0.26984149212102865
+  ],
+  "reverse_motion_fraction_by_temperature": [0.788032, 0.792326, 0.786604, 0.774946],
+  "velocity_curvature_R2_by_temperature": [0.000180, 0.000259, 0.000530, 0.001622],
+  "stationary_fraction_by_temperature": [
+    0.4112029797744425,
+    0.31384780661327494,
+    0.25566020690434643,
+    0.22611399391321232
+  ],
+  "simulation_git_sha": "990c3a0d96e29290e13612387c32576f16cf993e",
+  "analysis_git_sha": "27ea0bbbaa0697280f9df4e28144a2ade7f49296",
+  "interpretation": "The selected transport-limited family retains the lower-bound common exponent n=1. Its isolated growth and event activation energies agree at 0.265 eV; event slopes are nearly temperature invariant while growth slopes rise modestly. This supplies the transport reference for the fully physical FP-C4 comparison."
+}
