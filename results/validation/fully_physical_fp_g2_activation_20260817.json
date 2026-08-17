@@ -1,0 +1,65 @@
+{
+  "status": "passed",
+  "campaign": "results/campaigns/20260817T082103Z-01b68e843b",
+  "regime": "FP-G2",
+  "temperatures_K": [800.0, 900.0, 1000.0, 1100.0],
+  "realizations_per_temperature": 5,
+  "common_growth_exponent": 1.0000000000000007,
+  "common_growth_exponent_95pct": [1.0000000000000002, 1.0000000000000075],
+  "growth_coefficients": [
+    0.05697534074366524,
+    0.10028729728547132,
+    0.20990123860438656,
+    0.4119818172301902
+  ],
+  "growth_activation_energy_ev": 0.5008306521995887,
+  "growth_activation_energy_95pct": [0.47976049989381164, 0.5215897951955516],
+  "growth_arrhenius_r_squared": 0.9812308130502753,
+  "local_growth_activation_energy_ev": [
+    0.3508140055884013,
+    0.5728271283905179,
+    0.6392133552679007
+  ],
+  "event_counts": [182671, 175079, 192581, 212343],
+  "event_rates_per_domain_time": [
+    0.5227449318600732,
+    0.9212758259168279,
+    2.0718698468597903,
+    4.245714522868498
+  ],
+  "event_activation_energy_ev": 0.5317856392156884,
+  "event_activation_energy_95pct": [0.525019199270881, 0.5393154131727873],
+  "event_arrhenius_r_squared": 0.9771525477252563,
+  "local_event_activation_energy_ev": [
+    0.35158668019555,
+    0.6285505101742153,
+    0.6800838028153268
+  ],
+  "jerkiness_CV_by_temperature": [
+    1.7760129975839198,
+    1.5122157113581323,
+    1.391723936964062,
+    1.3395873432832441
+  ],
+  "Fano_by_temperature": [
+    46.04109573183562,
+    88.0312093180198,
+    254.47689920298535,
+    721.1729138764708
+  ],
+  "reverse_motion_fraction_by_temperature": [
+    0.4786633087856549,
+    0.4868321414074446,
+    0.5237549847430826,
+    0.5707689637344407
+  ],
+  "velocity_curvature_R2_by_temperature": [
+    0.001502822956232257,
+    0.0025124112913292107,
+    0.002238451671907531,
+    0.005899195414630284
+  ],
+  "simulation_git_sha": "878081a206a4b75f243ddfd25821b252c954a87c",
+  "analysis_git_sha": "b95e628c325b50dc8dfcf62c7ad5ab28cb8c25a3",
+  "interpretation": "When intrinsic mobility and compatibility events are both temperature dependent, FP-G2 has a growth activation near 0.50 eV and event-exposure activation near 0.53 eV. Strong local-slope curvature shows that neither is a single microscopic barrier, even though the common growth exponent remains at one."
+}

@@ -343,6 +343,17 @@ signed shear-event strain rises from 18.15 to 29.03. This is direct production
 evidence that reduced local memory can generate Qiu-like decorrelation and
 reverse-curvature migration without a full-field solve.
 
+The first completed fully physical family, FP-G2, retains common `n=1.000`
+but has growth `Q_app=0.500831 eV` (95% CI `[0.479760,0.521590]`) and event-
+exposure activation `0.531786 eV` (95% CI `[0.525019,0.539315]`). These are
+far above mechanism-isolation G2 growth/event slopes of 0.143697/0.250122 eV.
+Both fully physical Arrhenius fits are curved: adjacent growth slopes rise
+0.351, 0.573, 0.639 eV and event slopes rise 0.352, 0.629, 0.680 eV. Thus the
+global apparent barrier reflects coupled intrinsic mobility, evolving domain
+exposure, and compatibility kinetics rather than a simple sum of input
+barriers. CV falls from 1.776 to 1.340, Fano rises from 46.0 to 721.2, and the
+common exponent remains unchanged across 800--1100 K.
+
 The plotting path applies the same distinction: it retains event-level
 Arrhenius and local-slope panels even when every growth coefficient is zero.
 
@@ -414,8 +425,8 @@ immutable source campaign completes.
 | Q20 | Can the geometric TJ surrogate reproduce explicit-mode scaling and intermittency? | J3 replacement is complete; final answer awaits J1/J2 and the composite. |
 | Q21 | What accumulated strain fractions are shear, climb, and mixed? | Signed shear and volumetric event sums are available; final fractions await SC aggregation. |
 | Q22 | Does apparent grain rotation emerge from event-wise tangential displacement? | Not directly identifiable: orientations are fixed and no grain-rigid-body rotation state is evolved. Event tangential strain is retained, but this remains a stated model limitation. |
-| Q23 | At what temperature does the dominant difficult event cross from shear/TJ compatibility to climb/point-defect control? | Pending the fully physical temperature campaign. |
-| Q24 | Does that crossover curve the Arrhenius plot or change the growth exponent? | T2 retains common `n=1` but shows local growth Q from 0.238 to 0.317 eV as its event-conditioned TJ resistance falls from 85.25% to 66.67%; full coupled-regime inference remains pending. |
+| Q23 | At what temperature does the dominant difficult event cross from shear/TJ compatibility to climb/point-defect control? | FP-G2 alone cannot locate the cross-family crossover; the remaining fully physical families are required. It already shows a strong slope change between the 800--900 K and higher-temperature intervals. |
+| Q24 | Does that crossover curve the Arrhenius plot or change the growth exponent? | FP-G2 retains common `n=1` while local growth Q rises from 0.351 to 0.639 eV and local event Q from 0.352 to 0.680 eV. Coupled physics clearly curves Arrhenius behavior without changing the fitted common exponent. |
 
 ## 12. Unexpected physics and preserved failures
 
