@@ -11,12 +11,13 @@
 - Validated curvature-scaling milestone: tag `v0.8-scaling-validated`.
 - Original mechanism simulation launch SHA:
   `9e8796e6e9e13bc4bb418662cfc33601adeaa502`.
-- Mechanism campaign: 146 valid completed conditions retained from
-  `results/campaigns/20260815T115547Z-af440f638c`; whole-condition repair
-  campaigns replace the rejected/interrupted SC4, P1, J1, J2, and J3 entries.
+- Exact mechanism composite: 165 matched completed conditions in
+  `results/campaigns/20260817T042553Z-composite-28a9a5a185`, assembled with
+  whole-condition repairs for the rejected/interrupted SC4, P1, J1, J2, and
+  J3 entries and immutable source-run provenance.
 - Independent 256-square convergence campaign:
   `results/campaigns/20260815T083416Z-49423c71d0` (completed).
-- Current fast suite: 102 tests passed in 89.14 seconds under the live
+- Current fast suite: 103 tests passed in 89.98 seconds under the live
   production load.
 - Python 3.13.5, NumPy 2.1.3, SciPy 1.15.3.
 
