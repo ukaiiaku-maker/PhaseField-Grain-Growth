@@ -300,6 +300,14 @@ intrinsic barrier as `0.450000 eV` with bootstrap 95% CI
 slopes equal to 0.45 eV within `4e-11`. Its common exponent is `1.63449`
 (95% CI `[1.43851,1.82699]`) over a 70.2% radius increase. Other selected and
 fully physical results remain **pending production inference**.
+
+The selected campaign has completed 180/240 runs: B1, G2, T2, S2, C2--C5,
+and SC3 each have all 20 matched temperature/seed conditions. The remaining
+P2/P3/final-family conditions continue with zero tracebacks. The fully physical
+campaign is running at `results/campaigns/20260817T082103Z-01b68e843b` with
+220 enumerated conditions and 10 workers; all initially verified manifests
+record clean SHA `878081a206a4b75f243ddfd25821b252c954a87c`. An earlier 10-run
+launch that recorded a dirty SHA is preserved but excluded from inference.
 The completed G2 persistent-multihit family provides the first production
 event/growth separation. Its event rate per integrated GB-domain time recovers
 the imposed 0.25 eV barrier as `0.250122 eV` (95% CI
