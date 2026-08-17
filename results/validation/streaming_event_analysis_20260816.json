@@ -1,0 +1,34 @@
+{
+  "status": "passed",
+  "campaign": "results/campaigns/20260816T160354Z-188fe232c6",
+  "completed_groups_analyzed": [
+    "Q1-T900",
+    "E1-T900",
+    "SC3-T900"
+  ],
+  "realizations_per_group": 5,
+  "primitive_event_rows": {
+    "Q1": 0,
+    "E1": 14879618,
+    "SC3": 16375930,
+    "total": 31255548
+  },
+  "equivalence": {
+    "summary_csv_byte_identical": true,
+    "diagnostic_differences": [
+      "analysis provenance gains the expected -dirty suffix before commit",
+      "batch-order signed-strain summation roundoff is below 8e-12"
+    ],
+    "all_counts_quantiles_fits_and_correlations_identical": true
+  },
+  "memory": {
+    "monolithic_reader_observed_live_rss_kib": 5655840,
+    "streaming_reader_measured_maximum_rss_bytes": 1843392512,
+    "streaming_reader_measured_maximum_rss_kib": 1800188,
+    "observed_rss_reduction_percent": 68.171165,
+    "note": "The monolithic value is a live ps sample and therefore a lower bound on its peak; the streaming value is the maximum resident set reported by /usr/bin/time -l."
+  },
+  "streaming_wall_time_seconds_under_16_live_simulation_workers": 1090.67,
+  "focused_tests": "17 passed in 23.45 s",
+  "full_suite": "99 passed in 79.49 s"
+}

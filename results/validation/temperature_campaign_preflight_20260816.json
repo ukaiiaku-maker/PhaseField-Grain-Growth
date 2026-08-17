@@ -1,0 +1,59 @@
+{
+  "analysis_git_sha": "f47c5dee0e5d01aef24f2ac1f1380344275a674a",
+  "post_commit_validation_git_sha": "b5b2dc35ac784f3f31f6af9f0481862120a5ee20",
+  "status": "passed",
+  "temperatures_K": [
+    800.0,
+    900.0,
+    1000.0,
+    1100.0
+  ],
+  "seeds": [
+    5101,
+    5102,
+    5103,
+    5104,
+    5105
+  ],
+  "mechanism_isolation": {
+    "config": "configs/production/temperature_selected_200.yaml",
+    "regimes": 12,
+    "conditions": 240,
+    "temperature_independent_intrinsic_regimes": 11,
+    "temperature_independent_intrinsic_mobility": 4.0,
+    "arrhenius_intrinsic_control": "B1",
+    "B1_intrinsic_prefactor": 7000.0,
+    "B1_intrinsic_barrier_ev": 0.45,
+    "B1_effective_intrinsic_mobility": {
+      "800": 10.238181179701092,
+      "900": 21.14506124315228,
+      "1000": 37.77442450909609,
+      "1100": 60.7254302528607
+    },
+    "interpretation": "B1 is an intentionally separate Arrhenius intrinsic control. G2, T2, S2, C2-C5, SC3, P2, P4, and J2 retain M=4 while their selected event, exchange, diffusion, or compatibility process remains temperature dependent."
+  },
+  "fully_physical": {
+    "config": "configs/production/temperature_fully_physical_200.yaml",
+    "regimes": 11,
+    "conditions": 220,
+    "all_regimes_use_arrhenius_intrinsic": true,
+    "intrinsic_prefactor": 1325.0,
+    "intrinsic_barrier_ev": 0.45,
+    "effective_intrinsic_mobility": {
+      "800": 1.9379414375862782,
+      "900": 4.0024580210252525,
+      "1000": 7.150158924936046,
+      "1100": 11.494456440720061
+    }
+  },
+  "assertions": {
+    "four_temperatures": true,
+    "five_matched_seeds_per_condition": true,
+    "isolation_condition_count_equals_240": true,
+    "fully_physical_condition_count_equals_220": true,
+    "isolation_noncontrol_intrinsic_mobility_is_constant": true,
+    "fully_physical_intrinsic_mobility_is_arrhenius": true,
+    "fully_physical_mobility_at_900K_is_approximately_4": true
+  },
+  "note": "Configuration-level preflight. Scientific activation energies remain gated on completed campaigns, common-exponent growth fits, censoring-aware event exposure, and Arrhenius curvature diagnostics."
+}

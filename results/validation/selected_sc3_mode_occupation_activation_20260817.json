@@ -1,0 +1,121 @@
+{
+  "status": "passed",
+  "campaign": "results/campaigns/20260816T143704Z-004ca4c536",
+  "regime": "SC3",
+  "temperatures_K": [800.0, 900.0, 1000.0, 1100.0],
+  "realizations_per_temperature": 5,
+  "common_growth_exponent": 1.0000000000000002,
+  "common_growth_exponent_95pct": [1.0000000000000002, 1.0000000000000004],
+  "growth_coefficients": [
+    0.3551031507847139,
+    0.34784400540034816,
+    0.3377341607853687,
+    0.348880398019375
+  ],
+  "growth_activation_energy_ev": -0.007027660042882702,
+  "growth_activation_energy_95pct": [-0.0235104651295479, 0.007731611132244101],
+  "growth_arrhenius_r_squared": 0.3326324565595268,
+  "local_growth_activation_energy_ev": [
+    -0.012814853208504689,
+    -0.022875172614344855,
+    0.030778609699617925
+  ],
+  "event_counts": [16785625, 16375930, 16919692, 16639465],
+  "event_domain_time_exposure": [
+    81344.13999999913,
+    78776.7599999992,
+    80769.03999999915,
+    78981.35999999919
+  ],
+  "event_rates_per_domain_time": [
+    206.3532173307159,
+    207.8776786453285,
+    209.48239572985116,
+    210.6758480735223
+  ],
+  "event_activation_energy_ev": 0.005289500937486383,
+  "event_activation_energy_95pct": [0.004938926504019627, 0.0056574935163434086],
+  "event_arrhenius_r_squared": 0.9967472071996577,
+  "local_event_activation_energy_ev": [
+    0.004566792314815677,
+    0.005963965320042954,
+    0.0053850399595434684
+  ],
+  "jerkiness_CV_by_temperature": [
+    0.8257643340247274,
+    0.8204982644328039,
+    0.8275273930673753,
+    0.8205998015784484
+  ],
+  "Fano_by_temperature": [
+    17889.980087881057,
+    15699.579650724143,
+    18804.955806436064,
+    15429.65512173166
+  ],
+  "reverse_motion_fraction_by_temperature": [
+    0.6669607489279689,
+    0.6674649252441279,
+    0.6690529623530608,
+    0.6729190961088559
+  ],
+  "velocity_curvature_R2_by_temperature": [
+    0.00010993788502187713,
+    0.000022824221257684392,
+    8.237760051204197e-7,
+    0.0001179431866971278
+  ],
+  "accumulated_signed_shear_event_strain_by_temperature": [
+    4832.9522026909735,
+    4692.984347873272,
+    4824.369004991325,
+    4748.589355468746
+  ],
+  "completed_mode_events_by_temperature": [
+    16785625,
+    16375930,
+    16919692,
+    16639465
+  ],
+  "mean_signed_beta_by_temperature": [
+    -0.05083992999962766,
+    -0.05105835210580407,
+    -0.05034299678741197,
+    -0.048047398158534545
+  ],
+  "mean_absolute_beta_by_temperature": [
+    2.3675609338347545,
+    2.364977622644943,
+    2.3603787823088034,
+    2.358268429904447
+  ],
+  "mean_absolute_beta_95pct_by_temperature": [
+    [2.36727933599227, 2.3678409866237033],
+    [2.364432177566747, 2.3657078910806693],
+    [2.359775563133787, 2.3612324106980807],
+    [2.3577780862916584, 2.3588385963158935]
+  ],
+  "easy_mode_fraction_by_temperature": [
+    0.3171563763637041,
+    0.31807842363761935,
+    0.31980960409917625,
+    0.32078609498562605
+  ],
+  "intermediate_mode_fraction_by_temperature": [
+    0.34048496853706667,
+    0.3403935532210995,
+    0.34009620269683394,
+    0.3396866425693374
+  ],
+  "high_mode_fraction_by_temperature": [
+    0.34235865509922925,
+    0.3415280231412811,
+    0.34009419320398976,
+    0.33952726244503656
+  ],
+  "absolute_beta_1100_to_800_ratio": 0.9960750729590488,
+  "simulation_git_sha": "990c3a0d96e29290e13612387c32576f16cf993e",
+  "standard_analysis_git_sha": "4316290b16f3731c7950b154a67095682d36f7ab",
+  "mode_occupation_analysis_git_sha": "f40817edd31e49670981e036c4195902335ed98e",
+  "interpretation": "SC3 has statistically zero apparent growth activation and only 0.00529 eV event-exposure activation, but Arrhenius mode occupation still shifts measurably: mean absolute beta decreases 0.392% from 800 to 1100 K as easy-shell occupation rises and high-shell occupation falls. Effective coupling therefore acquires a small emergent temperature dependence even though the imposed spectrum is fixed and coarse growth remains temperature invariant."
+}

@@ -1,0 +1,55 @@
+{
+  "status": "passed",
+  "campaign": "results/campaigns/20260816T143704Z-004ca4c536",
+  "regime": "G2",
+  "temperatures_K": [800.0, 900.0, 1000.0, 1100.0],
+  "realizations_per_temperature": 5,
+  "input_barrier_core_ev": 0.25,
+  "common_growth_exponent": 1.0000000000000004,
+  "common_growth_exponent_95pct": [1.0000000000000002, 1.0000000000000004],
+  "growth_coefficients": [
+    0.08464752417358104,
+    0.10733972907136549,
+    0.12909869162231596,
+    0.14936324832362735
+  ],
+  "growth_activation_energy_ev": 0.14369727483159803,
+  "growth_activation_energy_95pct": [0.12793566610979099, 0.15910545437722823],
+  "growth_arrhenius_r_squared": 0.9998082300304576,
+  "local_growth_activation_energy_ev": [
+    0.14735824918989388,
+    0.14315156104300142,
+    0.13820866219025832
+  ],
+  "event_counts": [143183, 172152, 198853, 222001],
+  "event_rates_per_domain_time": [
+    0.5996954090295159,
+    0.9206414670710084,
+    1.256650319399882,
+    1.6147103230002786
+  ],
+  "event_activation_energy_ev": 0.2501221755595199,
+  "event_activation_energy_95pct": [0.24031271493907563, 0.26087824287577493],
+  "event_arrhenius_r_squared": 0.9991969395491231,
+  "local_event_activation_energy_ev": [
+    0.2659542879663727,
+    0.24130332297262577,
+    0.23764576334635162
+  ],
+  "jerkiness_CV_by_temperature": [
+    1.7046298961769235,
+    1.5163756838186553,
+    1.4233303607622259,
+    1.3607216084564258
+  ],
+  "Fano_by_temperature": [
+    43.277828507179066,
+    89.65086403267352,
+    144.57268802874233,
+    230.8167181376836
+  ],
+  "bootstrap_samples": 500,
+  "simulation_git_sha": "990c3a0d96e29290e13612387c32576f16cf993e",
+  "analysis_git_sha": "3fa375a64a34380acfea81eddc8034b35f620756",
+  "interpretation": "The event-level estimator recovers the 0.25 eV microscopic barrier, while the emergent growth coefficient has a substantially smaller 0.1437 eV apparent activation energy."
+}

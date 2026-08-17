@@ -1,0 +1,49 @@
+{
+  "status": "superseded_before_climb_regimes_for_production_physics_correction",
+  "audit_time_utc": "2026-08-15T09:40:42Z",
+  "preserved_campaign": "results/campaigns/20260815T091321Z-c93d77afd0",
+  "simulation_git_sha": "6e47468568e2abe339a329adc59600b82caf31d0",
+  "replacement_git_sha": "bd33194",
+  "source_config": "configs/production/mechanism_scaling_200.yaml",
+  "workers": 10,
+  "runs_started": 12,
+  "runs_completed": 2,
+  "mean_checkpoint_step": 839.3333333333334,
+  "climb_regimes_started": 0,
+  "tracebacks": 0,
+  "checkpoint_steps": {
+    "B0-T900-s5101": 1268,
+    "B1-T900-s5101": 1038,
+    "G1-T900-s5101": 944,
+    "G1-T900-s5102": 70,
+    "G2-T900-s5101": 984,
+    "G3-T900-s5101": 972,
+    "T1-T900-s5101": 950,
+    "T2-T900-s5101": 916,
+    "T3-T900-s5101": 918,
+    "S1-T900-s5101": 1014,
+    "S2-T900-s5101": 902,
+    "S2-T900-s5102": 96
+  },
+  "audit_findings": [
+    "Climb production had module implementations for Butler-Volmer exchange and l-squared-over-D transport, but the simulator used three independent plain Arrhenius rates.",
+    "Serial stage changes within one PF step reused the entry-stage rate instead of each stage's distinct rate.",
+    "Packet-reset multihit behavior had encounter reset semantics but no finite renewal duration.",
+    "Intermediate stochastic hits and serial stage transitions were absent from the event ledger."
+  ],
+  "corrections": [
+    "Production exchange rate is absolute Butler-Volmer flux divided by release quota.",
+    "Production transport rate is the reciprocal of C times domain-length-squared over diffusivity.",
+    "Serial stages consume residual timestep using their own rates and write each transition.",
+    "Packet renewal duration is explicit and checkpointed; every stochastic hit is ledgered.",
+    "Activation analysis counts primitive stochastic events without duplicate release-summary rows."
+  ],
+  "validation": {
+    "focused_tests": "34 passed",
+    "full_tests": "70 passed in 38.91 s",
+    "stochastic_validation": true,
+    "numerical_validation": true,
+    "qiu_regression_validation": true
+  },
+  "policy": "All partial checkpoints, event ledgers, and trajectories remain in place. They are excluded from final inference, and the full 165-run matrix is relaunched from the corrected tested SHA."
+}

@@ -1,0 +1,31 @@
+{
+  "date": "2026-08-15",
+  "status": "passed",
+  "motivation": "A live J2 worker sample was dominated by row-wise CSV dictionary serialization and integer/string formatting rather than phase-field kernels or gzip deflation.",
+  "representative_rows": 200000,
+  "formats": {
+    "gzip_csv_level_1": {
+      "elapsed_seconds": 10.102,
+      "bytes": 1327572
+    },
+    "parquet_zstd_level_1_row_conversion": {
+      "table_build_seconds": 3.924,
+      "write_seconds": 0.422,
+      "total_seconds": 4.346,
+      "bytes": 681214
+    },
+    "parquet_zstd_level_1_column_buffer": {
+      "buffer_seconds": 3.002,
+      "table_build_seconds": 2.004,
+      "write_seconds": 0.386,
+      "total_seconds": 5.392,
+      "bytes": 681214
+    }
+  },
+  "selected_implementation": "Fixed-schema column buffers written as one atomic Zstandard Parquet part per authoritative checkpoint.",
+  "restart_contract": "The checkpoint stores the committed part count. Resume deletes all later parts and temporary parts before continuing, while CSV/gzip byte-offset restart remains supported.",
+  "validation": {
+    "focused_restart_tests": "2 passed in 7.62 s",
+    "full_suite": "87 passed in 62.22 s"
+  }
+}

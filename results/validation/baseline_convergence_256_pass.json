@@ -1,0 +1,37 @@
+{
+  "status": "passed_fixed_parabolic_coefficient_convergence",
+  "campaign": "results/campaigns/20260815T083416Z-49423c71d0",
+  "simulation_git_sha": "01de25c351f99750ca9da2c0c04667ddd74bfe3d",
+  "analysis_git_sha": "933cd6a",
+  "grid": [256, 256],
+  "initial_equilibrated_grains": 300,
+  "final_grains": 90,
+  "steps": 3270,
+  "fit_window": {
+    "initial_mean_grain_count": 300,
+    "end_mean_grain_count": 90,
+    "samples": 1596
+  },
+  "free_exponent_sensitivity": {
+    "n": 2.4419707822935477,
+    "K": 4.282313846991908,
+    "r_squared": 0.9920994134215021,
+    "residual_autocorrelation": 0.9965216985101509,
+    "realizations": 1,
+    "confidence_interval_interpretation": "degenerate single-realization sensitivity only"
+  },
+  "fixed_n2": {
+    "K": 1.175343239988519,
+    "r_squared": 0.9911686332563969,
+    "residual_autocorrelation": 0.9968904540006256,
+    "delta_r_squared_vs_free_n": -0.0009307801651051717
+  },
+  "comparison_to_192_ensemble": {
+    "reference": "results/production_summaries/baseline_qiu_extended_20_summary_diagnostics.json",
+    "reference_fixed_n2_K": 1.1385199064317832,
+    "relative_K_difference": 0.03234316180921531
+  },
+  "interpretation": "The larger-grid fixed parabolic coefficient agrees with the validated 192-square, 20-realization value within 3.23%. The free exponent from one realization is retained as sensitivity; its small R-squared improvement and highly autocorrelated residuals do not outweigh the matched n=2 coefficient comparison.",
+  "restart_artifacts_audited": true,
+  "plots": "results/plots/baseline_convergence_256"
+}

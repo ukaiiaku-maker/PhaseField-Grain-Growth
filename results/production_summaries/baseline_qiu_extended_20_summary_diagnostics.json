@@ -2,14 +2,6 @@
   {
     "regime": "B0",
     "temperature": 900.0,
-    "provenance": {
-      "campaign": "results/campaigns/20260815T071339Z-468298c97b",
-      "analysis_git_sha": "17656735da3cfb960b2ada075c18dfcfc4223940",
-      "simulation_git_shas": [
-        "e0b31c5860ca65adcbb26d4f35d671581ee73233"
-      ],
-      "restart_artifact_audit_git_sha": "17656735da3cfb960b2ada075c18dfcfc4223940"
-    },
     "fit_window": {
       "start": 3.200000000000002,
       "end": 99.60000000000436,
@@ -807,7 +799,8 @@
         "r_squared": 0.9994974565697379,
         "residual_autocorrelation": 0.9948695029769711,
         "delta_r_squared_vs_free_n": -3.2127642324186745e-05
-      }
+      },
+      "source_theory_class": "intrinsic_or_unclassified"
     },
     "radius_measure_fits": {
       "R_A": {
@@ -899,7 +892,38 @@
     "correlations": {
       "velocity_internal_shear": NaN,
       "velocity_free_volume_deficit": NaN,
-      "neighbor_number_growth_rate": 0.5100425519373265
+      "neighbor_number_growth_rate": 0.5100425519373265,
+      "raw_reverse_motion_fraction": 0.2740398017550997,
+      "active_boundary_fraction": 0.06882073574088096
+    },
+    "provenance": {
+      "campaign": "results/campaigns/20260815T071339Z-468298c97b",
+      "analysis_git_sha": "d6fd94a7f0c71f905177cbe2e6118671f076d2eb",
+      "simulation_git_shas": [
+        "e0b31c5860ca65adcbb26d4f35d671581ee73233"
+      ],
+      "config_sha256s": [
+        "02ba81a6497d54f48ddf76d5a90c21394249cd4487ba7d4a1ace84fe5ea8d02d",
+        "2e169f8f0d86b44abfde7c24e0bd9f4bb7ee562d5706a488419df5050576d92b",
+        "5590f67a6bbe0a66922279b5f52d818d4589a5cb34a2bb8c30d0ac8826923036",
+        "60bb58e5da912acf641188ccfcc3a6fea86b5e176e4e483dcc083bd704dbfbaf",
+        "61386823a218c2041d9eb93e0763dca8f2d2a38379358a049da304348f0f2a4a",
+        "617d29246bac3fb3d99e1a7083091545f87874dab0709beff2936d57f471a445",
+        "65d5b3dd21983b8d9f92bc9b989d3167172ef9d625921202d5ace4f651166e56",
+        "672e45fe8531ee1c7e6bd0c8748185aa8fb326d67b5ab1784ad9b7fcbf2b560d",
+        "76c085e1d33e8c8b2784f7488780fe0713b05aa957db8318d07e7d05dfa67076",
+        "9befe40e68efc107cb62bfb345cffc8739060261962d14713888ef57cfc6a6ed",
+        "a2e078ab938e2cb740eafa6102c9caa9e58e7e880d97d0dc220c7b9406af53fc",
+        "a5030d86848d0b824e1cf5ac0f781016de5d17a6266149cf1123f21ae3803613",
+        "aae975936bb85da6f1f5854c04d45757224db3e58ed64f23cc8a826011cb14a5",
+        "b86572c2a9a8b38411a32ac7b48fbcbf37ad773c7ce724a458aace2803a903f9",
+        "d60a3f164cf46887dfcf7757ca94fefa70a75ddfdd77e97121b9decb740239a7",
+        "d8ba306caaab43c1e472c3455368564faaa6cac25b505ff0cad1b4a51c5904ab",
+        "e57f69d11a0c2c2124522546ee3517f8764e99058689708490205a33ca459cc3",
+        "e852b09c4161cab7727b69622839a5d057af7e12d177e0ddaa8bd56b00c680d4",
+        "ee8e5ad0c1d1bcd00782ebc322b72d57226a769b61403c462990a715d20e1060",
+        "f890886bcbc04ee87bbf722bc9047a39056a9e9b4f27652ba69a7c18e942667a"
+      ]
     }
   }
 ]

@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "production_run": "results/campaigns/20260816T160354Z-188fe232c6/E1-T900-s5101-b47f55953560",
+  "figures": [
+    "representative grain trajectories with primitive-event overlays",
+    "waiting-time, burst-size, CCDF, and primitive-event-count statistics"
+  ],
+  "event_rows": 6450414,
+  "primitive_event_rows": 3225207,
+  "wall_time_seconds_under_live_production_load": 106.64,
+  "maximum_resident_set_bytes": 358354944,
+  "visual_inspection": "passed",
+  "batch_boundary_test": "2 passed, 16 deselected in 16.56 s",
+  "full_suite": "101 passed in 85.40 s"
+}

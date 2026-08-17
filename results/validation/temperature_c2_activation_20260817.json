@@ -1,0 +1,68 @@
+{
+  "status": "passed",
+  "campaign": "results/campaigns/20260816T143704Z-004ca4c536",
+  "regime": "C2",
+  "temperatures_K": [800.0, 900.0, 1000.0, 1100.0],
+  "realizations_per_temperature": 5,
+  "common_growth_exponent": 1.0000000000000002,
+  "common_growth_exponent_95pct": [1.0000000000000002, 1.000000000000009],
+  "growth_coefficients": [
+    0.10821010033840633,
+    0.1981901398671507,
+    0.30663006107516366,
+    0.3956148091999513
+  ],
+  "growth_activation_energy_ev": 0.33139069724074494,
+  "growth_activation_energy_95pct": [0.30808049087757977, 0.3531014761228426],
+  "growth_arrhenius_r_squared": 0.9927296420444927,
+  "local_growth_activation_energy_ev": [
+    0.3754654451464157,
+    0.3384661200277063,
+    0.24152569306844815
+  ],
+  "event_counts": [1428367, 1685980, 1821320, 2045685],
+  "event_domain_time_exposure": [
+    198362.83999999647,
+    116038.11999999822,
+    78794.59999999903,
+    63362.2399999994
+  ],
+  "event_rates_per_domain_time": [
+    7.200779137866878,
+    14.529535638805815,
+    23.11478197744544,
+    32.2855536672949
+  ],
+  "event_activation_energy_ev": 0.37994227424722354,
+  "event_activation_energy_95pct": [0.376538830676742, 0.3835423459743463],
+  "event_arrhenius_r_squared": 0.9949190371861891,
+  "local_event_activation_energy_ev": [
+    0.43555094624575047,
+    0.36008382420661583,
+    0.31674068766278696
+  ],
+  "jerkiness_CV_by_temperature": [
+    1.1389483162067144,
+    1.0106903971865937,
+    0.9850542564851151,
+    0.9808484750776294
+  ],
+  "Fano_by_temperature": [365.971231, 1152.529528, 2572.459383, 4222.412194],
+  "burstiness_by_temperature": [
+    -0.20544303677071768,
+    -0.2852566955851069,
+    -0.3015844119568383,
+    -0.3212370741698761
+  ],
+  "reverse_motion_fraction_by_temperature": [0.799354, 0.776190, 0.724634, 0.676319],
+  "velocity_curvature_R2_by_temperature": [0.000553, 0.000820, 0.002205, 0.001880],
+  "stationary_fraction_by_temperature": [
+    0.30406980450227283,
+    0.22129177480769716,
+    0.2028924387121366,
+    0.19129530011208523
+  ],
+  "simulation_git_sha": "990c3a0d96e29290e13612387c32576f16cf993e",
+  "analysis_git_sha": "f5d4b86638b62e5e5c9096aeb6ba7d269f521a6f",
+  "interpretation": "The selected climb-quota family retains the lower-bound common exponent n=1. Its mechanism-isolation growth and event activation energies are 0.331 and 0.380 eV, and both adjacent-temperature slopes decline with temperature. This contrasts with fully physical FP-C2, whose intrinsic mobility raises the apparent scale and produces a low-temperature shoulder followed by approximately 0.75 eV slopes."
+}

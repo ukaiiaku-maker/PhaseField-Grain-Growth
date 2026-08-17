@@ -1,0 +1,18 @@
+{
+  "campaign": "results/campaigns/20260816T160354Z-188fe232c6",
+  "config": "configs/production/mechanism_repair_qiu_tj_200.yaml",
+  "config_sha256": "626d05e1fb66e724f4c279a1b508451ea525856dbe9db23999c16c906e6089e6",
+  "regime_catalog_sha256": "2b1e2db4d51e923fa07fdf97daa34a59437628e22518c977a5678ee427599b58",
+  "launch_git_sha": "419109e9f48e8bb048acf9adca1219535c850329",
+  "workers": 10,
+  "runs": 30,
+  "regimes": ["Q1", "E1", "SC3", "SC4", "J1", "J2"],
+  "temperatures_K": [900.0],
+  "seeds": [5101, 5102, 5103, 5104, 5105],
+  "initial_status": {
+    "running": 10,
+    "queued": 20,
+    "tracebacks": 0
+  },
+  "replacement_policy": "All six regimes are rerun from time zero. No state from the excluded same-sign TJ or positive-self-work full-field campaigns is reused."
+}

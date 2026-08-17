@@ -4,8 +4,18 @@ import json
 import numpy as np
 import pandas as pd
 
-from grain_growth_pf.analysis.activation_energy import fit_activation_energy
-from grain_growth_pf.analysis.analytical_models import asymptotic_exponent, intrinsic_radius, poisson_activity, series_activity
+from grain_growth_pf.analysis.activation_energy import (
+    fit_activation_energy,
+    local_activation_energies,
+)
+from grain_growth_pf.analysis.analytical_models import (
+    asymptotic_exponent,
+    crossover_radius_prediction,
+    fit_crossover_growth,
+    intrinsic_radius,
+    poisson_activity,
+    series_activity,
+)
 from grain_growth_pf.analysis.growth_law import (
     fit_common_exponent,
     fit_growth_law,
@@ -13,12 +23,35 @@ from grain_growth_pf.analysis.growth_law import (
     scan_growth_exponent,
 )
 from grain_growth_pf.analysis.grain_tracks import ensemble_radius
-from grain_growth_pf.analysis.campaign import _fit_window
+from grain_growth_pf.analysis.campaign import (
+    analyze_group,
+    _boundary_metrics,
+    _burst_size_ccdf,
+    _event_diagnostics,
+    _event_rate_observation,
+    _fit_window,
+    _spatial_motion_correlation,
+    _trajectory_distributions,
+)
 from grain_growth_pf.disconnections.mode import K_B_EV
-from grain_growth_pf.io.event_ledger import EVENT_FIELDS, EventLedger
+from grain_growth_pf.config import ModelConfig, PFConfig
+from grain_growth_pf.io.event_ledger import (
+    EVENT_FIELDS,
+    EventLedger,
+    event_ledger_has_rows,
+    event_ledger_path,
+    iter_event_ledger,
+    read_event_ledger,
+)
 from grain_growth_pf.io.provenance import write_manifest
 from grain_growth_pf.analysis.jerkiness import jerkiness_metrics
-from grain_growth_pf.analysis.plots import _local_exponent
+from grain_growth_pf.analysis.plots import (
+    _arrhenius_figure,
+    _event_figure,
+    _local_exponent,
+    _representative_figure,
+    _tj_failure_figure,
+)
 
 
 def test_growth_and_activation_recover_inputs():
@@ -47,9 +80,140 @@ def test_growth_and_activation_recover_inputs():
     coefficients = 3e5 * np.exp(-q / (K_B_EV * temps))
     activation = fit_activation_energy(temps, coefficients)
     assert abs(activation.activation_energy_ev - q) < 1e-10
+    _, local_q = local_activation_energies(temps, coefficients)
+    assert np.allclose(local_q, q)
 
     local = _local_exponent(time, radius, half_window=20)
     assert np.allclose(local[np.isfinite(local)], 3.0, atol=0.05)
+
+
+def test_arrhenius_plot_includes_global_and_local_diagnostics(tmp_path):
+    temperatures = np.asarray([800.0, 900.0, 1000.0, 1100.0])
+    coefficients = np.asarray([0.5, 0.8, 1.1, 1.4])
+    summary = pd.DataFrame({
+        "temperature": temperatures, "K": coefficients,
+        "K_ci": 0.05 * coefficients,
+    })
+    detail = {
+        "temperatures": temperatures.tolist(),
+        "activation_energy_ev": 0.42,
+        "activation_energy_95pct": [0.38, 0.46],
+        "local_activation_midpoint_temperature": [850.0, 950.0, 1050.0],
+        "local_activation_energy_ev": [0.40, 0.42, 0.44],
+        "event_level": {
+            "rates": [1.0, 2.0, 4.0, 8.0],
+            "activation_energy_ev": 0.55,
+            "activation_energy_95pct": [0.50, 0.60],
+            "local_activation_midpoint_temperature": [850.0, 950.0, 1050.0],
+            "local_activation_energy_ev": [0.50, 0.55, 0.60],
+        },
+    }
+    _arrhenius_figure("synthetic", summary, detail, tmp_path / "arrhenius")
+    assert (tmp_path / "arrhenius.png").exists()
+    assert (tmp_path / "arrhenius.pdf").exists()
+
+
+def test_arrhenius_plot_retains_event_fit_when_growth_is_stagnant(tmp_path):
+    temperatures = np.asarray([800.0, 900.0, 1000.0, 1100.0])
+    summary = pd.DataFrame({
+        "temperature": temperatures, "K": np.zeros(4), "K_ci": np.zeros(4),
+    })
+    detail = {
+        "temperatures": temperatures.tolist(),
+        "activation_energy_ev": None,
+        "activation_energy_95pct": None,
+        "local_activation_midpoint_temperature": [],
+        "local_activation_energy_ev": [],
+        "event_level": {
+            "rates": [1.0, 2.0, 4.0, 8.0],
+            "activation_energy_ev": 0.55,
+            "activation_energy_95pct": [0.50, 0.60],
+            "local_activation_midpoint_temperature": [850.0, 950.0, 1050.0],
+            "local_activation_energy_ev": [0.50, 0.55, 0.60],
+        },
+    }
+    target = tmp_path / "stagnant-arrhenius"
+    _arrhenius_figure("J2", summary, detail, target)
+    assert target.with_suffix(".png").exists()
+    assert target.with_suffix(".pdf").exists()
+
+
+def test_tj_failure_plot_separates_bare_and_residual_adjusted_barriers(tmp_path):
+    pd.DataFrame({
+        "event_type": ["tj_compatibility_failure"] * 3 + ["disconnection_mode"],
+        "entity_id": ["tj:1", "tj:1", "tj:2", "gb:1"],
+        "barrier_type": ["easy", "easy", "rare", "easy"],
+        "DeltaG0": [0.2, 0.2, 0.8, 0.2],
+        "effective_DeltaG": [0.25, 0.18, 1.0, 0.2],
+        "burgers_vector_b": ["[0.1, 0.0]", "[-0.1, 0.0]", "[0.0, 0.2]", ""],
+    }).to_csv(tmp_path / "events.csv", index=False)
+    target = tmp_path / "tj-failures"
+    assert _tj_failure_figure([tmp_path], target)
+    assert target.with_suffix(".png").exists()
+    assert target.with_suffix(".pdf").exists()
+
+
+def test_event_plots_stream_primitive_rows_across_batches(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        "grain_growth_pf.analysis.plots.iter_event_ledger",
+        lambda path, columns: iter_event_ledger(path, columns, batch_size=2),
+    )
+    areas = np.asarray([9.0, 10.0, 12.0, 8.0, 7.0, 6.0])
+    pd.DataFrame({
+        "run_id": ["plot"] * 6,
+        "time": [0.0, 1.0, 2.0] * 2,
+        "step": [0, 1, 2] * 2,
+        "grain_id": [1, 1, 1, 2, 2, 2],
+        "area": areas,
+        "radius": np.sqrt(areas / np.pi),
+        "perimeter": [12.0, 13.0, 14.0, 11.0, 10.0, 9.0],
+        "neighbors": [4, 4, 5, 4, 3, 3],
+    }).to_csv(tmp_path / "grain_tracks.csv", index=False)
+    pd.DataFrame({
+        "event_type": [
+            "activation_hit", "compatibility_release", "activation_hit",
+            "compatibility_release", "activation_hit",
+        ],
+        "entity_id": ["gb:1"] * 5,
+        "time": [0.25, 0.25, 0.75, 0.75, 1.25],
+    }).to_csv(tmp_path / "events.csv", index=False)
+    representative = tmp_path / "representative"
+    event_statistics = tmp_path / "event-statistics"
+    _representative_figure(tmp_path, representative)
+    _event_figure([tmp_path], event_statistics)
+    for target in (representative, event_statistics):
+        assert target.with_suffix(".png").exists()
+        assert target.with_suffix(".pdf").exists()
+
+
+def test_stagnant_ensemble_suppresses_growth_law_without_losing_diagnostics(tmp_path):
+    run_dirs = []
+    for seed in (1, 2):
+        run = tmp_path / f"run-{seed}"
+        run.mkdir()
+        config = ModelConfig(regime="J1", seed=seed, pf=PFConfig(shape=(8, 8)))
+        (run / "manifest.json").write_text(json.dumps({
+            "config": config.to_dict(), "git_sha": "stagnant-sha", "status": "completed",
+        }))
+        time = np.arange(21.0)
+        frames = []
+        for grain_id in (1, 2):
+            frames.append(pd.DataFrame({
+                "run_id": f"run-{seed}", "time": time,
+                "step": np.arange(len(time)), "grain_id": grain_id,
+                "area": np.full(len(time), 32.0),
+                "radius": np.full(len(time), np.sqrt(32.0 / np.pi)),
+                "perimeter": np.full(len(time), 2.0 * np.sqrt(32.0 * np.pi)),
+                "neighbors": np.full(len(time), 1),
+            }))
+        pd.concat(frames, ignore_index=True).to_csv(run / "grain_tracks.csv", index=False)
+        run_dirs.append(run)
+    row, detail = analyze_group(run_dirs, bootstrap_samples=5)
+    assert np.isnan(row["n"])
+    assert row["K"] == 0.0
+    assert detail["kinetic_observability"]["observable"] is False
+    assert detail["ensemble_fit"]["fit_suppressed"] is True
+    assert detail["event_diagnostics"]["primitive_event_counts"] == {}
 
 
 def test_ensemble_radius_reports_independent_size_measures():
@@ -101,12 +265,147 @@ def test_jerkiness_reports_motion_concentration_and_stationarity():
     assert reason == "five_pct_loss_to_available_end"
 
 
+def test_boundary_reverse_metric_filters_inactive_diffuse_jitter(tmp_path):
+    values = pd.DataFrame({
+        "curvature": [2.0, 1.8, 0.01, -0.01, 0.01, -0.01, 0.01, -0.01],
+        "normal_velocity": [3.0, -2.5, -0.01, 0.01, -0.01, 0.01, -0.01, 0.01],
+        "blocked": [0] * 8,
+        "resolved_shear": [0.0] * 8,
+        "free_volume_deficit": [0.0] * 8,
+    })
+    values.to_csv(tmp_path / "boundary_tracks.csv", index=False)
+    metrics = _boundary_metrics(tmp_path)
+    assert np.isclose(metrics["raw_reverse_motion_fraction"], 7.0 / 8.0)
+    assert np.isclose(metrics["reverse_motion_fraction"], 0.5)
+
+
+def test_spatial_motion_correlation_and_burst_ccdf_are_reported():
+    boundaries = pd.DataFrame({
+        "time": [0.0] * 4,
+        "grain_i": [0, 0, 2, 3], "grain_j": [1, 2, 3, 4],
+        "normal_velocity": [4.0, 4.0, 1.0, 1.0],
+    })
+    assert _spatial_motion_correlation(boundaries) > 0
+    tracks = pd.DataFrame({
+        "grain_id": [0, 0, 0, 1, 1, 1],
+        "time": [0.0, 1.0, 2.0] * 2,
+        "area": [1.0, 2.0, 5.0, 4.0, 4.0, 6.0],
+    })
+    ccdf = _burst_size_ccdf([tracks])
+    assert ccdf["samples"] == 3
+    assert ccdf["probability"][0] == 1.0
+    assert np.all(np.diff(ccdf["probability"]) <= 0)
+    distributions = _trajectory_distributions([tracks])
+    assert distributions["absolute_area_rate"]["samples"] == 4
+    assert distributions["burst_area_increment"]["samples"] > 0
+
+
+def test_event_rate_observation_retains_zero_event_exposure(tmp_path):
+    pd.DataFrame({
+        "time": [0.0, 0.0, 1.0, 1.0, 1.0],
+    }).to_csv(tmp_path / "boundary_tracks.csv", index=False)
+    pd.DataFrame({"time": []}).to_csv(tmp_path / "events.csv", index=False)
+    count, exposure = _event_rate_observation(tmp_path)
+    assert count == 0
+    assert np.isclose(exposure, 2.5)
+
+    pd.DataFrame({"time": [0.2, 0.8]}).to_csv(tmp_path / "events.csv", index=False)
+    count, exposure = _event_rate_observation(tmp_path)
+    assert count == 2
+    assert np.isclose(exposure, 2.5)
+
+    (tmp_path / "events.csv").unlink()
+    pd.DataFrame({
+        "time": [0.2, 0.8],
+        "event_type": ["activation_hit", "compatibility_release"],
+    }).to_csv(tmp_path / "events.csv.gz", index=False, compression="gzip")
+    count, exposure = _event_rate_observation(tmp_path)
+    assert count == 1
+    assert np.isclose(exposure, 2.5)
+    (tmp_path / "events.csv.gz").unlink()
+
+    pd.DataFrame({
+        "time": [0.2, 0.2, 0.8, 0.8],
+        "event_type": ["activation_hit", "compatibility_release",
+                       "climb_exchange", "climb_quota_completion"],
+    }).to_csv(tmp_path / "events.csv", index=False)
+    count, exposure = _event_rate_observation(tmp_path)
+    assert count == 2
+    assert np.isclose(exposure, 2.5)
+
+
+def test_event_diagnostics_separates_primitive_rows_and_climb_resistance(
+    tmp_path, monkeypatch,
+):
+    monkeypatch.setattr(
+        "grain_growth_pf.analysis.campaign.iter_event_ledger",
+        lambda path, columns: iter_event_ledger(path, columns, batch_size=2),
+    )
+    pd.DataFrame({
+        "time": [1.0, 1.0, 1.0, 2.0, 3.0, 3.0],
+        "entity_id": ["gb", "gb", "tj:1-2-3", "gb", "gb", "gb"],
+        "event_type": ["activation_hit", "compatibility_release",
+                       "tj_compatibility_failure", "climb_nucleation",
+                       "climb_exchange", "climb_quota_completion"],
+        "instantaneous_rate": [4.0, 4.0, 4.0, 2.0, 1.0, 1.0],
+        "shear_strain_increment": [0.0, 0.2, 0.0, 0.0, 0.0, 0.1],
+        "volumetric_strain_increment": [0.0, 0.0, 0.0, 0.0, 0.0, 0.3],
+        "barrier_type": ["easy", "easy", "easy", "climb", "climb", "climb"],
+        "DeltaG0": [0.2, 0.2, 0.2, 0.6, 0.6, 0.6],
+        "effective_DeltaG": [0.18, 0.18, 0.27, 0.6, 0.6, 0.6],
+        "burgers_vector_b": ["[0.1, 0.0]"] * 6,
+    }).to_csv(tmp_path / "events.csv", index=False)
+    detail = _event_diagnostics([tmp_path])
+    assert detail["primitive_event_counts"] == {
+        "activation_hit": 1, "climb_exchange": 1, "climb_nucleation": 1,
+    }
+    assert detail["release_summary_counts"] == {
+        "climb_quota_completion": 1, "compatibility_release": 1,
+    }
+    assert np.isclose(
+        detail["climb_expected_resistance_fraction"]["climb_exchange"], 2 / 3
+    )
+    residence = detail["event_conditioned_expected_residence"]
+    assert np.isclose(residence["activation_hit"]["quantiles"]["q50"], 0.25)
+    assert np.isclose(residence["climb_nucleation"]["quantiles"]["q50"], 0.5)
+    assert np.isclose(residence["climb_exchange"]["quantiles"]["q50"], 1.0)
+    fractions = detail["event_conditioned_resistance_fraction"]
+    assert np.isclose(sum(fractions.values()), 1.0)
+    assert fractions["climb_exchange"] > fractions["climb_nucleation"]
+    assert np.isclose(detail["accumulated_event_strain"]["signed_shear"], 0.3)
+    tj = detail["tj_compatibility_failures"]
+    assert tj["endpoint_failure_rows"] == 1
+    assert tj["completed_gb_mode_events"] == 1
+    assert tj["low_barrier_failure_rows"] == 1
+    assert tj["unique_tj_entities"] == 1
+    assert np.isclose(tj["endpoint_failure_incidence_per_mode_event"], 1.0)
+    assert np.isclose(
+        tj["residual_energy_barrier_shift_ev"]["quantiles"]["q50"], 0.07
+    )
+    assert np.isclose(tj["packet_burgers_magnitude"]["quantiles"]["q50"], 0.1)
+
 def test_analytical_limits():
     t = np.arange(4.0)
     assert np.allclose(intrinsic_radius(t, 2, 0.5) ** 2, 4 + t)
     assert np.isclose(poisson_activity(1, 2), 1 - np.exp(-2))
     assert np.isclose(series_activity(0.5, 0.25), 1 / 6)
     assert asymptotic_exponent(1, 3) == 5
+
+
+def test_additive_mechanistic_growth_fits_recover_class_b_and_c():
+    time = np.linspace(0.0, 100.0, 101)
+    class_b_radius = crossover_radius_prediction(time, 3.0, 0.8, 0.04, 2.0)
+    class_b = fit_crossover_growth(time, class_b_radius)
+    assert np.isclose(class_b.intrinsic_constant, 0.8, rtol=2e-3)
+    assert np.isclose(class_b.crossover_strength, 0.04, rtol=2e-3)
+    assert np.isclose(class_b.size_exponent, 2.0, rtol=2e-3)
+    assert class_b.r_squared > 0.999999
+
+    class_c_radius = crossover_radius_prediction(time, 3.0, 0.6, 0.1, 1.0)
+    class_c = fit_crossover_growth(time, class_c_radius, size_exponent=1.0)
+    assert np.isclose(class_c.intrinsic_constant, 0.6, rtol=2e-3)
+    assert np.isclose(class_c.crossover_strength, 0.1, rtol=2e-3)
+    assert class_c.r_squared > 0.999999
 
 
 def test_event_ledger_schema(tmp_path):
@@ -117,6 +416,56 @@ def test_event_ledger_schema(tmp_path):
         row = next(csv.DictReader(handle))
     assert tuple(row) == EVENT_FIELDS
     assert row["normal_step_h"] == "0.2"
+
+
+def test_gzip_event_ledger_truncates_to_checkpoint_member(tmp_path):
+    target = tmp_path / "events.csv.gz"
+    ledger = EventLedger(target)
+    ledger.write({"run_id": "kept", "event_id": 1})
+    offset = ledger.checkpoint()
+    ledger.write({"run_id": "discarded", "event_id": 2})
+    ledger.close()
+
+    resumed = EventLedger(target)
+    resumed.truncate(offset)
+    resumed.write({"run_id": "resumed", "event_id": 3})
+    resumed.close()
+    rows = pd.read_csv(target)
+    assert rows["run_id"].tolist() == ["kept", "resumed"]
+
+
+def test_parquet_event_ledger_truncates_to_checkpoint_part(tmp_path):
+    target = tmp_path / "events.parquet"
+    ledger = EventLedger(target)
+    ledger.write({"run_id": "kept", "event_id": "gb:1-2:0:1", "step": 1})
+    offset = ledger.checkpoint()
+    ledger.write({"run_id": "discarded", "event_id": "gb:1-2:0:2", "step": 2})
+    ledger.checkpoint()
+    ledger.close()
+
+    resumed = EventLedger(target)
+    resumed.truncate(offset)
+    resumed.write({
+        "run_id": "resumed", "event_id": "gb:1-2:0:3", "step": 2,
+        "position": np.asarray([1.5, 2.5]),
+    })
+    resumed.checkpoint()
+    resumed.close()
+
+    assert event_ledger_path(tmp_path) == target
+    assert event_ledger_has_rows(target)
+    rows = read_event_ledger(target)
+    assert rows["run_id"].tolist() == ["kept", "resumed"]
+    assert rows["step"].tolist() == [1, 2]
+    assert rows["position"].iloc[1] == "[1.5, 2.5]"
+    projected = read_event_ledger(target, columns=["event_type", "time", "step"])
+    assert list(projected.columns) == ["event_type", "time", "step"]
+    assert projected["step"].tolist() == [1, 2]
+    streamed = list(iter_event_ledger(
+        target, columns=["event_type", "time", "step"], batch_size=1
+    ))
+    assert [len(frame) for frame in streamed] == [1, 1]
+    assert pd.concat(streamed, ignore_index=True)["step"].tolist() == [1, 2]
 
 
 def test_manifest_can_pin_launch_revision(tmp_path):

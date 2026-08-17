@@ -1,0 +1,42 @@
+{
+  "status": "superseded_for_semantics_equivalent_performance_fix",
+  "preserved_campaign": "results/campaigns/20260815T085359Z-c93d77afd0",
+  "simulation_git_sha": "82a619aab62ae9e0dcc3960879aa6e6871d3044f",
+  "source_config": "configs/production/mechanism_scaling_200.yaml",
+  "workers": 10,
+  "elapsed_at_audit": "00:20:03",
+  "runs_started": 10,
+  "mean_steps_completed": 342.2,
+  "aggregate_observed_steps_per_second": 2.845,
+  "tracebacks": 0,
+  "diagnosis": {
+    "entity_tracker_seconds_per_update_before": 0.523,
+    "entity_tracker_seconds_per_update_after": 0.104,
+    "cause": "Python pixel/TJ iteration plus evaluation of all 48 mode rates on every unblocked geometric-surrogate domain.",
+    "changes": [
+      "Vectorized grain centroids, edge grouping, boundary-domain grouping, and TJ candidate reconstruction.",
+      "Evaluate activation hazards lazily for blocked geometric-surrogate domains.",
+      "Evaluate competing mode barriers and rates as vector arrays for explicit-mode domains."
+    ]
+  },
+  "loaded_machine_ten_step_wall_seconds": {
+    "curvature_B0": 5.9688,
+    "geometric_G1": 11.4318,
+    "explicit_mode_E0": 13.6173
+  },
+  "equivalence": {
+    "real_200_grain_initial_state": {
+      "grain_geometry_exact": true,
+      "boundary_domain_keys_lengths_and_points_exact": true,
+      "triple_junction_keys_and_positions_exact": true,
+      "boundary_domains": 772,
+      "triple_junctions": 400
+    },
+    "vectorized_mode_rates": {
+      "individual_equation_relative_tolerance": 3e-14,
+      "test": "test_vectorized_mode_rates_match_individual_mode_equations"
+    },
+    "component_tests": "63 passed in 37.25 s after the optimized tracker, lazy hazards, vectorized rate competition, and theory-class refinement"
+  },
+  "policy": "Partial checkpoints, event ledgers, and trajectories are retained. No physical failure is inferred; the identical matrix is relaunched from a clean optimized SHA."
+}

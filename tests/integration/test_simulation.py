@@ -1,12 +1,15 @@
 import csv
+import gzip
 import json
 
 import numpy as np
+import pandas as pd
 
 from grain_growth_pf.config import ModelConfig, PFConfig
 from grain_growth_pf.disconnections.mode import ModeDriving
 from grain_growth_pf.pf.initial_conditions import prepare_initial_condition
 from grain_growth_pf.simulation import EventResolvedSimulation
+from grain_growth_pf.stochastic.multihit import MultiHitProcess, poisson_completion_probability
 
 
 def test_event_resolved_smoke_writes_reproducible_schema(tmp_path):
@@ -82,6 +85,235 @@ def test_simulation_wires_quenched_barrier_distribution(tmp_path):
     barriers = np.asarray([mode.barrier_ev for mode in simulation.modes])
     assert np.all((barriers >= 0.4) & (barriers <= 0.7))
     assert np.std(barriers) > 0
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
+def test_vectorized_mode_rates_match_individual_mode_equations(tmp_path):
+    config = ModelConfig(
+        regime="rate-equivalence", seed=191,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01,
+                    temperature=875.0),
+        compatibility_model="explicit_modes", active_modules=("event_modes",),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={"initial_grains": 5, "event_domain_length": 100.0},
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "rate-equivalence")
+    segment = next(iter(simulation.snapshot.boundaries.values()))
+    domain = simulation.domains[segment.entity_id]
+    domain.shear.state = 0.17
+    domain.free_volume.required_total = 0.31
+    candidates, rates, normal, shear, vacancy, effective = simulation._activation_rates(
+        domain, segment
+    )
+    expected = np.asarray([
+        mode.rate(config.pf.temperature, ModeDriving(normal, shear[index], vacancy))
+        for index, mode in enumerate(candidates)
+    ])
+    assert np.allclose(rates, expected, rtol=3e-14, atol=0.0)
+    assert np.allclose(effective, [
+        mode.effective_barrier_ev(ModeDriving(normal, shear[index], vacancy))
+        for index, mode in enumerate(candidates)
+    ])
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
+def test_production_climb_rates_use_butler_volmer_and_l_squared_transport(tmp_path):
+    config = ModelConfig(
+        regime="climb-rates", seed=192,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01,
+                    temperature=900.0),
+        active_modules=("free_volume", "serial_climb"),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={
+            "initial_grains": 5, "event_domain_length": 100.0,
+            "exchange_prefactor": 1e4, "exchange_barrier_ev": 0.4,
+            "transport_prefactor": 1e4, "transport_barrier_ev": 0.5,
+            "free_volume_stiffness": 0.1,
+        },
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "climb-rates")
+    segment = next(iter(simulation.snapshot.boundaries.values()))
+    domain = simulation.domains[segment.entity_id]
+    domain.free_volume.required_total = 0.2
+    _, exchange_1, transport_1 = simulation._stage_rates(domain, segment)
+    domain.free_volume.required_total = 0.4
+    _, exchange_2, _ = simulation._stage_rates(domain, segment)
+    segment.length *= 2.0
+    _, _, transport_2 = simulation._stage_rates(domain, segment)
+    assert exchange_2 > exchange_1
+    assert np.isclose(transport_2, transport_1 / 4.0)
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
+def test_packet_renewal_window_matches_poisson_tail_and_checkpoints_age(tmp_path):
+    config = ModelConfig(
+        regime="packet-renewal", seed=193,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01),
+        compatibility_model="geometric_surrogate",
+        active_modules=("gb_compatibility", "multihit_packet_reset"),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={"initial_grains": 5, "required_hits": 3,
+                    "packet_window_time": 1.0},
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "packet-tail")
+    segment = next(iter(simulation.snapshot.boundaries.values()))
+    domain = simulation.domains[segment.entity_id]
+    rng = np.random.default_rng(194)
+    completed = 0
+    samples, window_hazard = 12000, 2.2
+    for _ in range(samples):
+        domain.activation = MultiHitProcess(3, rng, "packet_reset")
+        domain.packet_window_elapsed = 0.0
+        completions, _ = simulation._advance_activation(domain, window_hazard, 1.0, 0.0)
+        completed += bool(completions)
+    expected = poisson_completion_probability(3, window_hazard)
+    assert abs(completed / samples - expected) < 0.015
+    domain.packet_window_elapsed = 0.37
+    restored = simulation._new_domain(segment)
+    restored.load_state_dict(domain.state_dict())
+    assert restored.packet_window_elapsed == 0.37
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
+def test_packet_reset_cannot_accumulate_hits_across_renewal_windows(tmp_path):
+    config = ModelConfig(
+        regime="packet-memory", seed=195,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01),
+        active_modules=("multihit_packet_reset",),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={"initial_grains": 5, "required_hits": 2,
+                    "packet_window_time": 0.5},
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "packet-memory")
+    segment = next(iter(simulation.snapshot.boundaries.values()))
+    packet = simulation.domains[segment.entity_id]
+    persistent = simulation._new_domain(segment)
+    persistent.activation = MultiHitProcess(2, np.random.default_rng(196), "persistent_hits")
+    for domain in (packet, persistent):
+        domain.activation.clock.cumulative_hazard = 0.0
+        domain.activation.clock.threshold = 0.25
+        domain.activation.clock.last_rate = None
+        first, _ = simulation._advance_activation(domain, 1.0, 0.251, 0.0)
+        assert not first and domain.activation.hit_count == 1
+        domain.activation.clock.threshold = 100.0
+        simulation._advance_activation(domain, 1.0, 0.249, 0.251)
+    assert packet.activation.hit_count == 0
+    assert persistent.activation.hit_count == 1
+    for domain in (packet, persistent):
+        domain.activation.clock.threshold = domain.activation.clock.cumulative_hazard + 0.25
+    packet_completion, _ = simulation._advance_activation(packet, 1.0, 0.251, 0.5)
+    persistent_completion, _ = simulation._advance_activation(persistent, 1.0, 0.251, 0.5)
+    assert not packet_completion
+    assert persistent_completion
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
+def test_packet_release_stops_window_at_completion_time(tmp_path):
+    config = ModelConfig(
+        regime="packet-stop", seed=197,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01),
+        active_modules=("multihit_packet_reset",),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={"initial_grains": 5, "required_hits": 1,
+                    "packet_window_time": 1.0},
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "packet-stop")
+    segment = next(iter(simulation.snapshot.boundaries.values()))
+    domain = simulation.domains[segment.entity_id]
+    domain.activation.clock.cumulative_hazard = 0.0
+    domain.activation.clock.threshold = 0.25
+    domain.activation.clock.last_rate = None
+    completions, hits = simulation._advance_activation(
+        domain, rate=10.0, dt=1.0, start_time=4.0,
+        stop_after_completion=True,
+    )
+    assert len(completions) == len(hits) == 1
+    assert np.isclose(completions[0].time, 4.025)
+    assert np.isclose(domain.packet_window_elapsed, 0.025)
+    assert domain.activation.clock.cumulative_hazard == 0.25
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
+def test_single_hit_blocked_gb_ledger_has_one_hit_per_release(tmp_path):
+    config = ModelConfig(
+        regime="single-hit-ledger", seed=198,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01),
+        compatibility_model="geometric_surrogate",
+        active_modules=("gb_compatibility", "single_hit_poisson"),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={
+            "initial_grains": 5, "required_hits": 1,
+            "attempt_frequency": 1e6, "barrier_core_ev": 0.0,
+            "b_coefficient_ev": 0.0, "h_coefficient_ev": 0.0,
+        },
+    )
+    output = tmp_path / "single-hit-ledger"
+    simulation = EventResolvedSimulation(config, output)
+    simulation.solver.step_number = 1
+    simulation.solver.time = config.pf.time_step
+    for domain in simulation.domains.values():
+        domain.blocked = True
+        simulation._begin_activation_window(domain)
+        domain.activation.clock.threshold = 1e-9
+    simulation._update_physics()
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+    with (output / "events.csv").open() as handle:
+        event_types = [row["event_type"] for row in csv.DictReader(handle)]
+    hits = event_types.count("activation_hit")
+    releases = event_types.count("compatibility_release")
+    assert hits == releases
+    assert releases > 0
+
+
+def test_explicit_modes_gb_compatibility_waits_for_geometric_encounter(tmp_path):
+    config = ModelConfig(
+        regime="explicit-gb-encounter", seed=199,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01),
+        compatibility_model="explicit_modes",
+        active_modules=("gb_compatibility", "single_hit_poisson"),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={
+            "initial_grains": 5, "encounter_density": 1.0,
+            "attempt_frequency": 0.0,
+        },
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "explicit-gb-encounter")
+    simulation.solver.step_number = 1
+    simulation.solver.time = config.pf.time_step
+    for key, segment in simulation.snapshot.boundaries.items():
+        domain = simulation.domains[key]
+        domain.previous_length = segment.length + 1.0
+        domain.encounter.threshold = domain.encounter.cumulative_hazard
+    simulation._update_physics()
+    assert simulation.domains
+    assert all(domain.blocked for domain in simulation.domains.values())
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
+def test_explicit_modes_gb_compatibility_never_uses_ungated_fallback(tmp_path):
+    config = ModelConfig(
+        regime="explicit-gb-no-fallback", seed=200,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01),
+        compatibility_model="explicit_modes",
+        active_modules=("gb_compatibility", "single_hit_poisson"),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={
+            "initial_grains": 5, "encounter_density": 1.0,
+            "attempt_frequency": 1e6, "barrier_core_ev": 0.0,
+            "b_coefficient_ev": 0.0, "h_coefficient_ev": 0.0,
+        },
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "explicit-gb-no-fallback")
+    simulation.solver.step_number = 1
+    simulation.solver.time = config.pf.time_step
+    for key, segment in simulation.snapshot.boundaries.items():
+        domain = simulation.domains[key]
+        domain.previous_length = segment.length
+        domain.encounter.threshold = np.inf
+        domain.activation.clock.threshold = 0.0
+    simulation._update_physics()
+    assert all(not domain.blocked for domain in simulation.domains.values())
+    assert all(domain.event_counter == 0 for domain in simulation.domains.values())
     simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
 
 
@@ -192,6 +424,139 @@ def test_event_simulation_checkpoint_restart_is_exact(tmp_path):
     assert {k: v.state_dict() for k, v in resumed.domains.items()} == {
         k: v.state_dict() for k, v in continuous.domains.items()
     }
+
+
+def test_checkpoint_archive_is_authoritative_if_metadata_replacement_is_interrupted(tmp_path):
+    config = ModelConfig(
+        regime="G1", seed=45,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01,
+                    intrinsic_mobility=0.1, adaptive_stepping=True),
+        compatibility_model="geometric_surrogate",
+        active_modules=("gb_compatibility", "single_hit_poisson"),
+        output_cadence=1, max_steps=3, termination_grains=1,
+        parameters={"initial_grains": 5, "equilibration_steps": 0,
+                    "encounter_density": 2.0, "attempt_frequency": 2.0,
+                    "event_domain_length": 100.0},
+    )
+    output = tmp_path / "interrupted-metadata"
+    simulation = EventResolvedSimulation(config, output)
+    simulation.solver.step()
+    simulation.snapshot = simulation.tracker.update(simulation.solver.labels)
+    simulation._update_physics()
+    simulation._save_checkpoint()
+    saved_eta = simulation.solver.eta.copy()
+    saved_step = simulation.solver.step_number
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+    # Model a process interruption after the archive replacement but before the
+    # companion human-readable metadata replacement.
+    (output / "checkpoint.json").write_text('{"step_number": -1}\n')
+    resumed = EventResolvedSimulation(config, output, resume=True)
+    assert resumed.solver.step_number == saved_step
+    assert np.array_equal(resumed.solver.eta, saved_eta)
+    resumed.ledger.close(); resumed.track_handle.close(); resumed.boundary_handle.close()
+
+
+def test_checkpoint_restores_persistent_triple_junction_state(tmp_path):
+    config = ModelConfig(
+        regime="J2", seed=145,
+        pf=PFConfig(shape=(24, 24), interface_width=3, time_step=0.01,
+                    intrinsic_mobility=0.1, adaptive_stepping=True),
+        compatibility_model="explicit_modes",
+        active_modules=("tj_burgers_residual",),
+        output_cadence=1, max_steps=2, termination_grains=1,
+        parameters={"initial_grains": 12, "equilibration_steps": 0,
+                    "event_domain_length": 100.0},
+    )
+    output = tmp_path / "tj-state-restart"
+    simulation = EventResolvedSimulation(config, output)
+    assert simulation.snapshot.triple_junctions
+    key = sorted(simulation.snapshot.triple_junctions)[0]
+    junction = simulation.snapshot.triple_junctions[key]
+    junction.travel_distance = 2.75
+    junction.compatible = False
+    junction.residual_burgers = np.asarray([0.3, -0.4])
+    junction.event_history = ["stored-test-event"]
+    junction.age = 17
+    simulation._save_checkpoint()
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+    resumed = EventResolvedSimulation(config, output, resume=True)
+    restored = resumed.snapshot.triple_junctions[key]
+    assert np.array_equal(restored.residual_burgers, [0.3, -0.4])
+    assert restored.travel_distance == 2.75
+    assert restored.compatible is False
+    assert restored.event_history == ["stored-test-event"]
+    assert restored.age == 17
+    resumed.ledger.close(); resumed.track_handle.close(); resumed.boundary_handle.close()
+
+
+def test_checkpoint_truncates_buffered_compressed_outputs_on_resume(tmp_path):
+    config = ModelConfig(
+        regime="compressed-restart", seed=46,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01),
+        compatibility_model="explicit_modes", active_modules=("event_modes",),
+        output_cadence=1, max_steps=2, termination_grains=1,
+        parameters={
+            "initial_grains": 5, "compress_event_ledger": True,
+            "attempt_frequency": 100.0, "barrier_core_ev": 0.0,
+            "b_coefficient_ev": 0.0, "h_coefficient_ev": 0.0,
+        },
+    )
+    output = tmp_path / "compressed-restart"
+    simulation = EventResolvedSimulation(config, output)
+    simulation.solver.step()
+    simulation.snapshot = simulation.tracker.update(simulation.solver.labels)
+    simulation._update_physics()
+    simulation._write_tracks()
+    simulation._save_checkpoint()
+    track_lines = sum(1 for _ in (output / "grain_tracks.csv").open())
+    boundary_lines = sum(1 for _ in (output / "boundary_tracks.csv").open())
+
+    simulation.ledger.write({"run_id": "orphan", "event_id": "orphan"})
+    simulation._write_tracks()
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+    assert sum(1 for _ in (output / "grain_tracks.csv").open()) > track_lines
+
+    resumed = EventResolvedSimulation(config, output, resume=True)
+    resumed.ledger.close(); resumed.track_handle.close(); resumed.boundary_handle.close()
+    with gzip.open(output / "events.csv.gz", "rt", newline="") as handle:
+        assert "orphan" not in {row["run_id"] for row in csv.DictReader(handle)}
+    assert sum(1 for _ in (output / "grain_tracks.csv").open()) == track_lines
+    assert sum(1 for _ in (output / "boundary_tracks.csv").open()) == boundary_lines
+
+
+def test_checkpoint_truncates_parquet_event_parts_on_resume(tmp_path):
+    config = ModelConfig(
+        regime="parquet-restart", seed=47,
+        pf=PFConfig(shape=(18, 18), interface_width=3, time_step=0.01),
+        compatibility_model="explicit_modes", active_modules=("event_modes",),
+        output_cadence=1, max_steps=2, termination_grains=1,
+        parameters={
+            "initial_grains": 5, "event_ledger_format": "parquet",
+            "attempt_frequency": 100.0, "barrier_core_ev": 0.0,
+            "b_coefficient_ev": 0.0, "h_coefficient_ev": 0.0,
+        },
+    )
+    output = tmp_path / "parquet-restart"
+    simulation = EventResolvedSimulation(config, output)
+    simulation.solver.step()
+    simulation.snapshot = simulation.tracker.update(simulation.solver.labels)
+    simulation._update_physics()
+    simulation._write_tracks()
+    simulation._save_checkpoint()
+    committed_parts = sorted((output / "events.parquet").glob("part-*.parquet"))
+
+    simulation.ledger.write({"run_id": "orphan", "event_id": "orphan"})
+    simulation.ledger.checkpoint()
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+    assert len(list((output / "events.parquet").glob("part-*.parquet"))) > len(committed_parts)
+
+    resumed = EventResolvedSimulation(config, output, resume=True)
+    resumed.ledger.close(); resumed.track_handle.close(); resumed.boundary_handle.close()
+    events = pd.read_parquet(output / "events.parquet")
+    assert "orphan" not in set(events["run_id"])
+    assert sorted((output / "events.parquet").glob("part-*.parquet")) == committed_parts
 
 
 def test_named_temperature_and_tj_particle_regimes_are_distinct(tmp_path):
@@ -308,3 +673,136 @@ def test_output_cadence_does_not_change_stochastic_trajectory(tmp_path):
     with (tmp_path / "sparse" / "events.csv").open() as handle:
         sparse_events = [{k: v for k, v in row.items() if k != "run_id"} for row in csv.DictReader(handle)]
     assert frequent_events == sparse_events
+
+
+def test_gb_event_adds_opposite_burgers_increments_at_its_two_tjs(tmp_path):
+    config = ModelConfig(
+        regime="J2", seed=141,
+        pf=PFConfig(shape=(28, 28), interface_width=3, time_step=0.01),
+        mechanics_backend="qiu_full_field", compatibility_model="explicit_modes",
+        active_modules=("tj_burgers_residual",),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={"initial_grains": 10, "packet_size": 2.0},
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "signed-tj")
+    segment = next(
+        segment for segment in simulation.snapshot.boundaries.values()
+        if len(simulation._boundary_to_tjs.get(segment.entity_id, ())) == 2
+    )
+    domain = simulation.domains[segment.entity_id]
+    mode = simulation.modes[0]
+    attached = simulation._boundary_to_tjs[segment.entity_id]
+    before = [tj.residual_burgers.copy() for tj in attached]
+    simulation._record_event(
+        domain, segment, mode, 1.0, ModeDriving(), "signed-test", 0.0
+    )
+    increments = [tj.residual_burgers - old for tj, old in zip(attached, before)]
+    expected = 2.0 * np.asarray(mode.burgers)
+    assert np.allclose(increments[0], expected)
+    assert np.allclose(increments[1], -expected)
+    assert np.allclose(increments[0] + increments[1], 0.0)
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
+def test_finite_tj_residual_back_stress_favors_relaxing_mode(tmp_path):
+    config = ModelConfig(
+        regime="J2", seed=142,
+        pf=PFConfig(shape=(28, 28), interface_width=3, time_step=0.01),
+        mechanics_backend="qiu_full_field", compatibility_model="explicit_modes",
+        active_modules=("tj_burgers_residual",),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={
+            "initial_grains": 10, "packet_size": 2.0,
+            "tj_residual_stiffness_ev": 2.0,
+        },
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "tj-back-stress")
+    segment = next(
+        segment for segment in simulation.snapshot.boundaries.values()
+        if simulation._boundary_to_tjs.get(segment.entity_id)
+    )
+    first_tj, first_sign = simulation._signed_boundary_tjs(segment)[0]
+    first_tj.residual_burgers[:] = (first_sign, 0.0)
+    candidates, rates, _, _, _, effective = simulation._activation_rates(
+        simulation.domains[segment.entity_id], segment
+    )
+    positive = next(
+        index for index, mode in enumerate(candidates)
+        if np.allclose(mode.burgers, (0.25, 0.0)) and mode.step_height > 0
+    )
+    negative = next(
+        index for index, mode in enumerate(candidates)
+        if np.allclose(mode.burgers, (-0.25, 0.0)) and mode.step_height > 0
+    )
+    relaxing, increasing = (negative, positive) if first_sign > 0 else (positive, negative)
+    assert rates[relaxing] > rates[increasing]
+    assert effective[relaxing] < effective[increasing]
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+
+
+def test_strict_tj_residual_gates_additional_gb_events(tmp_path):
+    config = ModelConfig(
+        regime="J1", seed=143,
+        pf=PFConfig(shape=(28, 28), interface_width=3, time_step=0.01),
+        compatibility_model="explicit_modes", active_modules=("tj_burgers_strict",),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={"initial_grains": 10, "attempt_frequency": 1e6},
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "strict-tj-gate")
+    segment = next(
+        segment for segment in simulation.snapshot.boundaries.values()
+        if simulation._boundary_to_tjs.get(segment.entity_id)
+    )
+    domain = simulation.domains[segment.entity_id]
+    domain.activation.clock.threshold = 0.0
+    simulation.solver.step_number = 1
+    simulation.solver.time = config.pf.time_step
+    position = json.dumps(segment.points.mean(axis=0).tolist())
+    field_position = tuple(segment.points[len(segment.points) // 2].astype(int))
+    simulation._advance_tj_coupled_mode_flux(
+        domain, segment, 0.0, position, field_position
+    )
+    first_count = domain.event_counter
+    assert first_count >= 3  # primitive hit, mode event, and at least one TJ failure
+    assert any(
+        np.linalg.norm(tj.residual_burgers) > 0
+        for tj in simulation._boundary_to_tjs[segment.entity_id]
+    )
+    simulation._advance_tj_coupled_mode_flux(
+        domain, segment, 0.0, position, field_position
+    )
+    assert domain.event_counter == first_count
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()
+    with (tmp_path / "strict-tj-gate" / "events.csv").open() as handle:
+        failures = [
+            row for row in csv.DictReader(handle)
+            if row["event_type"] == "tj_compatibility_failure"
+        ]
+    assert failures
+    assert all(row["DeltaG0"] and row["effective_DeltaG"] for row in failures)
+    assert all(row["burgers_vector_b"] for row in failures)
+
+
+def test_strict_tj_relaxation_uses_the_same_packet_scale(tmp_path):
+    config = ModelConfig(
+        regime="J1", seed=144,
+        pf=PFConfig(shape=(28, 28), interface_width=3, time_step=0.01),
+        compatibility_model="explicit_modes", active_modules=("tj_burgers_strict",),
+        output_cadence=1, max_steps=1, termination_grains=1,
+        parameters={
+            "initial_grains": 10, "packet_size": 2.0,
+            "tj_barrier_ev": 0.0, "tj_attempt_frequency": 1e6,
+        },
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "strict-tj-packet")
+    tj = next(iter(simulation.snapshot.triple_junctions.values()))
+    domain = simulation.tj_domains[tj.entity_id]
+    tj.residual_burgers[:] = (0.5, 0.0)
+    domain.blocked = True
+    domain.activation.clock.threshold = 0.0
+    simulation.solver.step_number = 1
+    simulation.solver.time = config.pf.time_step
+    simulation._update_tj_physics(np.ones(config.pf.shape))
+    assert np.linalg.norm(tj.residual_burgers) < 1e-12
+    assert not domain.blocked
+    simulation.ledger.close(); simulation.track_handle.close(); simulation.boundary_handle.close()

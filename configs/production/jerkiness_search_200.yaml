@@ -32,7 +32,9 @@ base:
     h_coefficient_ev: 0.02
     attempt_frequency: 10.0
     packet_size: 2.0
+    packet_window_time: 1.0
     pinned_mobility_fraction: 0.0
+    compress_event_ledger: true
 regimes:
   JK-L6-K1:
     modules: [gb_compatibility, single_hit_poisson]
@@ -63,6 +65,12 @@ regimes:
     parameters: {event_domain_length: 24.0, required_hits: 3, barrier_core_ev: 0.40}
   JK-L24-K3-PACKET:
     modules: [gb_compatibility, multihit_packet_reset]
-    parameters: {event_domain_length: 24.0, required_hits: 3, packet_size: 4.0}
+    parameters: {event_domain_length: 24.0, required_hits: 3, packet_window_time: 1.0}
+  JK-L24-K3-PACKET-W05:
+    modules: [gb_compatibility, multihit_packet_reset]
+    parameters: {event_domain_length: 24.0, required_hits: 3, packet_window_time: 0.5}
+  JK-L24-K3-PACKET-W2:
+    modules: [gb_compatibility, multihit_packet_reset]
+    parameters: {event_domain_length: 24.0, required_hits: 3, packet_window_time: 2.0}
 temperatures: [900.0]
 seeds: [5101, 5102, 5103, 5104, 5105]

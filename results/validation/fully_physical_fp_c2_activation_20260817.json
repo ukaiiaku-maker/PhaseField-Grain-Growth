@@ -1,0 +1,89 @@
+{
+  "status": "passed",
+  "campaign": "results/campaigns/20260817T082103Z-01b68e843b",
+  "regime": "FP-C2",
+  "temperatures_K": [800.0, 900.0, 1000.0, 1100.0],
+  "realizations_per_temperature": 5,
+  "common_growth_exponent": 1.0000000000000002,
+  "common_growth_exponent_95pct": [1.0000000000000002, 1.00000000000001],
+  "growth_coefficients": [
+    0.07775093076237936,
+    0.19557222402799135,
+    0.5097543075985765,
+    1.1116380486087345
+  ],
+  "growth_activation_energy_ev": 0.675428278613775,
+  "growth_activation_energy_95pct": [0.6439930535485822, 0.7016733675849788],
+  "growth_arrhenius_r_squared": 0.9956337226823337,
+  "local_growth_activation_energy_ev": [
+    0.5723131563278967,
+    0.7429857884707783,
+    0.7390459162262659
+  ],
+  "event_counts": [1737969, 1627447, 1816169, 1937304],
+  "event_domain_time_exposure": [
+    275006.8600000046,
+    112396.43999999831,
+    47965.67371445736,
+    22932.833871654213
+  ],
+  "event_rates_per_domain_time": [
+    6.319729624199088,
+    14.479524440454025,
+    37.86393183616615,
+    84.47730493502488
+  ],
+  "event_activation_energy_ev": 0.6585820308061728,
+  "event_activation_energy_95pct": [0.6562939865325225, 0.6608911076490533],
+  "event_arrhenius_r_squared": 0.9907726514859786,
+  "local_event_activation_energy_ev": [
+    0.5143880671756378,
+    0.7455174739336342,
+    0.7606798563665454
+  ],
+  "jerkiness_CV_by_temperature": [
+    1.1591244879628835,
+    1.0079724773591403,
+    0.9769570828782023,
+    0.9828436574878241
+  ],
+  "Fano_by_temperature": [
+    325.169826,
+    1170.847667,
+    4613.163366,
+    17747.326172
+  ],
+  "burstiness_by_temperature": [
+    -0.10740912305385333,
+    -0.2823675504082093,
+    -0.33319871490812575,
+    -0.3508955222154729
+  ],
+  "reverse_motion_fraction_by_temperature": [
+    0.763662,
+    0.776545,
+    0.748123,
+    0.703304
+  ],
+  "raw_reverse_motion_fraction_by_temperature": [
+    0.5426798462851247,
+    0.5352998219480445,
+    0.5503808321419335,
+    0.5652652674278487
+  ],
+  "velocity_curvature_R2_by_temperature": [
+    0.001196,
+    0.002043,
+    0.000933,
+    0.001025
+  ],
+  "stationary_fraction_by_temperature": [
+    0.34343415121487897,
+    0.22235212156855666,
+    0.19145537061703674,
+    0.1845442697846182
+  ],
+  "simulation_git_sha": "878081a206a4b75f243ddfd25821b252c954a87c",
+  "analysis_git_sha": "f40817edd31e49670981e036c4195902335ed98e",
+  "interpretation": "Fully physical climb-quota kinetics retain the lower-bound common exponent n=1. Growth and event activation agree at 0.675 and 0.659 eV, with a low-temperature shoulder and high-temperature local slopes near 0.74--0.76 eV. Climb alone remains intermittent and strongly velocity--curvature decorrelated while intrinsic Arrhenius mobility raises the apparent activation scale."
+}

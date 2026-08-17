@@ -1,0 +1,77 @@
+{
+  "status": "passed",
+  "campaign": "results/campaigns/20260817T082103Z-01b68e843b",
+  "regime": "FP-T2",
+  "temperatures_K": [800.0, 900.0, 1000.0, 1100.0],
+  "realizations_per_temperature": 5,
+  "common_growth_exponent": 1.0000000000000007,
+  "common_growth_exponent_95pct": [1.0000000000000002, 1.0000000000000653],
+  "growth_coefficients": [
+    0.024801855270900036,
+    0.07168948793157583,
+    0.16033904870695762,
+    0.34223197558519913
+  ],
+  "growth_activation_energy_ev": 0.6586464008875985,
+  "growth_activation_energy_95pct": [0.6299129206827859, 0.6827587083958971],
+  "growth_arrhenius_r_squared": 0.9994280877077741,
+  "local_growth_activation_energy_ev": [
+    0.6585594257689001,
+    0.6242843043986022,
+    0.7187010947129997
+  ],
+  "event_counts": [253633, 306529, 313392, 318167],
+  "event_rates_per_domain_time": [
+    0.4871977404342025,
+    0.9986299376763805,
+    2.3341338584457647,
+    4.846352331140863
+  ],
+  "event_activation_energy_ev": 0.5827456447980135,
+  "event_activation_energy_95pct": [0.5761931537983581, 0.5895105792929425],
+  "event_arrhenius_r_squared": 0.9889151503534263,
+  "local_event_activation_energy_ev": [
+    0.44530433550171644,
+    0.6584596524447792,
+    0.6925268049145186
+  ],
+  "jerkiness_CV_by_temperature": [
+    2.26155966260602,
+    1.798687314400929,
+    1.5565484099630302,
+    1.4293579079408842
+  ],
+  "Fano_by_temperature": [
+    70.86338660834203,
+    106.09852729358265,
+    269.1299330584362,
+    730.0508841625837
+  ],
+  "reverse_motion_fraction_by_temperature": [
+    0.46186467145115345,
+    0.5042124233421578,
+    0.5436914598262907,
+    0.5875976056865084
+  ],
+  "velocity_curvature_R2_by_temperature": [
+    0.00015034205991253837,
+    0.00010278125283376611,
+    0.00023674327132487536,
+    0.0006539178809822146
+  ],
+  "tj_event_conditioned_resistance_fraction_by_temperature": [
+    0.8407053384522445,
+    0.7862115138230388,
+    0.7243095425561084,
+    0.6663746881040739
+  ],
+  "stationary_fraction_by_temperature": [
+    0.6950741830856902,
+    0.5730590173335833,
+    0.49244601958809653,
+    0.443057616624461
+  ],
+  "simulation_git_sha": "878081a206a4b75f243ddfd25821b252c954a87c",
+  "analysis_git_sha": "65bb12f3b54b676a610a44a29ed1cdc9318df753",
+  "interpretation": "Fully physical persistent TJ compatibility has a 0.659 eV emergent growth activation and a 0.583 eV event-exposure activation. The low-temperature event slope differs sharply from the two higher-temperature intervals while the common growth exponent remains one."
+}

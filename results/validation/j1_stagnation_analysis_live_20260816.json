@@ -1,0 +1,34 @@
+{
+  "analysis_git_sha": "33791759b7dac86bc3a627a6acf059889d10d1b6",
+  "status": "passed_live_snapshot",
+  "campaign": "results/campaigns/20260816T160354Z-188fe232c6",
+  "run": "results/campaigns/20260816T160354Z-188fe232c6/J1-T900-s5101-cbaab0649f49",
+  "regime": "J1",
+  "temperature_K": 900.0,
+  "checkpoint_step_observed_after_analysis": 340,
+  "latest_grain_count_at_snapshot": 200,
+  "relative_radius_change": 0.0,
+  "growth_fit": {
+    "n": null,
+    "K": 0.0,
+    "kinetically_observable": false,
+    "minimum_required_relative_radius_change": 0.02,
+    "reason": "growth_law_suppressed_for_stagnant_or_censored_ensemble"
+  },
+  "retained_event_diagnostics": {
+    "primitive_events": 45541,
+    "tj_compatibility_failure_rows": 5236,
+    "effective_barrier_samples": 5236
+  },
+  "ledger_state_observed_after_analysis": {
+    "committed_parquet_parts": 170,
+    "bytes": 6490445
+  },
+  "assertions": {
+    "stagnant_growth_fit_is_suppressed": true,
+    "growth_coefficient_is_zero_not_tiny_positive": true,
+    "event_diagnostics_are_retained": true,
+    "tj_failure_barrier_samples_are_retained": true
+  },
+  "note": "Nonfinal live production snapshot used to validate the stagnation/censoring analysis path. The completed five-realization campaign remains the authoritative scientific source."
+}

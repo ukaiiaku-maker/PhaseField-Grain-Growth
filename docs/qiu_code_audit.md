@@ -8,6 +8,7 @@ Audited artifact: Zenodo 15120372 `PF_Codes.zip`, exact local MD5 `6cd49ca72eba8
 4. **References.** The polycrystal uses two reference directions (`ref_theta_i=pi/2`); idealized `[100]` and `[111]` cases use four and six directions (`pi/ref`). Adjacent reference components reconstruct the local tangent.
 5. **Internal stress.** `stress_field_bulk_single` precomputes unit line-disconnection kernels. `stress_field_line` integrates boundary tangent increments weighted by the reference coupling factors and superposes shifted kernels. `stress_field_extend` propagates line values across the diffuse interface.
 6. **Elastic driving.** `update_PF` resolves local stress onto reference planes, combines it with coupling factors, and adds the resulting signed elastic work to pairwise PF driving.
+   The implementation sets `E_el = -E_elastic(...)`; the independent FFT eigenstrain closure must therefore expose the negative elastic-energy derivative as its physical self-stress. A positive source self-work is an unstable sign error, not Qiu-type feedback.
 7. **Burgers character.** Burgers content is represented through scalar coupling factors times discretized boundary displacement on reference directions, not event-resolved vector modes.
 8. **Density.** Disconnection density follows the discretized GB line/tangent construction; there is no independent nucleation population or first-passage clock.
 9. **Boundary conditions.** Periodic wrap helpers are used for geometry and finite differences.

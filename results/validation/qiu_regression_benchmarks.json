@@ -1,9 +1,9 @@
 {
-  "git_sha": "e6b0d8ea52a3d025d49c876fc60359f542c29024",
-  "raw_run_directory": "results/runs/qiu-regressions-20260815T075621Z-e6b0d8ea",
+  "git_sha": "c9403c03a2ff414ec8a83788c87608c4e9fe94e3",
+  "raw_run_directory": "results/runs/qiu-regressions-20260815T095344Z-c9403c03",
   "intrinsic_curvature_regression": {
     "source": "results/validation/numerical_validation.json",
-    "source_git_sha": "666fdc7d3718cb4d14638134f674d6666d7c357b",
+    "source_git_sha": "290b77b99faf97bfd772d26d70d65e17628cd414",
     "passed": true,
     "circle_max_relative_error": 0.11277163769800658
   },
@@ -60,7 +60,7 @@
         "active_boundary_samples": 1252
       },
       "qiu_shear": {
-        "velocity_curvature_correlation": 0.38771699694508643,
+        "velocity_curvature_correlation": 0.3877169969450864,
         "reverse_curvature_fraction": 0.44544117647058823,
         "active_reverse_curvature_fraction": 0.30849056603773584,
         "active_curvature_threshold": 0.17070772259662556,
@@ -69,10 +69,10 @@
         "active_boundary_samples": 1060
       },
       "eigenstrain_l2": 0.4741769027958115,
-      "stress_l2": 0.9174185339085401,
+      "stress_l2": 0.9174185339085402,
       "feedback_l2": 0.8888554131918602,
       "label_difference_fraction": 0.005615234375,
-      "phase_field_rms_difference": 0.0036755446613712783,
+      "phase_field_rms_difference": 0.0036755446613712787,
       "accumulated_shear_strain": 0.0,
       "execution_passed": true
     }
@@ -84,7 +84,7 @@
   },
   "qualitative_qiu_checks": {
     "control_abs_velocity_curvature_correlation": 0.4357842905413253,
-    "shear_abs_velocity_curvature_correlation": 0.38771699694508643,
+    "shear_abs_velocity_curvature_correlation": 0.3877169969450864,
     "control_active_reverse_fraction": 0.1269968051118211,
     "shear_active_reverse_fraction": 0.30849056603773584,
     "control_is_curvature_correlated": true,

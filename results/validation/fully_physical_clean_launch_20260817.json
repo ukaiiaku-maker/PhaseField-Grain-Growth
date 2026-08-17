@@ -1,0 +1,13 @@
+{
+  "status": "running_verified_clean",
+  "campaign": "results/campaigns/20260817T082103Z-01b68e843b",
+  "source_spec": "configs/production/temperature_fully_physical_200.yaml",
+  "runs_total": 220,
+  "workers": 10,
+  "temperatures_K": [800.0, 900.0, 1000.0, 1100.0],
+  "realizations_per_condition": 5,
+  "simulation_git_sha": "878081a206a4b75f243ddfd25821b252c954a87c",
+  "initial_verified_running_manifests": 10,
+  "traceback_count_at_verification": 0,
+  "supersedes_provenance_rejected_campaign": "results/campaigns/20260817T080953Z-01b68e843b"
+}

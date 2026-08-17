@@ -1,0 +1,79 @@
+{
+  "status": "passed",
+  "campaign": "results/campaigns/20260816T143704Z-004ca4c536",
+  "regime": "C5",
+  "temperatures_K": [800.0, 900.0, 1000.0, 1100.0],
+  "realizations_per_temperature": 5,
+  "common_growth_exponent": 1.0000000000000002,
+  "common_growth_exponent_95pct": [1.0000000000000002, 1.0000000000037994],
+  "growth_coefficients": [
+    0.047984351482803264,
+    0.07225681501564662,
+    0.10001335395427707,
+    0.13420425307477088
+  ],
+  "growth_activation_energy_ev": 0.25875867303567923,
+  "growth_activation_energy_95pct": [0.23927498756362145, 0.2831128391691796],
+  "growth_arrhenius_r_squared": 0.9995635630879304,
+  "local_growth_activation_energy_ev": [
+    0.2539814421089312,
+    0.2521167692367855,
+    0.2787406732814531
+  ],
+  "event_counts": [739400, 834308, 953826, 1009779],
+  "event_domain_time_exposure": [
+    414994.340000022,
+    288889.7800000047,
+    221003.47999999666,
+    166062.83999999717
+  ],
+  "event_rates_per_domain_time": [
+    1.78171104695057,
+    2.887980322460651,
+    4.31588679056101,
+    6.0807041478997785
+  ],
+  "event_activation_energy_ev": 0.30989586000427155,
+  "event_activation_energy_95pct": [0.30779242546713115, 0.31273548081876673],
+  "event_arrhenius_r_squared": 0.9996833469483587,
+  "local_event_activation_energy_ev": [
+    0.29966598438939057,
+    0.31157766715663066,
+    0.3249591675114142
+  ],
+  "serial_stage_resistance_fraction_by_temperature": {
+    "nucleation": [0.0008667160342918887, 0.0011111590697325013, 0.0013710836780373992, 0.0016783240308262156],
+    "exchange": [0.0074491256377217825, 0.009309706036328054, 0.011518887758338816, 0.01437392355771701],
+    "transport": [0.9916841583279863, 0.9895791348939394, 0.9871100285636238, 0.9839477524114568]
+  },
+  "all_event_resistance_fraction_by_temperature": {
+    "generic_activation": [0.0636221167371655, 0.101875118093946, 0.14543589683408065, 0.19374926290032418],
+    "nucleation": [0.000811573725580197, 0.0009979596082823434, 0.0011716788936874602, 0.0013531499869457353],
+    "exchange": [0.006975196496808835, 0.00836127863445721, 0.009843627986673698, 0.011588986463423734],
+    "transport": [0.9285911130404455, 0.8887656436633145, 0.8435487962855582, 0.7933086006493063]
+  },
+  "jerkiness_CV_by_temperature": [
+    1.3775348265802594,
+    1.1777186776697435,
+    1.0737117479186051,
+    1.0195214673324102
+  ],
+  "Fano_by_temperature": [55.196120, 104.024220, 209.164908, 377.379119],
+  "burstiness_by_temperature": [
+    -0.03170573130600587,
+    -0.15371038403790618,
+    -0.22172375264407104,
+    -0.26608370307093177
+  ],
+  "reverse_motion_fraction_by_temperature": [0.772223, 0.802469, 0.804059, 0.788412],
+  "velocity_curvature_R2_by_temperature": [0.000256, 0.000190, 0.000361, 0.000853],
+  "stationary_fraction_by_temperature": [
+    0.4445365210435172,
+    0.33784672555012835,
+    0.27154018971353083,
+    0.2345812997524847
+  ],
+  "simulation_git_sha": "990c3a0d96e29290e13612387c32576f16cf993e",
+  "analysis_git_sha": "50d173aa7582f0206b8594a9bfad2a2526325314",
+  "interpretation": "The selected serial-climb family retains the lower-bound common exponent n=1. Growth and event activation are 0.259 and 0.310 eV with nearly linear Arrhenius fits. Expected serial-stage residence remains more than 98.39% transport across temperature, while the all-event transport share falls from 92.86% to 79.33% as generic activation rises from 6.36% to 19.37%."
+}

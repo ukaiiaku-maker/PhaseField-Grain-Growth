@@ -24,16 +24,28 @@ class GeometricEncounterClock:
         self.threshold = float(rng.exponential())
         self.total_measure = 0.0
 
-    def advance(self, delta_measure: float) -> list[GeometricEncounter]:
+    def advance(self, delta_measure: float,
+                maximum_events: int | None = None) -> list[GeometricEncounter]:
         if delta_measure < 0:
             raise ValueError("pass the magnitude of physical geometric change")
-        self.total_measure += delta_measure
+        if maximum_events is not None and maximum_events < 1:
+            raise ValueError("maximum_events must be positive when specified")
+        start_measure = self.total_measure
+        start_hazard = self.cumulative_hazard
         end = self.cumulative_hazard + self.density * delta_measure
         result: list[GeometricEncounter] = []
         while end >= self.threshold and self.density > 0:
-            q_event = self.total_measure - (end - self.threshold) / self.density
-            result.append(GeometricEncounter(q_event, self.threshold, end - self.threshold))
+            event_threshold = self.threshold
+            q_event = start_measure + (event_threshold - start_hazard) / self.density
+            result.append(GeometricEncounter(q_event, event_threshold, end - event_threshold))
             self.threshold += float(self.rng.exponential())
+            if maximum_events is not None and len(result) >= maximum_events:
+                # Encounter changes the physical mobility state. Discard the
+                # geometry remainder that would occur only after that change.
+                result[-1].overshoot = 0.0
+                self.cumulative_hazard = event_threshold
+                self.total_measure = q_event
+                return result
         self.cumulative_hazard = end
+        self.total_measure = start_measure + delta_measure
         return result
-

@@ -36,6 +36,7 @@ base:
     h_coefficient_ev: 0.02
     attempt_frequency: 10.0
     packet_size: 2.0
+    packet_window_time: 1.0
     pinned_mobility_fraction: 0.0
     shear_stiffness: 0.20
     shear_trigger: 0.25
@@ -55,3 +56,5 @@ base:
     particle_radius: 1.2
     tj_barrier_ev: 0.55
     tj_attempt_frequency: 1000.0
+    compress_event_ledger: true
+    event_ledger_format: parquet

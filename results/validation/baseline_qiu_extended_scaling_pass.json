@@ -24,6 +24,8 @@
     "r_squared": 0.9994974565697379,
     "delta_r_squared_vs_free_n": -0.000032127642324186745
   },
+  "active_segment_reverse_motion_fraction": 0.03598766406242034,
+  "raw_unfiltered_reverse_motion_fraction": 0.2740398017550997,
   "independent_radius_exponents": {
     "area_radius": 1.915047310565203,
     "number_weighted_mean_radius": 2.0562295701613302,

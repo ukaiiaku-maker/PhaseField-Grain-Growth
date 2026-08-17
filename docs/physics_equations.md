@@ -70,7 +70,17 @@ Each stochastic clock draws \(E\sim\mathrm{Exp}(1)\) and fires when
 H(t)=\int_0^t r(t')dt'\geq E.
 \]
 
-Piecewise-linear rate integration and hazard-space event-time interpolation are used. Overshoot is retained, allowing multiple events in one PF step. A geometric clock analogously integrates \(dH_{\rm enc}=\lambda\,dQ\), with \(Q\) chosen as GB measure change, TJ path, swept area/volume, or \(|\beta dx_n|\).
+Piecewise-linear rate integration and hazard-space event-time interpolation are
+used. For state-preserving flux, overshoot is retained and every passage in one
+PF step is sampled. If a passage changes the physical admissibility or mobility
+state, integration instead stops at that passage: \(H=E\), with no hazard
+assigned to the now-inapplicable timestep remainder. A geometric clock
+analogously integrates \(dH_{\rm enc}=\lambda\,dQ\), with \(Q\) chosen as GB
+measure change, TJ path, swept area/volume, or \(|\beta dx_n|\). A gated GB/TJ
+encounter stops at the exact first-passage coordinate \(Q_{\rm enc}\); an
+ungated geometric counting process retains all passages. Thus neither an
+activation nor an encounter clock samples events after its own event has
+changed the state whose rate it represents.
 
 Persistent \(K\)-hit completion is the sum of \(K\) exponential passages, so \(T_K\sim\Gamma(K,r)\), \(E[T_K]=K/r\), and \(CV=K^{-1/2}\). Packet-reset completion over hazard \(\Lambda\) obeys
 
@@ -79,6 +89,12 @@ P(N\geq K)=1-e^{-\Lambda}\sum_{j=0}^{K-1}\Lambda^j/j!=P(K,\Lambda),
 \]
 
 where the last form is SciPy's regularized lower incomplete gamma `gammainc(K,Lambda)`.
+The packet interpretation uses an explicit renewal duration
+`packet_window_time`: incomplete hit counts and their hazard clock are discarded
+at each window boundary. Persistent-hit clocks retain their count across
+encounters. Renewal age is checkpointed, and every primitive hit is written to
+the event ledger; completion/release rows are retained separately and are not
+double-counted by the event-rate estimator.
 
 ## Shear memory and nonlocal mechanics
 
@@ -94,7 +110,7 @@ ds=\beta\,dx_n-s\,dt/\tau_s-\sum_k\Delta s_k,
 v_n=M[\Gamma\kappa+\beta\tau_{\rm int}+\psi].
 \]
 
-The sign therefore follows the energy gradient. Reverse-curvature motion is possible only when the internal term opposes and exceeds capillarity. The `qiu_full_field` backend instead accumulates symmetric event eigenstrain, applies a periodic isotropic Fourier incompatibility projector, and computes plane-strain stress \(\sigma=2\mu\epsilon^{inc}+\lambda\operatorname{tr}(\epsilon^{inc})I\), with the zero wavevector removed. It is a nonlocal independently implemented surrogate, not a bitwise port of Qiu's line kernel.
+The sign therefore follows the energy gradient. Reverse-curvature motion is possible only when the internal term opposes and exceeds capillarity. The `qiu_full_field` backend instead accumulates symmetric event eigenstrain, applies a periodic isotropic Fourier incompatibility projector, and computes the physical self-stress as the negative energy derivative, \(\sigma=-[2\mu\epsilon^{inc}+\lambda\operatorname{tr}(\epsilon^{inc})I]\), with the zero wavevector removed. Consequently \(\int\sigma:\epsilon^*\,dV<0\) for a nonzero isolated source and \(-\tfrac12\int\sigma:\epsilon^*\,dV>0\) is stored elastic energy. This sign also matches the explicit minus sign on Qiu's elastic PF driving term. The backend is a nonlocal independently implemented surrogate, not a bitwise port of Qiu's line kernel.
 
 At a TJ, event Burgers increments are conserved in a persistent residual \(\mathbf B_{TJ}\), with
 
@@ -102,7 +118,36 @@ At a TJ, event Burgers increments are conserved in a persistent residual \(\math
 E_{TJ}=\tfrac12\mathbf B_{TJ}^T\mathbf K_{TJ}\mathbf B_{TJ}.
 \]
 
-Strict mode combinations require zero residual and compatible net step. Finite-residual configurations retain the state until a later event relaxes it.
+The two endpoints of a GB receive opposite signed packet increments,
+\(+N_{disc}\mathbf b_m\) and \(-N_{disc}\mathbf b_m\), so a closed network
+does not acquire Burgers vector merely because a boundary event occurred.
+Strict mode combinations admit one arrival and gate every adjoining GB until a
+packet-scaled secondary mode restores zero residual and compatible net step.
+Finite-residual configurations retain the state until later events relax it.
+For a candidate signed endpoint increment \(\Delta\mathbf B_m\), its barrier
+contains the positive-definite residual-energy change
+
+\[
+\Delta E_{TJ,m}=\tfrac12K_{TJ}\left(
+|\mathbf B_{TJ}+\Delta\mathbf B_m|^2-|\mathbf B_{TJ}|^2\right).
+\]
+
+Thus residual-increasing modes are suppressed and residual-relaxing modes are
+favored by a thermodynamic back stress. Because this event changes the next
+mode rates, the cumulative-hazard integrator stops at each passage, updates the
+TJ state, recomputes the full candidate spectrum, and then advances through the
+remaining PF-step time. TJ relaxation uses the same \(N_{disc}\) packet factor
+as the arriving GB event; residual Burgers vector is never erased directly.
+Every nonzero constrained arrival writes a `tj_compatibility_failure` row with
+the TJ identity, signed packet Burgers increment, bare barrier, and the actual
+residual-energy-adjusted effective barrier used by the cumulative hazard. This
+makes low-mode failure frequency and the sampled failure-barrier distribution
+direct observables rather than post-hoc guesses.
+Campaign diagnostics report endpoint-failure incidence per completed GB mode
+event, the low-barrier share, TJ and barrier-family counts, and quantiles of the
+bare barrier, effective barrier, residual-energy shift, and packet Burgers
+magnitude. The incidence is explicitly not called a probability: it can exceed
+one because a single boundary event can constrain both endpoint TJs.
 
 ## Atomic-to-PF event kinematics
 
@@ -147,7 +192,7 @@ with Onsager limit \(J_{ex}\simeq J_0\Delta\mu/(k_BT)\). Exponentials enter a do
 D=D_0e^{-Q_D/k_BT},\qquad \tau_{tr}=C_{tr}\ell_{tr}^2/D.
 \]
 
-The stochastic production representation is the explicit serial state chain nucleation \(\rightarrow\) exchange \(\rightarrow\) transport \(\rightarrow\) quota completion. Its fixed-rate mean is \(r_{nuc}^{-1}+r_{ex}^{-1}+r_{tr}^{-1}\), never \((r_{nuc}+r_{ex}+r_{tr})^{-1}\).
+The stochastic production representation is the explicit serial state chain nucleation \(\rightarrow\) exchange \(\rightarrow\) transport \(\rightarrow\) quota completion. Its fixed-rate mean is \(r_{nuc}^{-1}+r_{ex}^{-1}+r_{tr}^{-1}\), never \((r_{nuc}+r_{ex}+r_{tr})^{-1}\). Production rates use \(r_{ex}=|J_{ex}|/N_q\) and \(r_{tr}=D/(C_{tr}\ell_{tr}^2)\), with the current domain length as \(\ell_{tr}\) unless a configuration specifies another physical transport length. Each serial stage transition is a separate auditable event-ledger row.
 
 ## Numerical execution
 
@@ -180,4 +225,48 @@ use per-event units only:
 K_n=K_0e^{-Q_{app}/k_BT},\qquad Q_{app}=-k_B\,d\ln K_n/d(1/T).
 \]
 
-The analytical comparator also implements intrinsic/drag \(dR/dt=K\Gamma(R)/R\), Class-B completion \(\Gamma=P(K,\Lambda(R))\), exchange crossover \(\Gamma=1/(1+R/R_x)\), and series/parallel activity composition.
+The analytical comparator also implements intrinsic/drag \(dR/dt=K\Gamma(R)/R\), Class-B completion \(\Gamma=P(K,\Lambda(R))\), exchange crossover \(\Gamma=1/(1+R/R_x)\), and series/parallel activity composition. For the manuscript's independent-event power-hazard closure, \(\Lambda=\Pi(R/r_p)^{-p}\), the exact implicit comparator is
+
+\[
+K(t-t_0)=\frac{R^2-R_0^2}{2}
++\frac{c}{p+2}\left(R^{p+2}-R_0^{p+2}\right),
+\qquad c=\Pi^{-1}r_p^{-p}.
+\]
+
+The Class-C exchange law is its fixed-\(p=1\) form,
+
+\[
+K(t-t_0)=\frac{R^2-R_0^2}{2}
++\frac{R^3-R_0^3}{3R_x}.
+\]
+
+Both are inverted numerically and fitted against radius residuals, not against transformed time residuals. Class-D/combined regimes report both comparators rather than selecting one by construction.
+
+Reverse-curvature statistics exclude diffuse-interface jitter by applying the
+same preregistered active-segment definition as the Qiu regression: both
+\(|\kappa|\) and \(|v_n|\) must lie in their run-level top quartile. Reports
+retain the unfiltered sign fraction as a diagnostic, but the machine-readable
+`reverse_motion_fraction` is the active-segment value.
+
+For a temperature campaign, event-level occurrence rates use the Poisson
+exposure estimator
+
+\[
+\widehat r(T)=\frac{\sum_j N_{events,j}}
+{\sum_j\int N_{GB\ domains,j}(t)\,dt}.
+\]
+
+Runs with zero events therefore contribute exposure rather than being treated
+as zero-duration or silently discarded. An event-level Arrhenius slope is
+reported only when the pooled rate is positive at all temperatures; it remains
+separate from the coarse-grained activation energy fitted from \(K_n(T)\).
+Both event- and growth-level reports retain the global Arrhenius \(R^2\) and
+each adjacent-temperature local slope,
+
+\[
+Q_{app,i}=-k_B\frac{\ln K_{i+1}-\ln K_i}
+{T_{i+1}^{-1}-T_i^{-1}},
+\]
+
+so a mechanism crossover appears explicitly rather than being hidden by one
+global activation energy.

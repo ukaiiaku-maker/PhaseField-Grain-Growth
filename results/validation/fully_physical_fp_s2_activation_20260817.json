@@ -1,0 +1,101 @@
+{
+  "status": "passed",
+  "campaign": "results/campaigns/20260817T082103Z-01b68e843b",
+  "regime": "FP-S2",
+  "temperatures_K": [800.0, 900.0, 1000.0, 1100.0],
+  "realizations_per_temperature": 5,
+  "common_growth_exponent": 1.0000000000000009,
+  "common_growth_exponent_95pct": [1.0000000000000002, 1.0000000000000198],
+  "growth_coefficients": [
+    0.08892317084295936,
+    0.18145934942616743,
+    0.33244989531949015,
+    0.6024340422962022
+  ],
+  "growth_activation_energy_ev": 0.4798757903812685,
+  "growth_activation_energy_95pct": [0.45515133303848815, 0.5056389810321336],
+  "growth_arrhenius_r_squared": 0.9971718607026581,
+  "local_growth_activation_energy_ev": [
+    0.44254006087919534,
+    0.4695686143992451,
+    0.5635201082768244
+  ],
+  "event_counts": [90556, 79579, 91890, 104019],
+  "event_domain_time_exposure": [
+    230503.45999999926,
+    117871.69999999815,
+    64848.88306229374,
+    37463.286952351016
+  ],
+  "event_rates_per_domain_time": [
+    0.39286178177108616,
+    0.6751323684989803,
+    1.4169866258410435,
+    2.7765582911157844
+  ],
+  "event_activation_energy_ev": 0.4955052293326809,
+  "event_activation_energy_95pct": [0.48547204202247657, 0.5047664321915781],
+  "event_arrhenius_r_squared": 0.9786875824371339,
+  "local_event_activation_energy_ev": [
+    0.3359421397755726,
+    0.5749839143274789,
+    0.637637485029022
+  ],
+  "jerkiness_CV_by_temperature": [
+    1.5450883801271846,
+    1.3559750064806704,
+    1.30093414944746,
+    1.2894856499931902
+  ],
+  "Fano_by_temperature": [
+    56.942807833144194,
+    106.09631296918118,
+    251.7603130185586,
+    653.1879881319362
+  ],
+  "burstiness_by_temperature": [
+    0.08234113467485965,
+    -0.05788536967047506,
+    -0.09788547144146924,
+    -0.10565714148956369
+  ],
+  "reverse_motion_fraction_by_temperature": [
+    0.650194881558589,
+    0.6363954507949083,
+    0.6786676502781198,
+    0.7075410589990863
+  ],
+  "raw_reverse_motion_fraction_by_temperature": [
+    0.4563532206687416,
+    0.45645420750698945,
+    0.46280556430766967,
+    0.4718920079875234
+  ],
+  "velocity_curvature_R2_by_temperature": [
+    0.0015765316372288469,
+    0.002663901354330357,
+    0.0037926869854788313,
+    0.0009482656049488395
+  ],
+  "velocity_internal_shear_correlation_by_temperature": [
+    -0.08292441642364984,
+    -0.08111663678698809,
+    -0.0802659966900566,
+    -0.07987792669359102
+  ],
+  "stationary_fraction_by_temperature": [
+    0.51940931348658,
+    0.4110010294914682,
+    0.37350622673877965,
+    0.36343322841821823
+  ],
+  "accumulated_signed_shear_event_strain_by_temperature": [
+    23.294108072916664,
+    20.758409288194468,
+    24.442382812499936,
+    28.18975151909719
+  ],
+  "simulation_git_sha": "878081a206a4b75f243ddfd25821b252c954a87c",
+  "analysis_git_sha": "3613a09674699c8b1ab313069e1cce4f1cce5dab",
+  "interpretation": "Fully physical shear-memory kinetics retain the lower-bound common exponent n=1 while intrinsic Arrhenius mobility raises growth and event activation to 0.480 and 0.496 eV. Growth and event Arrhenius curvature remain distinct, reverse-curvature motion stays above 63%, and velocity remains negatively correlated with stored shear at every temperature."
+}

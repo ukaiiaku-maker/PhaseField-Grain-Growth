@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from pathlib import Path
 
 import matplotlib
@@ -10,8 +11,27 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from grain_growth_pf.analysis.campaign import _fit_window, analyze_campaign
+from grain_growth_pf.analysis.campaign import ACTIVATION_EVENT_TYPES, _fit_window, analyze_campaign
 from grain_growth_pf.analysis.grain_tracks import ensemble_radius, load_tracks
+from grain_growth_pf.io.event_ledger import (
+    event_ledger_has_rows,
+    event_ledger_path,
+    iter_event_ledger,
+)
+
+
+def _ledger_has_primitive_events(path: Path) -> bool:
+    return any(
+        frame["event_type"].isin(ACTIVATION_EVENT_TYPES).any()
+        for frame in iter_event_ledger(path, columns=["event_type"])
+    )
+
+
+def _primitive_batch(frame: pd.DataFrame, has_primitive: bool) -> pd.DataFrame:
+    return (
+        frame[frame["event_type"].isin(ACTIVATION_EVENT_TYPES)]
+        if has_primitive else frame
+    )
 
 
 def _save(fig: plt.Figure, target: Path) -> None:
@@ -85,17 +105,30 @@ def _kinetics_figure(paths: list[Path], row: pd.Series, target: Path) -> None:
         if power == 1:
             axis.fill_between(time, radius - spread, radius + spread, color="C0", alpha=0.2)
         axis.set_ylabel(label)
-    transformed = radius**exponent
-    axes[1, 0].plot(time, transformed, color="C1", label=f"n={exponent:.2f}")
-    start, end, _ = _fit_window(data["N_mean"].to_numpy(float))
-    fit_time, fit_values = time[start:end], transformed[start:end]
-    coefficient, intercept = np.polyfit(fit_time, fit_values, 1)
-    axes[1, 0].plot(fit_time, coefficient * fit_time + intercept, "k--", lw=1, label="fit window")
-    axes[1, 0].set_ylabel(r"$R^n$")
-    axes[1, 0].legend(frameon=False)
-    axes[1, 1].plot(time, _local_exponent(time, radius), color="C2")
-    axes[1, 1].axhline(2, color="0.4", ls="--", lw=1)
-    axes[1, 1].set_ylabel("local effective n")
+    if np.isfinite(exponent):
+        transformed = radius**exponent
+        axes[1, 0].plot(time, transformed, color="C1", label=f"n={exponent:.2f}")
+        start, end, _ = _fit_window(data["N_mean"].to_numpy(float))
+        fit_time, fit_values = time[start:end], transformed[start:end]
+        coefficient, intercept = np.polyfit(fit_time, fit_values, 1)
+        axes[1, 0].plot(
+            fit_time, coefficient * fit_time + intercept, "k--", lw=1,
+            label="fit window",
+        )
+        axes[1, 0].set_ylabel(r"$R^n$")
+        axes[1, 0].legend(frameon=False)
+        axes[1, 1].plot(time, _local_exponent(time, radius), color="C2")
+        axes[1, 1].axhline(2, color="0.4", ls="--", lw=1)
+        axes[1, 1].set_ylabel("local effective n")
+    else:
+        axes[1, 0].plot(time, radius / radius[0], color="C1")
+        axes[1, 0].axhline(1.0, color="0.4", ls="--", lw=1)
+        axes[1, 0].set_ylabel(r"$R/R_0$")
+        axes[1, 1].text(
+            0.5, 0.5, "growth-law fit suppressed\n(<2% radius change)",
+            ha="center", va="center", transform=axes[1, 1].transAxes,
+        )
+        axes[1, 1].set_ylabel("local effective n")
     axes[1, 2].plot(time, data["N_mean"], color="C3")
     axes[1, 2].set_ylabel("grain count")
     for axis in axes[1]:
@@ -108,24 +141,42 @@ def _representative_figure(path: Path, target: Path) -> None:
     tracks = load_tracks(path / "grain_tracks.csv")
     counts = tracks.groupby("grain_id").size().sort_values(ascending=False)
     selected = counts.head(8).index
-    fig, (area_axis, radius_axis, neighbor_axis) = plt.subplots(1, 3, figsize=(13, 4))
+    fig, axes = plt.subplots(2, 2, figsize=(11, 7))
+    area_axis, radius_axis, rate_axis, neighbor_axis = axes.flat
     for grain_id in selected:
         grain = tracks[tracks["grain_id"] == grain_id].sort_values("time")
         area_axis.plot(grain["time"], grain["area"], lw=1, label=str(grain_id))
         radius_axis.plot(grain["time"], grain["radius"], lw=1)
         if len(grain) > 1:
             rate = np.diff(grain["area"].to_numpy(float)) / np.diff(grain["time"].to_numpy(float))
+            rate_axis.plot(grain["time"].to_numpy(float)[1:], rate, lw=0.8)
             neighbor_axis.scatter(grain["neighbors"].to_numpy(float)[:-1], rate, s=7, alpha=0.35)
-    event_path = path / "events.csv"
-    if event_path.exists() and event_path.stat().st_size:
-        events = pd.read_csv(event_path)
-        if not events.empty and "time" in events:
-            for event_time in events["time"].to_numpy(float)[:200]:
-                area_axis.axvline(event_time, color="k", alpha=0.035, lw=0.6)
-                radius_axis.axvline(event_time, color="k", alpha=0.035, lw=0.6)
+    event_path = event_ledger_path(path)
+    if event_ledger_has_rows(event_path):
+        has_primitive = _ledger_has_primitive_events(event_path)
+        type_counts: Counter[str] = Counter()
+        samples = []
+        sample_count = 0
+        for frame in iter_event_ledger(event_path, columns=["event_type", "time"]):
+            events = _primitive_batch(frame, has_primitive)
+            type_counts.update(map(str, events["event_type"].dropna()))
+            if sample_count < 300:
+                selected_events = events.head(300 - sample_count)
+                if not selected_events.empty:
+                    samples.append(selected_events)
+                    sample_count += len(selected_events)
+        if samples:
+            events = pd.concat(samples, ignore_index=True)
+            event_types = sorted(type_counts)
+            colors = {name: f"C{index % 10}" for index, name in enumerate(event_types)}
+            for _, event in events.iterrows():
+                event_time = float(event["time"])
+                color = colors.get(event.get("event_type"), "k")
+                for axis in (area_axis, radius_axis, rate_axis):
+                    axis.axvline(event_time, color=color, alpha=0.045, lw=0.6)
     area_axis.set_ylabel("grain area")
-    radius_axis.set_ylabel("equivalent radius")
-    radius_axis.set_xlabel("time")
+    radius_axis.set(ylabel="equivalent radius", xlabel="time")
+    rate_axis.set(xlabel="time", ylabel="area growth rate")
     neighbor_axis.set(xlabel="neighbor number", ylabel="area growth rate")
     area_axis.legend(title="grain", ncol=4, frameon=False, fontsize=7)
     fig.suptitle(path.name)
@@ -157,28 +208,228 @@ def _boundary_figure(paths: list[Path], target: Path) -> None:
 
 
 def _event_figure(paths: list[Path], target: Path) -> None:
-    frames = []
+    waits: list[np.ndarray] = []
+    type_counts: Counter[str] = Counter()
     for path in paths:
-        event_path = path / "events.csv"
-        if event_path.exists() and event_path.stat().st_size:
-            frame = pd.read_csv(event_path)
-            if not frame.empty:
-                frames.append(frame)
-    if not frames:
+        event_path = event_ledger_path(path)
+        if event_ledger_has_rows(event_path):
+            has_primitive = _ledger_has_primitive_events(event_path)
+            last_entity_time: dict[str, float] = {}
+            for frame in iter_event_ledger(
+                event_path, columns=["event_type", "entity_id", "time"]
+            ):
+                events = _primitive_batch(frame, has_primitive)
+                type_counts.update(map(str, events["event_type"].dropna()))
+                for entity_id, entity in events.groupby("entity_id", dropna=False):
+                    times = pd.to_numeric(entity["time"], errors="coerce").to_numpy(float)
+                    times = np.sort(times[np.isfinite(times)])
+                    if not len(times):
+                        continue
+                    entity_key = str(entity_id)
+                    previous = last_entity_time.get(entity_key)
+                    sequence = (
+                        np.concatenate(([previous], times))
+                        if previous is not None else times
+                    )
+                    differences = np.diff(sequence)
+                    differences = differences[differences > 0]
+                    if len(differences):
+                        waits.append(differences)
+                    last_entity_time[entity_key] = float(times[-1])
+    if not type_counts:
         return
-    events = pd.concat(frames, ignore_index=True)
-    times = np.sort(events["time"].to_numpy(float))
-    waits = np.diff(times)
-    sizes = events.get("packet_size", pd.Series(np.ones(len(events)))).to_numpy(float)
-    fig, axes = plt.subplots(1, 3, figsize=(12, 3.6))
-    axes[0].hist(waits[waits > 0], bins=35, density=True, color="C0", alpha=0.8)
+    sizes = []
+    for path in paths:
+        tracks = load_tracks(path / "grain_tracks.csv")
+        for _, grain in tracks.groupby("grain_id"):
+            increments = np.abs(np.diff(grain.sort_values("time")["area"].to_numpy(float)))
+            sizes.extend(increments[increments > 1e-12].tolist())
+    waits = np.concatenate(waits) if waits else np.asarray([])
+    sizes = np.asarray(sizes)
+    fig, axes = plt.subplots(2, 2, figsize=(9, 7))
+    axes = axes.flat
+    axes[0].hist(waits, bins=35, density=True, color="C0", alpha=0.8)
     axes[0].set(xlabel="waiting time", ylabel="density")
-    axes[1].hist(sizes[np.isfinite(sizes)], bins=25, color="C1", alpha=0.8)
-    axes[1].set(xlabel="packet size", ylabel="count")
+    axes[1].hist(sizes, bins=35, color="C1", alpha=0.8)
+    axes[1].set(xlabel="grain burst area increment", ylabel="count")
     ordered = np.sort(sizes[np.isfinite(sizes) & (sizes > 0)])
     if len(ordered):
         axes[2].loglog(ordered, 1.0 - np.arange(len(ordered)) / len(ordered), color="C2")
-    axes[2].set(xlabel="event packet/burst size", ylabel="CCDF")
+    axes[2].set(xlabel="grain burst area increment", ylabel="CCDF")
+    event_types = sorted(type_counts)
+    axes[3].barh(event_types, [type_counts[name] for name in event_types], color="C3")
+    axes[3].set(xlabel="primitive event count", ylabel="event type")
+    _save(fig, target)
+
+
+def _tj_failure_figure(paths: list[Path], target: Path) -> bool:
+    """Plot explicit TJ endpoint-failure incidence and sampled barriers."""
+    family_counts: Counter[str] = Counter()
+    tj_entities: set[str] = set()
+    bare_samples: list[np.ndarray] = []
+    effective_samples: list[np.ndarray] = []
+    shift_samples: list[np.ndarray] = []
+    burgers = []
+    failure_count = 0
+    columns = [
+        "event_type", "entity_id", "barrier_type", "DeltaG0",
+        "effective_DeltaG", "burgers_vector_b",
+    ]
+    for path in paths:
+        event_path = event_ledger_path(path)
+        if not event_ledger_has_rows(event_path):
+            continue
+        for frame in iter_event_ledger(event_path, columns=columns):
+            failures = frame[frame["event_type"] == "tj_compatibility_failure"]
+            if failures.empty:
+                continue
+            failure_count += len(failures)
+            family_counts.update(map(str, failures["barrier_type"].fillna("unlabeled")))
+            tj_entities.update(map(str, failures["entity_id"].dropna()))
+            bare = pd.to_numeric(failures["DeltaG0"], errors="coerce").to_numpy(float)
+            effective = pd.to_numeric(
+                failures["effective_DeltaG"], errors="coerce"
+            ).to_numpy(float)
+            bare_samples.append(bare[np.isfinite(bare)])
+            effective_samples.append(effective[np.isfinite(effective)])
+            finite_pair = np.isfinite(bare) & np.isfinite(effective)
+            shift_samples.append(effective[finite_pair] - bare[finite_pair])
+            for raw in failures["burgers_vector_b"].dropna():
+                try:
+                    vector = np.asarray(json.loads(str(raw)), dtype=float)
+                except (TypeError, ValueError, json.JSONDecodeError):
+                    continue
+                if vector.size and np.all(np.isfinite(vector)):
+                    burgers.append(float(np.linalg.norm(vector)))
+    if not failure_count:
+        return False
+    bare = np.concatenate(bare_samples) if bare_samples else np.asarray([])
+    effective = np.concatenate(effective_samples) if effective_samples else np.asarray([])
+    shifts = np.concatenate(shift_samples) if shift_samples else np.asarray([])
+
+    fig, axes = plt.subplots(2, 2, figsize=(10, 7))
+    families = sorted(family_counts)
+    axes[0, 0].barh(families, [family_counts[name] for name in families], color="C0")
+    axes[0, 0].set(xlabel="endpoint-failure rows", ylabel="mode family",
+                   title="failure incidence by barrier family")
+    axes[0, 1].hist(bare[np.isfinite(bare)], bins=35, alpha=0.65, label="bare")
+    axes[0, 1].hist(effective[np.isfinite(effective)], bins=35, alpha=0.65,
+                    label="effective")
+    axes[0, 1].set(xlabel="barrier (eV)", ylabel="count",
+                   title="sampled failure barriers")
+    axes[0, 1].legend(frameon=False)
+    axes[1, 0].hist(shifts, bins=35, color="C2")
+    axes[1, 0].axvline(0.0, color="0.4", ls="--", lw=1)
+    axes[1, 0].set(xlabel=r"$\Delta G_{effective}-\Delta G_0$ (eV)", ylabel="count",
+                   title="residual-energy barrier shift")
+    axes[1, 1].hist(burgers, bins=35, color="C3")
+    axes[1, 1].set(xlabel="packet Burgers magnitude", ylabel="count",
+                   title="failed endpoint increment")
+    fig.suptitle(
+        f"TJ compatibility failures — {failure_count:,} endpoint rows, "
+        f"{len(tj_entities):,} TJ entities"
+    )
+    _save(fig, target)
+    return True
+
+
+def _arrhenius_figure(regime: str, group: pd.DataFrame,
+                      temperature_fit: dict, target: Path) -> None:
+    """Plot global and adjacent-temperature activation diagnostics."""
+    ordered = group.sort_values("temperature")
+    temperatures = ordered["temperature"].to_numpy(float)
+    inverse_temperature = 1.0 / temperatures
+    coefficients = ordered["K"].to_numpy(float)
+    coefficient_error = ordered["K_ci"].to_numpy(float)
+    fig, axes = plt.subplots(2, 2, figsize=(10, 7))
+
+    growth_axis = axes[0, 0]
+    valid_growth = np.isfinite(coefficients) & (coefficients > 0)
+    if np.any(valid_growth):
+        growth_axis.errorbar(
+            inverse_temperature[valid_growth], np.log(coefficients[valid_growth]),
+            yerr=np.divide(
+                coefficient_error[valid_growth], coefficients[valid_growth],
+                out=np.zeros(np.count_nonzero(valid_growth)),
+                where=coefficients[valid_growth] > 0,
+            ), marker="o", capsize=3, ls="none",
+        )
+    growth_q = temperature_fit.get("activation_energy_ev")
+    growth_interval = temperature_fit.get("activation_energy_95pct")
+    if np.count_nonzero(valid_growth) >= 2 and growth_q is not None:
+        slope, intercept = np.polyfit(
+            inverse_temperature[valid_growth], np.log(coefficients[valid_growth]), 1
+        )
+        fit_x = np.linspace(
+            inverse_temperature[valid_growth].min(),
+            inverse_temperature[valid_growth].max(), 100,
+        )
+        growth_axis.plot(fit_x, slope * fit_x + intercept, "k--", lw=1)
+        label = f"Q = {float(growth_q):.3f} eV"
+        if growth_interval:
+            label += f"\n95% CI [{growth_interval[0]:.3f}, {growth_interval[1]:.3f}]"
+    else:
+        label = "growth activation fit suppressed\n(insufficient observable growth)"
+    growth_axis.text(0.03, 0.04, label, transform=growth_axis.transAxes, fontsize=8)
+    growth_axis.set(
+        xlabel=r"$1/T$ (K$^{-1}$)", ylabel=r"$\ln K_n$",
+        title="coarse-grained growth",
+    )
+
+    event_level = temperature_fit.get("event_level", {})
+    event_rates = np.asarray(event_level.get("rates", []), dtype=float)
+    event_temperatures = np.asarray(
+        temperature_fit.get("temperatures", temperatures), dtype=float
+    )
+    event_axis = axes[0, 1]
+    valid_event = (event_rates > 0) & np.isfinite(event_rates)
+    if len(event_rates) and np.count_nonzero(valid_event):
+        event_x = 1.0 / event_temperatures[valid_event]
+        event_y = np.log(event_rates[valid_event])
+        event_axis.plot(event_x, event_y, "o", color="C1")
+        event_q = event_level.get("activation_energy_ev")
+        event_interval = event_level.get("activation_energy_95pct")
+        if np.count_nonzero(valid_event) >= 2 and event_q is not None:
+            slope, intercept = np.polyfit(event_x, event_y, 1)
+            fit_x = np.linspace(event_x.min(), event_x.max(), 100)
+            event_axis.plot(fit_x, slope * fit_x + intercept, "k--", lw=1)
+            event_label = f"Q = {float(event_q):.3f} eV"
+            if event_interval:
+                event_label += (
+                    f"\n95% CI [{event_interval[0]:.3f}, {event_interval[1]:.3f}]"
+                )
+        else:
+            event_label = "event activation fit suppressed\n(censored/zero-rate temperature)"
+    else:
+        event_label = "no primitive-event rate series"
+    event_axis.text(0.03, 0.04, event_label, transform=event_axis.transAxes, fontsize=8)
+    event_axis.set(
+        xlabel=r"$1/T$ (K$^{-1}$)", ylabel="ln primitive event rate",
+        title="event-level activation",
+    )
+
+    local_growth_temperature = np.asarray(
+        temperature_fit.get("local_activation_midpoint_temperature", []), dtype=float
+    )
+    local_growth_q = np.asarray(
+        temperature_fit.get("local_activation_energy_ev", []), dtype=float
+    )
+    if len(local_growth_temperature):
+        axes[1, 0].plot(local_growth_temperature, local_growth_q, "o-", color="C2")
+    axes[1, 0].set(xlabel="temperature (K)", ylabel="local Q (eV)",
+                   title="adjacent growth slopes / curvature")
+
+    local_event_temperature = np.asarray(
+        event_level.get("local_activation_midpoint_temperature", []), dtype=float
+    )
+    local_event_q = np.asarray(
+        event_level.get("local_activation_energy_ev", []), dtype=float
+    )
+    if len(local_event_temperature):
+        axes[1, 1].plot(local_event_temperature, local_event_q, "o-", color="C3")
+    axes[1, 1].set(xlabel="temperature (K)", ylabel="local event Q (eV)",
+                   title="adjacent event slopes / crossover")
+    fig.suptitle(f"{regime} Arrhenius diagnostics")
     _save(fig, target)
 
 
@@ -188,6 +439,11 @@ def plot_campaign(campaign_dir: str | Path, output_dir: str | Path | None = None
     output = Path(output_dir) if output_dir else campaign_dir / "plots"
     summary_file = Path(summary_path) if summary_path else campaign_dir / "mechanism_summary.csv"
     summary = pd.read_csv(summary_file) if summary_file.exists() else analyze_campaign(campaign_dir)
+    diagnostics_path = summary_file.with_name(f"{summary_file.stem}_diagnostics.json")
+    diagnostics = json.loads(diagnostics_path.read_text()) if diagnostics_path.exists() else []
+    detail_by_key = {
+        (item["regime"], float(item["temperature"])): item for item in diagnostics
+    }
     campaign = json.loads((campaign_dir / "campaign_manifest.json").read_text())
     grouped: dict[tuple[str, float], list[Path]] = {}
     for raw in campaign["runs"]:
@@ -202,6 +458,7 @@ def plot_campaign(campaign_dir: str | Path, output_dir: str | Path | None = None
         _representative_figure(paths[0], output / f"{stem}-representative-grains")
         _boundary_figure(paths, output / f"{stem}-velocity-curvature")
         _event_figure(paths, output / f"{stem}-event-statistics")
+        _tj_failure_figure(paths, output / f"{stem}-tj-compatibility-failures")
 
     fig, axis = plt.subplots(figsize=(7, 5))
     for (regime, temperature), paths in grouped.items():
@@ -212,12 +469,12 @@ def plot_campaign(campaign_dir: str | Path, output_dir: str | Path | None = None
     _save(fig, output / "mechanism-comparison")
 
     for regime, group in summary.groupby("regime"):
-        if len(group) < 4 or np.any(group["K"] <= 0):
+        if len(group) < 4:
             continue
         ordered = group.sort_values("temperature")
-        fig, axis = plt.subplots(figsize=(6, 4))
-        axis.errorbar(1.0 / ordered["temperature"], np.log(ordered["K"]),
-                      yerr=ordered["K_ci"] / ordered["K"], marker="o", capsize=3)
-        axis.set(xlabel=r"$1/T$ (K$^{-1}$)", ylabel=r"$\ln K_n$", title=f"{regime} Arrhenius scaling")
-        _save(fig, output / f"{regime}-arrhenius")
+        detail = detail_by_key.get((regime, float(ordered["temperature"].iloc[0])), {})
+        temperature_fit = detail.get("temperature_series_fit", {})
+        _arrhenius_figure(
+            regime, ordered, temperature_fit, output / f"{regime}-arrhenius"
+        )
     return output

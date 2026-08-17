@@ -1,0 +1,38 @@
+{
+  "campaign": "results/campaigns/20260816T025109Z-c0b1b0f774",
+  "campaign_git_sha": "3666b2c1a1b7089b24b4c9dcc6a223fb2d689d8f",
+  "status": "completed",
+  "runs_completed": 60,
+  "runs_total": 60,
+  "traceback_count": 0,
+  "terminal_step_minimum": 839,
+  "terminal_step_mean": 1989.2333333333333,
+  "terminal_step_maximum": 3500,
+  "restart_artifacts_audited": 60,
+  "summary_regimes": 12,
+  "plot_artifacts": 98,
+  "plot_artifacts_size": "20M",
+  "pareto_target_exponent": 2.0,
+  "pareto_exponent_tolerance": 0.5,
+  "physically_admissible_candidates": 0,
+  "closest_scaling_candidate": {
+    "regime": "JK-L24-K3-SPARSE",
+    "n": 1.188313509694666,
+    "n_ci_low": 1.0000000000000002,
+    "n_ci_high": 1.7975514325201918,
+    "jerkiness_CV": 1.8106073508705005,
+    "Fano": 4.09024590791065,
+    "number_of_events": 30338,
+    "physically_admissible": false
+  },
+  "artifacts": {
+    "campaign_manifest_sha256": "574a23f82b401ca3bfd3962c276ccf344d3cd550a4699e1f817f25315bb91c45",
+    "summary_sha256": "8c67c43265d84741350d9efeb7f6c728ea6102cbc67a6222a746f43142031279",
+    "diagnostics_sha256": "20c955824f1a66c4e94a3787eaed1360b1766c6b2df4d6aeee0c2f7c6f19c33f",
+    "pareto_csv_sha256": "ce40d9e22f802d12967d1ded86a28917bd9990a6966020bee46f70ad70a85b4a"
+  },
+  "notes": [
+    "The first Pareto output was requested with a .json suffix but the tool writes CSV; it was preserved and a correctly named pareto_summary.csv was generated.",
+    "No candidate was relabeled as physically admissible after the strict scaling gate failed."
+  ]
+}

@@ -28,3 +28,17 @@ def fit_activation_energy(temperatures: np.ndarray, coefficients: np.ndarray) ->
     slope_se = np.sqrt(np.sum(residual**2) / (len(x) - 2) / np.sum((x - x.mean())**2))
     return ActivationFit(float(-K_B_EV * slope), float(np.exp(intercept)), float(r2), float(K_B_EV * slope_se))
 
+
+def local_activation_energies(temperatures: np.ndarray,
+                              coefficients: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Return adjacent-temperature apparent barriers and harmonic-midpoint T."""
+    temperature = np.asarray(temperatures, float)
+    coefficient = np.asarray(coefficients, float)
+    if len(temperature) < 2 or np.any(temperature <= 0) or np.any(coefficient <= 0):
+        raise ValueError("positive temperatures and coefficients are required")
+    order = np.argsort(temperature)
+    temperature, coefficient = temperature[order], coefficient[order]
+    inverse = 1.0 / temperature
+    local_q = -K_B_EV * np.diff(np.log(coefficient)) / np.diff(inverse)
+    midpoint = 2.0 / (inverse[:-1] + inverse[1:])
+    return midpoint, local_q

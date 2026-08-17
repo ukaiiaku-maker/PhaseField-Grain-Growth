@@ -1,0 +1,38 @@
+{
+  "status": "passed_with_bound_censoring",
+  "campaign": "results/campaigns/20260816T143704Z-004ca4c536",
+  "regime": "P2",
+  "temperatures_K": [800.0, 900.0, 1000.0, 1100.0],
+  "realizations_per_temperature": 5,
+  "common_growth_exponent": 5.999999999999977,
+  "common_growth_exponent_95pct": [5.9999999999999085, 5.999999999999995],
+  "exponent_at_upper_search_bound": true,
+  "growth_coefficients": [
+    7388.828819231276,
+    7388.828819357239,
+    7388.828819745233,
+    7388.828819395748
+  ],
+  "growth_activation_energy_ev": 9.94328511189213e-12,
+  "growth_activation_energy_95pct": [-0.0781962735525043, 0.085707127267479],
+  "growth_arrhenius_r_squared": 0.3244155158644014,
+  "local_growth_activation_energy_ev": [
+    1.0577209165081312e-11,
+    4.072534126927279e-11,
+    -4.483508782873151e-11
+  ],
+  "event_counts": [0, 0, 0, 0],
+  "event_domain_time_exposure": [
+    401758.68000001676,
+    401758.68000001676,
+    401758.68000001676,
+    401758.68000001676
+  ],
+  "event_activation_energy_ev": null,
+  "jerkiness_CV_by_temperature": [2.2152456492078243, 2.2152456492078243, 2.2152456492078243, 2.2152456492078243],
+  "burstiness_by_temperature": [-0.03883773189553379, -0.03883773189553379, -0.03883773189553379, -0.03883773189553379],
+  "stationary_fraction_by_temperature": [0.7492287283306915, 0.7492287283306915, 0.7492287283306915, 0.7492287283306915],
+  "simulation_git_sha": "990c3a0d96e29290e13612387c32576f16cf993e",
+  "analysis_git_sha": "cf125ac4c914cad6d6753a41b412fae39a65904f",
+  "interpretation": "The swept-area spatial control is temperature invariant and contains no activated primitive events. All temperature groups reproduce the same upper-bound n=6 fit and K, so the result establishes an exponent greater than or equal to the analyzed range rather than a uniquely identified n=6 law. The near-zero fitted activation is a control result, not a microscopic barrier estimate."
+}

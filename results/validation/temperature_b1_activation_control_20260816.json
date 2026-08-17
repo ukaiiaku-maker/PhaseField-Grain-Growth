@@ -1,0 +1,35 @@
+{
+  "status": "passed",
+  "campaign": "results/campaigns/20260816T143704Z-004ca4c536",
+  "regime": "B1",
+  "temperatures_K": [800.0, 900.0, 1000.0, 1100.0],
+  "realizations_per_temperature": 5,
+  "input_intrinsic_barrier_ev": 0.45,
+  "common_growth_exponent": 1.6344902574086788,
+  "common_growth_exponent_95pct": [1.438505895490653, 1.8269876896978752],
+  "normalized_rmse": 0.001509040718210813,
+  "growth_coefficients": [
+    0.9564825208786569,
+    1.975436957577508,
+    3.5290034571798623,
+    5.673157330271866
+  ],
+  "measured_activation_energy_ev": 0.4499999999963593,
+  "activation_energy_95pct": [0.43764629854272463, 0.46216996851328246],
+  "arrhenius_r_squared": 1.0,
+  "local_activation_energy_ev": [
+    0.44999999996233325,
+    0.4500000000298723,
+    0.4499999999977874
+  ],
+  "relative_radius_change_each_temperature": 0.7023074871784449,
+  "bootstrap_samples": 500,
+  "analysis_git_sha": "424d917d2979a96436448b9f4c30378a19a83356",
+  "simulation_git_shas": [
+    "835e362b29b7cf080eb1151a131de35eda9fd37a",
+    "990c3a0d96e29290e13612387c32576f16cf993e"
+  ],
+  "simulation_sha_note": "The later simulation revision changes TJ observability only; B1 physics and configuration are identical across the restart boundary.",
+  "analysis_command": "PYTHONPATH=src python scripts/analyze_campaign.py results/campaigns/20260816T143704Z-004ca4c536 --allow-incomplete --output <summary.csv>",
+  "analysis_snapshot": "All 20 B1 runs complete; active/incomplete later regimes excluded by --allow-incomplete."
+}

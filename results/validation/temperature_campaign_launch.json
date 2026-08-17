@@ -1,0 +1,21 @@
+{
+  "selected_200": {
+    "campaign": "results/campaigns/20260816T143704Z-004ca4c536",
+    "config": "configs/production/temperature_selected_200.yaml",
+    "launch_git_sha": "e6e6b861025a0275dbe5d6c74a162cab77f64084",
+    "processes": 6,
+    "runs_total": 240,
+    "initial_status": {
+      "queued": 234,
+      "running": 6,
+      "checkpoint_step": 30,
+      "traceback_count": 0
+    },
+    "event_ledger_format": "parquet"
+  },
+  "fully_physical_200": {
+    "config": "configs/production/temperature_fully_physical_200.yaml",
+    "runs_total": 220,
+    "status": "pending_available_worker_slots"
+  }
+}

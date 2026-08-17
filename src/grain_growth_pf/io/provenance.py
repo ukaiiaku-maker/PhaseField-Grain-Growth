@@ -11,6 +11,8 @@ from typing import Any
 import numpy as np
 import scipy
 
+from grain_growth_pf.io.checkpoints import atomic_write_text
+
 
 def git_sha(root: str | Path = ".") -> str:
     result = subprocess.run(["git", "rev-parse", "HEAD"], cwd=root, text=True,
@@ -62,5 +64,5 @@ def write_manifest(path: str | Path, config: dict[str, Any], status: str = "star
     }
     manifest.update(extra or {})
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    atomic_write_text(target, json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     return manifest

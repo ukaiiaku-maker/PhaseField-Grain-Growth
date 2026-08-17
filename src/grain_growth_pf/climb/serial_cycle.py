@@ -26,6 +26,7 @@ class SerialClimbCycle:
         self.clock = CumulativeHazardClock(rng)
         self.history: list[tuple[float, ClimbStage]] = []
         self.last_completion_time: float | None = None
+        self.last_transitions: list[tuple[float, ClimbStage, float]] = []
 
     def activate(self, time: float) -> None:
         if self.stage in {ClimbStage.INACTIVE, ClimbStage.COMPLETE}:
@@ -42,10 +43,26 @@ class SerialClimbCycle:
             ClimbStage.EXCHANGE: exchange_rate,
             ClimbStage.TRANSPORT: transport_rate,
         }
+        self.last_transitions = []
+        if dt < 0 or any(rate < 0 or not np.isfinite(rate) for rate in rates.values()):
+            raise ValueError("serial rates and timestep must be finite and nonnegative")
         if self.stage not in rates:
             return self.stage == ClimbStage.COMPLETE
-        events = self.clock.advance(rates[self.stage], dt, time)
-        for event in events:
+        remaining, current_time = float(dt), float(time)
+        while remaining > 0 and self.stage in rates:
+            rate = rates[self.stage]
+            if rate == 0:
+                self.clock.last_rate = 0.0
+                break
+            hazard_needed = max(float(self.clock.threshold) - self.clock.cumulative_hazard, 0.0)
+            waiting_time = hazard_needed / rate
+            if waiting_time > remaining:
+                self.clock.cumulative_hazard += rate * remaining
+                self.clock.last_rate = rate
+                break
+            self.clock.cumulative_hazard = float(self.clock.threshold)
+            current_time += waiting_time
+            remaining -= waiting_time
             if self.stage == ClimbStage.NUCLEATION:
                 self.stage = ClimbStage.EXCHANGE
             elif self.stage == ClimbStage.EXCHANGE:
@@ -53,8 +70,10 @@ class SerialClimbCycle:
             elif self.stage == ClimbStage.TRANSPORT:
                 self.completed_quota = self.required_quota
                 self.stage = ClimbStage.COMPLETE
-                self.last_completion_time = event.event_time
-            self.history.append((event.event_time, self.stage))
+                self.last_completion_time = current_time
+            threshold = float(self.clock.threshold)
+            self.history.append((current_time, self.stage))
+            self.last_transitions.append((current_time, self.stage, threshold))
             self.clock.reset()
             if self.stage == ClimbStage.COMPLETE:
                 return True
