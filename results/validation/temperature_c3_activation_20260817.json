@@ -1,0 +1,68 @@
+{
+  "status": "passed",
+  "campaign": "results/campaigns/20260816T143704Z-004ca4c536",
+  "regime": "C3",
+  "temperatures_K": [800.0, 900.0, 1000.0, 1100.0],
+  "realizations_per_temperature": 5,
+  "common_growth_exponent": 1.0000000000000004,
+  "common_growth_exponent_95pct": [1.0000000000000002, 1.0000000000000224],
+  "growth_coefficients": [
+    0.21066154523324404,
+    0.3117501508882259,
+    0.3687501444827621,
+    0.4085036439349388
+  ],
+  "growth_activation_energy_ev": 0.16699162004820767,
+  "growth_activation_energy_95pct": [0.13998514928508501, 0.1891546313110659],
+  "growth_arrhenius_r_squared": 0.9575910488365883,
+  "local_growth_activation_energy_ev": [
+    0.24318414113487902,
+    0.13022988652690112,
+    0.09704813883472523
+  ],
+  "event_counts": [485862, 515137, 605147, 668451],
+  "event_domain_time_exposure": [
+    108956.25999999838,
+    76938.93999999907,
+    67788.61999999928,
+    63365.7799999994
+  ],
+  "event_rates_per_domain_time": [
+    4.459238964333093,
+    6.695400274555462,
+    8.92697033808929,
+    10.549085010868742
+  ],
+  "event_activation_energy_ev": 0.22005780026640187,
+  "event_activation_energy_95pct": [0.21720987281088333, 0.22261940958484353],
+  "event_arrhenius_r_squared": 0.9918565858521591,
+  "local_event_activation_energy_ev": [
+    0.2521765264619693,
+    0.2230947220851002,
+    0.1582644464188253
+  ],
+  "jerkiness_CV_by_temperature": [
+    1.0429599141430652,
+    1.0068242024168483,
+    0.995917199168799,
+    0.9937117881939248
+  ],
+  "Fano_by_temperature": [391.623215, 794.031303, 1208.128685, 1598.074440],
+  "burstiness_by_temperature": [
+    -0.24698163682936314,
+    -0.2781934799341522,
+    -0.3020948952839798,
+    -0.303376438575896
+  ],
+  "reverse_motion_fraction_by_temperature": [0.761553, 0.728091, 0.691007, 0.672959],
+  "velocity_curvature_R2_by_temperature": [0.001265, 0.000782, 0.000443, 0.000513],
+  "stationary_fraction_by_temperature": [
+    0.24078333546124156,
+    0.21287362646612973,
+    0.20395819317365774,
+    0.19968633199740832
+  ],
+  "simulation_git_sha": "990c3a0d96e29290e13612387c32576f16cf993e",
+  "analysis_git_sha": "c825115c51e8bf4a10bc6b8921e6d104ae334676",
+  "interpretation": "The selected exchange-limited family retains the lower-bound common exponent n=1. Its isolated growth and event activation energies are 0.167 and 0.220 eV, and both local slopes decline with temperature. Adding intrinsic Arrhenius mobility in FP-C3 raises the apparent scale, reverses the event-slope curvature, and leaves n unchanged."
+}
