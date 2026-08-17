@@ -381,6 +381,19 @@ signed shear-event strain rises from 18.15 to 29.03. This is direct production
 evidence that reduced local memory can generate Qiu-like decorrelation and
 reverse-curvature migration without a full-field solve.
 
+The completed SC3 full-field parallel-mode family has common `n=1.000` and
+essentially no grain-growth activation: `Q_app=-0.007028 eV` (95% CI
+`[-0.023510,0.007732]`, `R²=0.3326`). Its event-exposure activation is only
+`0.005290 eV` (95% CI `[0.004939,0.005657]`, `R²=0.99675`), with rates
+206.35→210.68 events per integrated GB-domain time. A dedicated streamed
+occupation analysis over 66,720,712 completed modes nevertheless resolves a
+small temperature-dependent coupling shift. Mean `|beta|` decreases
+2.36756→2.35827 (0.392%; non-overlapping five-seed bootstrap intervals), easy-
+shell occupation rises 31.716%→32.079%, and high-shell occupation falls
+34.236%→33.953%. Thus Arrhenius occupation creates a measurable effective-
+coupling temperature dependence even though the spectrum is fixed and the
+coarse growth coefficient is temperature invariant.
+
 The first completed fully physical family, FP-G2, retains common `n=1.000`
 but has growth `Q_app=0.500831 eV` (95% CI `[0.479760,0.521590]`) and event-
 exposure activation `0.531786 eV` (95% CI `[0.525019,0.539315]`). These are
@@ -476,7 +489,7 @@ immutable source campaign completes.
 | Q12 | Under what conditions does physical stagnation occur? | Explicit TJ compatibility can cause physical stagnation even under enormous event activity: J1 changes characteristic radius by only 1.02%, while strict persistent J2 changes it by 0% across 3,500 steps. High event count is not evidence of coarsening. |
 | Q13 | Which parameters maximize jerkiness without destroying realistic mean scaling? | None of the 12 completed search candidates passes the strict scaling gate. `JK-L24-K3-SPARSE` is closest (`n=1.188`, CI `[1.000,1.798]`, CV 1.811) but remains rejected; the high-barrier candidate has the largest CV (3.111) and also fails scaling. |
 | Q14 | Can anisotropic stress/curvature selection from an isotropic discrete mode spectrum generate effective shear coupling? | Yes in the model sense. E0 generates signed shear 158.50 without feedback; full-field E1 gives 4256.82 and local-memory E2 gives 171.27. The magnitude is strongly backend-dependent, so quantitative equality to continuous Qiu coupling is not claimed. |
-| Q15 | Can effective shear coupling acquire temperature dependence through Arrhenius mode occupation rather than an imposed coupling factor? | Pending event-resolved temperature series. |
+| Q15 | Can effective shear coupling acquire temperature dependence through Arrhenius mode occupation rather than an imposed coupling factor? | Yes, weakly. Across 66.7 million completed SC3 modes, mean `|beta|` falls 2.36756→2.35827 from 800→1100 K (0.392%, with non-overlapping endpoint bootstrap intervals) as easy-shell occupation rises and high-shell occupation falls. The spectrum itself is unchanged. |
 | Q16 | How often do low-barrier modes fail explicit TJ compatibility? | Corrected J1 has 426,780 endpoint failures across 3,178,918 GB events (13.43% incidence), 60.55% nominally easy. J2 has 66,545,846 failures across 60,804,329 GB events (1.094 incidence; two endpoints may fail), 70.68% nominally easy. |
 | Q17 | What barrier distribution is sampled during TJ compatibility failures? | Corrected J1 bare barriers have median 0.29 eV, 75th percentile 0.35 eV, and 99th percentile 0.59 eV; residual work broadens effective barriers from zero to 0.769 eV. |
 | Q18 | Does explicit Burgers conservation yield long waits and abrupt TJ motion? | Yes. TJ activation contributes 97.07% of J1 and 75.18% of J2 event-conditioned expected residence; both are stagnant yet strongly intermittent (CV 3.231 and 4.242). |
