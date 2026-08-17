@@ -1,0 +1,68 @@
+{
+  "status": "passed",
+  "campaign": "results/campaigns/20260817T082103Z-01b68e843b",
+  "regime": "FP-C3",
+  "temperatures_K": [800.0, 900.0, 1000.0, 1100.0],
+  "realizations_per_temperature": 5,
+  "common_growth_exponent": 1.0000000000000004,
+  "common_growth_exponent_95pct": [1.0000000000000002, 1.0000000000000173],
+  "growth_coefficients": [
+    0.13204852093855443,
+    0.31065022559869193,
+    0.6384042068681296,
+    1.115723643475877
+  ],
+  "growth_activation_energy_ev": 0.5412213419323807,
+  "growth_activation_energy_95pct": [0.5233296041288447, 0.558269561758316],
+  "growth_arrhenius_r_squared": 0.9998901169742168,
+  "local_growth_activation_energy_ev": [
+    0.530792120976536,
+    0.5586389912923286,
+    0.5292038180695215
+  ],
+  "event_counts": [580970, 534260, 550100, 638706],
+  "event_domain_time_exposure": [
+    164034.9199999972,
+    79428.89999999903,
+    38163.56991008286,
+    23004.76680769727
+  ],
+  "event_rates_per_domain_time": [
+    3.541745867282466,
+    6.7262671395424904,
+    14.414269977784835,
+    27.76407191340416
+  ],
+  "event_activation_energy_ev": 0.5223740784897918,
+  "event_activation_energy_95pct": [0.5198245996310995, 0.5245363824845072],
+  "event_arrhenius_r_squared": 0.9887122061070834,
+  "local_event_activation_energy_ev": [
+    0.3979556799199968,
+    0.5911305525603161,
+    0.621375679387085
+  ],
+  "jerkiness_CV_by_temperature": [
+    1.0856802018330263,
+    1.0020739759508,
+    0.9912342687565655,
+    0.9953487670131388
+  ],
+  "Fano_by_temperature": [270.201392, 789.078809, 2425.679060, 5642.547789],
+  "burstiness_by_temperature": [
+    -0.11419744129754998,
+    -0.28232155888939425,
+    -0.3298765242416231,
+    -0.3249949736923843
+  ],
+  "reverse_motion_fraction_by_temperature": [0.705554, 0.728573, 0.717113, 0.694223],
+  "velocity_curvature_R2_by_temperature": [0.000770, 0.001332, 0.001576, 0.000412],
+  "stationary_fraction_by_temperature": [
+    0.2959698139593863,
+    0.211947676143505,
+    0.19455679055512223,
+    0.1917446363073169
+  ],
+  "simulation_git_sha": "878081a206a4b75f243ddfd25821b252c954a87c",
+  "analysis_git_sha": "2bd851be5a8c764efd1c9b8fced58fafb9dc24f6",
+  "interpretation": "The fully physical exchange-limited family retains the lower-bound common exponent n=1. Growth activation is nearly linear at 0.541 eV, while event activation is 0.522 eV and its local slope rises from 0.398 eV below 900 K to 0.591--0.621 eV above 900 K. This locates an exchange-controlled event-rate transition without changing the growth exponent."
+}
