@@ -339,9 +339,9 @@ slopes equal to 0.45 eV within `4e-11`. Its common exponent is `1.63449`
 (95% CI `[1.43851,1.82699]`) over a 70.2% radius increase. The remaining
 selected and fully physical families remain **pending production inference**.
 
-The selected campaign has completed 198/240 runs: B1, G2, T2, S2, C2--C5,
-and SC3 each have all 20 matched temperature/seed conditions, and P2 is at
-18/20. The remaining P2/P4 conditions continue with zero tracebacks. The fully
+The selected campaign has completed 204/240 runs: B1, G2, T2, S2, C2--C5,
+SC3, and P2 each have all 20 matched temperature/seed conditions. The remaining
+P4 conditions continue with zero tracebacks. The fully
 physical campaign is running at `results/campaigns/20260817T082103Z-01b68e843b` with
 220 enumerated conditions and 10 workers; all initially verified manifests
 record clean SHA `878081a206a4b75f243ddfd25821b252c954a87c`. An earlier 10-run
@@ -380,6 +380,15 @@ consistent with the implemented negative energy derivative, and accumulated
 signed shear-event strain rises from 18.15 to 29.03. This is direct production
 evidence that reduced local memory can generate Qiu-like decorrelation and
 reverse-curvature migration without a full-field solve.
+
+The completed P2 swept-area spatial control is identical at all four
+temperatures and has no activated primitive events. Its common fit reaches the
+upper search bound `n=6`, with `K=7388.828819` and a nominal growth activation
+of only `9.9e-12 eV` (95% CI `[-0.0782,0.0857]`). This is intentionally
+reported as bound-censored: the evidence identifies a scaling class at or
+above the analyzed range, not a uniquely determined sixth-power law. Its
+temperature invariance independently verifies that the measured behavior is
+geometric rather than Arrhenius.
 
 The completed SC3 full-field parallel-mode family has common `n=1.000` and
 essentially no grain-growth activation: `Q_app=-0.007028 eV` (95% CI
@@ -487,7 +496,7 @@ immutable source campaign completes.
 | Question | Required inference | Current evidence gate |
 |---|---|---|
 | Q1 | Can high-barrier compatibility events yield strong grain-scale jerkiness with smooth ensemble scaling? | Yes, with a scaling caveat. Corrected SC4 gives CV `1.172`, Fano `584.80`, and smooth ensemble fit `R²=0.9637`, but its `n=1` is at the scan bound and is not conventional parabolic scaling. Explicit J1/J2 show that stronger compatibility can instead arrest growth entirely. |
-| Q2 | How does geometric encounter measure set the coarse-grained exponent? | It changes the scaling class. P1's GB-area analogue has `n=1`, TJ pinning P4 has `n=1.3935` (CI `[1.0000,1.7691]`), and swept-area spatial P2/P3 exceed the scan range at `n=6`. At fixed G-series geometry, changing single-hit to multihit lowers `K` 0.17450→0.10734→0.07307 without changing the bound-limited `n=1`. |
+| Q2 | How does geometric encounter measure set the coarse-grained exponent? | It changes the scaling class. P1's GB-area analogue has `n=1`, TJ pinning P4 has `n=1.3935` (CI `[1.0000,1.7691]`), and swept-area spatial P2/P3 exceed the scan range at `n=6`. The selected P2 temperature control independently repeats the same upper-bound class at all four temperatures. At fixed G-series geometry, changing single-hit to multihit lowers `K` 0.17450→0.10734→0.07307 without changing the bound-limited `n=1`. |
 | Q3 | How do single-hit Poisson and multihit kinetics differ? | Corrected explicit J1/J2 are both stagnant, but persistent multihit J2 raises CV from 3.231 to 4.242 and Fano from 291 to 3208 while lowering burstiness from 0.442 to 0.112 and increasing primitive events 19-fold. The effect depends on the diagnostic. |
 | Q4 | Does increasing `K` raise or lower intermittency at fixed spatial correlation? | In the completed L24 series, K=1→3→5 raises trajectory CV (1.435→1.704→1.905) and burstiness (-0.075→-0.018→0.025), but lowers event-count Fano (53.28→38.94→32.87); the answer is metric dependent, consistent with multihit self-averaging of event counts. |
 | Q5 | Can reduced shear memory reproduce Qiu-like velocity-curvature decorrelation without full elasticity? | Yes. In S2, velocity--curvature `R²` is only 0.0014--0.0028 and velocity correlates negatively with stored shear (`-0.074` to `-0.085`). FP-S2 independently retains `R²<=0.00379` and negative correlation (`-0.083` to `-0.080`) after adding intrinsic Arrhenius mobility. |
