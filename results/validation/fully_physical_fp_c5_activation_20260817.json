@@ -1,0 +1,148 @@
+{
+  "status": "passed",
+  "campaign": "results/campaigns/20260817T082103Z-01b68e843b",
+  "regime": "FP-C5",
+  "temperatures_K": [
+    800.0,
+    900.0,
+    1000.0,
+    1100.0
+  ],
+  "realizations_per_temperature": 5,
+  "common_growth_exponent": 1.0000000000000002,
+  "common_growth_exponent_95pct": [
+    1.0000000000000002,
+    1.0000000000017952
+  ],
+  "growth_coefficients": [
+    0.037411699422044364,
+    0.06854199270421528,
+    0.17839395560170995,
+    0.3486467705913315
+  ],
+  "growth_activation_energy_ev": 0.5750846352850004,
+  "growth_activation_energy_95pct": [
+    0.5528137380438398,
+    0.595008545841413
+  ],
+  "growth_arrhenius_r_squared": 0.9792979005027267,
+  "local_growth_activation_energy_ev": [
+    0.3756583758861764,
+    0.7418601659281047,
+    0.6351590304215754
+  ],
+  "event_counts": [
+    757401,
+    864116,
+    835829,
+    978400
+  ],
+  "event_domain_time_exposure": [
+    480450.4400000207,
+    298608.36000000575,
+    118928.11459538137,
+    61346.04743047917
+  ],
+  "event_rates_per_domain_time": [
+    1.5764393929995513,
+    2.8938104746966338,
+    7.028018587897969,
+    15.94886779150325
+  ],
+  "event_activation_energy_ev": 0.5862284613607425,
+  "event_activation_energy_95pct": [
+    0.583840347559833,
+    0.5892257460040571
+  ],
+  "event_arrhenius_r_squared": 0.9736784322295923,
+  "local_event_activation_energy_ev": [
+    0.3768634511983592,
+    0.6881781750521555,
+    0.7767934178087158
+  ],
+  "serial_stage_resistance_fraction_by_temperature": {
+    "nucleation": [
+      0.0008797947656847663,
+      0.001101190443355187,
+      0.0013931052552170317,
+      0.0016925138090475602
+    ],
+    "exchange": [
+      0.007711977974279946,
+      0.009193002061850638,
+      0.011623758744038405,
+      0.0144077584649659
+    ],
+    "transport": [
+      0.9914082272600353,
+      0.9897058074947942,
+      0.9869831360007446,
+      0.9838997277259866
+    ]
+  },
+  "all_event_resistance_fraction_by_temperature": {
+    "generic_activation": [
+      0.06840094691357082,
+      0.10097851154035554,
+      0.1468843366387228,
+      0.19422641970708396
+    ],
+    "nucleation": [
+      0.0008196159706223251,
+      0.000989993871462716,
+      0.0011884799139365596,
+      0.0013637829116114537
+    ],
+    "exchange": [
+      0.007184471378262596,
+      0.008264706397057541,
+      0.009916410651671771,
+      0.011609391122311144
+    ],
+    "transport": [
+      0.9235949657375443,
+      0.8897667881911242,
+      0.8420107727956689,
+      0.7928004062589935
+    ]
+  },
+  "jerkiness_CV_by_temperature": [
+    1.367364225646081,
+    1.1724927312728934,
+    1.0700491308744076,
+    1.0106925874734176
+  ],
+  "Fano_by_temperature": [
+    55.21425783004753,
+    109.3325797040906,
+    426.5289814534079,
+    1507.5842685729217
+  ],
+  "burstiness_by_temperature": [
+    -0.006427031175708772,
+    -0.15099283483653816,
+    -0.23793130639196097,
+    -0.28605679033426545
+  ],
+  "reverse_motion_fraction_by_temperature": [
+    0.7911070438289042,
+    0.8056175212893253,
+    0.8046144100287504,
+    0.8017153596508887
+  ],
+  "velocity_curvature_R2_by_temperature": [
+    0.00021664563257806573,
+    0.0005781909736820332,
+    0.000485051978753627,
+    0.0020855212510962427
+  ],
+  "stationary_fraction_by_temperature": [
+    0.46774943224249066,
+    0.3330648392040265,
+    0.2652459653789568,
+    0.22504143060464848
+  ],
+  "simulation_git_sha": "878081a206a4b75f243ddfd25821b252c954a87c",
+  "analysis_git_sha": "ee209b0a9f7c9306cf365ce5a81376aaa3014bcc",
+  "interpretation": "The fully physical serial-climb family retains the lower-bound common exponent n=1. Growth and event activation are 0.575 and 0.586 eV, with local event slopes rising from 0.377 eV below 900 K to 0.688 and 0.777 eV above it. Completed serial stages remain more than 98.39% transport-controlled, while all-event transport residence falls from 92.36% to 79.28% as generic activation rises from 6.84% to 19.42%. The post-900 K slope increase confirms the coupled climb crossover without changing the coarse growth exponent."
+}
