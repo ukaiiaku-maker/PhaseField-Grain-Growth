@@ -1,0 +1,102 @@
+{
+  "status": "passed",
+  "campaign": "results/campaigns/20260816T143704Z-004ca4c536",
+  "regime": "P4",
+  "temperatures_K": [
+    800.0,
+    900.0,
+    1000.0,
+    1100.0
+  ],
+  "realizations_per_temperature": 5,
+  "common_growth_exponent": 1.3910007290445934,
+  "common_growth_exponent_95pct": [
+    1.2085062524388748,
+    1.570753129469745
+  ],
+  "growth_coefficients": [
+    0.15373375212888335,
+    0.16934761099644888,
+    0.17497029764010633,
+    0.1770860639605258
+  ],
+  "growth_activation_energy_ev": 0.03578756749463765,
+  "growth_activation_energy_95pct": [
+    0.020473472786143032,
+    0.05077836622377644
+  ],
+  "growth_arrhenius_r_squared": 0.9075001298407779,
+  "local_growth_activation_energy_ev": [
+    0.06001670909422137,
+    0.025331929535553677,
+    0.011393477566141235
+  ],
+  "event_counts": [
+    5464,
+    5551,
+    5564,
+    5551
+  ],
+  "event_domain_time_exposure": [
+    368793.24000001414,
+    335266.94000001554,
+    325272.04000001465,
+    318781.7400000143
+  ],
+  "event_rates_per_domain_time": [
+    0.014815889792339443,
+    0.016556956078042598,
+    0.017105681754877394,
+    0.017413168018970443
+  ],
+  "event_activation_energy_ev": 0.040475011181538484,
+  "event_activation_energy_95pct": [
+    0.025317392126775803,
+    0.05512000521601876
+  ],
+  "event_arrhenius_r_squared": 0.9083147028189449,
+  "local_event_activation_energy_ev": [
+    0.06893554510973636,
+    0.02528663284164111,
+    0.01688793159116228
+  ],
+  "jerkiness_CV_by_temperature": [
+    1.9431556317905012,
+    1.7589726873184088,
+    1.6896272073075633,
+    1.6600291397123328
+  ],
+  "Fano_by_temperature": [
+    2.081741116193684,
+    2.448376123744649,
+    2.8467640651175685,
+    2.8464482438454093
+  ],
+  "burstiness_by_temperature": [
+    0.024910018838809358,
+    -0.04698488594860104,
+    -0.07711722402808968,
+    -0.08900980324927317
+  ],
+  "reverse_motion_fraction_by_temperature": [
+    0.2787561450451733,
+    0.27612556021037193,
+    0.27918879101322763,
+    0.279826291606159
+  ],
+  "velocity_curvature_R2_by_temperature": [
+    0.14683010965494858,
+    0.1538449879718903,
+    0.159887076946234,
+    0.16028066741817287
+  ],
+  "stationary_fraction_by_temperature": [
+    0.7478387745886254,
+    0.7102533145670995,
+    0.6918670263856852,
+    0.6827200868749611
+  ],
+  "simulation_git_sha": "990c3a0d96e29290e13612387c32576f16cf993e",
+  "analysis_git_sha": "c47093181d298b8481d1eeeb8a6397038f8e15e9",
+  "interpretation": "The selected TJ-pinning geometry retains the non-bound common exponent n=1.391. Growth and event activation are only 0.0358 and 0.0405 eV, and their local slopes flatten from 0.0600/0.0689 eV to 0.0114/0.0169 eV. This is a weak, curved apparent temperature response from geometry-controlled encounter statistics rather than recovery of a microscopic Arrhenius barrier."
+}
