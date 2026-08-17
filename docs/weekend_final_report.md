@@ -354,6 +354,16 @@ exposure, and compatibility kinetics rather than a simple sum of input
 barriers. CV falls from 1.776 to 1.340, Fano rises from 46.0 to 721.2, and the
 common exponent remains unchanged across 800--1100 K.
 
+The completed FP-T2 family gives common `n=1.000`, growth activation
+`0.658646 eV` (95% CI `[0.629913,0.682759]`, `R²=0.99943`), and event-
+exposure activation `0.582746 eV` (95% CI `[0.576193,0.589511]`,
+`R²=0.98892`). Local growth slopes are 0.659, 0.624, and 0.719 eV, while
+event slopes show a low-temperature transition from 0.445 to 0.658 and 0.693
+eV. The event-conditioned TJ resistance share falls from 84.07% at 800 K to
+66.64% at 1100 K. Despite this changing balance, the common exponent remains
+one; CV falls from 2.262 to 1.429 and velocity--curvature `R²` remains below
+`6.6e-4`.
+
 The plotting path applies the same distinction: it retains event-level
 Arrhenius and local-slope panels even when every growth coefficient is zero.
 
@@ -426,7 +436,7 @@ immutable source campaign completes.
 | Q21 | What accumulated strain fractions are shear, climb, and mixed? | Signed shear and volumetric event sums are available; final fractions await SC aggregation. |
 | Q22 | Does apparent grain rotation emerge from event-wise tangential displacement? | Not directly identifiable: orientations are fixed and no grain-rigid-body rotation state is evolved. Event tangential strain is retained, but this remains a stated model limitation. |
 | Q23 | At what temperature does the dominant difficult event cross from shear/TJ compatibility to climb/point-defect control? | FP-G2 alone cannot locate the cross-family crossover; the remaining fully physical families are required. It already shows a strong slope change between the 800--900 K and higher-temperature intervals. |
-| Q24 | Does that crossover curve the Arrhenius plot or change the growth exponent? | FP-G2 retains common `n=1` while local growth Q rises from 0.351 to 0.639 eV and local event Q from 0.352 to 0.680 eV. Coupled physics clearly curves Arrhenius behavior without changing the fitted common exponent. |
+| Q24 | Does that crossover curve the Arrhenius plot or change the growth exponent? | FP-G2 retains common `n=1` while local growth/event Q rise 0.351→0.639 and 0.352→0.680 eV. FP-T2 also retains `n=1`; its event slope changes 0.445→0.658→0.693 eV while TJ resistance falls 84.07%→66.64%. Coupled physics curves Arrhenius behavior without changing the fitted common exponent. |
 
 ## 12. Unexpected physics and preserved failures
 
