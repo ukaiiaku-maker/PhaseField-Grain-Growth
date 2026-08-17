@@ -225,6 +225,18 @@ for 97.07% of the event-conditioned expected residence. This demonstrates a
 strong intrinsic compatibility arrest, but not the requested coexistence of
 strong jerkiness with sustained smooth scaling in this parameterization.
 
+The corrected strict persistent-multihit J2 replacement is also complete for
+five seeds. It is fully stagnant: characteristic radius does not change and
+the mean grain population moves only from 200.0 to 199.4 over physical time
+14--140, so `n=NaN` and `K=0`. Nevertheless, it records 68,815,481 primitive
+events, CV `4.24167`, Fano `3208.40`, burstiness `0.11194`, 58.18% reverse
+motion, and velocity--curvature `R²=2.21e-5`. Its 66,545,846 TJ endpoint-
+failure rows have incidence 1.094 per completed GB event (two endpoints can
+fail); 70.68% involve nominally easy modes. Relative to J1, persistent
+multihit kinetics raises CV and Fano but lowers waiting-time burstiness, so the
+intermittency effect is metric dependent. All 30 corrected repair runs are now
+complete with zero tracebacks and audited restart checksums.
+
 Final analysis reads checkpointed event ledgers in bounded-memory batches. A
 production regression over 31,255,548 primitive rows produced a byte-identical
 summary and identical diagnostics apart from sub-`8e-12` summation-order roundoff,
@@ -361,7 +373,7 @@ immutable source campaign completes.
 |---|---|---|
 | Q1 | Can high-barrier compatibility events yield strong grain-scale jerkiness with smooth ensemble scaling? | Corrected SC4 gives CV `1.172`, Fano `584.80`, and ensemble-fit `R²=0.9637`; final answer awaits the matched 165-condition composite. |
 | Q2 | How does geometric encounter measure set the coarse-grained exponent? | Pending the G-series and explicit-versus-surrogate composite comparison. |
-| Q3 | How do single-hit Poisson and multihit kinetics differ? | Engine-level exponential/Erlang/packet predictions pass; production-scale comparison awaits the composite. |
+| Q3 | How do single-hit Poisson and multihit kinetics differ? | Corrected explicit J1/J2 are both stagnant, but persistent multihit J2 raises CV from 3.231 to 4.242 and Fano from 291 to 3208 while lowering burstiness from 0.442 to 0.112 and increasing primitive events 19-fold. The effect depends on the diagnostic. |
 | Q4 | Does increasing `K` raise or lower intermittency at fixed spatial correlation? | In the completed L24 series, K=1→3→5 raises trajectory CV (1.435→1.704→1.905) and burstiness (-0.075→-0.018→0.025), but lowers event-count Fano (53.28→38.94→32.87); the answer is metric dependent, consistent with multihit self-averaging of event counts. |
 | Q5 | Can reduced shear memory reproduce Qiu-like velocity-curvature decorrelation without full elasticity? | Yes. In the completed S2 series, velocity--curvature `R²` is only 0.0014--0.0028 across 800--1100 K, while velocity correlates negatively with stored shear (`-0.074` to `-0.085`). Matched full-field magnitude comparison still awaits the composite. |
 | Q6 | Can shear memory generate reverse-curvature migration? | Yes. S2 reverse-motion fraction increases from 56.94% at 800 K to 72.00% at 1100 K; the negative velocity--stored-shear correlation verifies that reversal emerges from mechanical back force. |
@@ -370,13 +382,13 @@ immutable source campaign completes.
 | Q9 | Are simultaneous shear and climb additive in residence time, strongly coupled, or dominated by one process? | Corrected SC4 is transport-dominated in observed-event resistance, but causal comparison remains pending the SC1--SC4 matched composite. |
 | Q10 | How does apparent grain-growth activation compare with imposed microscopic barriers? | B1 recovers 0.45 eV exactly within uncertainty. G2 gives event/growth Q of 0.250122/0.143697 eV; T2 gives 0.266257/0.275837 eV; S2 gives 0.196481/0.101674 eV. Coarse-grained Q is an emergent observable and can be far below the event-level slope. |
 | Q11 | Can similar apparent activation energies coexist with very different mobilities? | Yes provisionally: G2 event Q=0.2501 eV and T2 event Q=0.2663 eV are close, while their growth coefficients differ substantially (for example 0.10734 versus 0.06991 at 900 K) because their compatibility statistics differ. Final paired inference awaits all selected regimes. |
-| Q12 | Under what conditions does physical stagnation occur? | Stagnation rejection criteria are implemented; production boundaries await mechanism and temperature summaries. |
+| Q12 | Under what conditions does physical stagnation occur? | Explicit TJ compatibility can cause physical stagnation even under enormous event activity: J1 changes characteristic radius by only 1.02%, while strict persistent J2 changes it by 0% across 3,500 steps. High event count is not evidence of coarsening. |
 | Q13 | Which parameters maximize jerkiness without destroying realistic mean scaling? | None of the 12 completed search candidates passes the strict scaling gate. `JK-L24-K3-SPARSE` is closest (`n=1.188`, CI `[1.000,1.798]`, CV 1.811) but remains rejected; the high-barrier candidate has the largest CV (3.111) and also fails scaling. |
 | Q14 | Can anisotropic stress/curvature selection from an isotropic discrete mode spectrum generate effective shear coupling? | Mode-selection regressions pass; production magnitude awaits E/SC results. |
 | Q15 | Can effective shear coupling acquire temperature dependence through Arrhenius mode occupation rather than an imposed coupling factor? | Pending event-resolved temperature series. |
-| Q16 | How often do low-barrier modes fail explicit TJ compatibility? | In corrected J1, 426,780 endpoint failures occur across 3,178,918 completed GB mode events (13.43% incidence); 60.55% of failure rows are nominally easy modes. J2 comparison remains pending. |
+| Q16 | How often do low-barrier modes fail explicit TJ compatibility? | Corrected J1 has 426,780 endpoint failures across 3,178,918 GB events (13.43% incidence), 60.55% nominally easy. J2 has 66,545,846 failures across 60,804,329 GB events (1.094 incidence; two endpoints may fail), 70.68% nominally easy. |
 | Q17 | What barrier distribution is sampled during TJ compatibility failures? | Corrected J1 bare barriers have median 0.29 eV, 75th percentile 0.35 eV, and 99th percentile 0.59 eV; residual work broadens effective barriers from zero to 0.769 eV. |
-| Q18 | Does explicit Burgers conservation yield long waits and abrupt TJ motion? | Yes for J1: TJ activation contributes 97.07% of event-conditioned expected residence while trajectories have CV 3.231 and 71.70% stationary intervals. The matched J1/J2/J3 comparison awaits J2. |
+| Q18 | Does explicit Burgers conservation yield long waits and abrupt TJ motion? | Yes. TJ activation contributes 97.07% of J1 and 75.18% of J2 event-conditioned expected residence; both are stagnant yet strongly intermittent (CV 3.231 and 4.242). |
 | Q19 | How sensitive are growth and jerkiness to minimum Burgers magnitude and mode discreteness? | Discrete minimum-Burgers tests pass; production sensitivity awaits matched regime fits. |
 | Q20 | Can the geometric TJ surrogate reproduce explicit-mode scaling and intermittency? | J3 replacement is complete; final answer awaits J1/J2 and the composite. |
 | Q21 | What accumulated strain fractions are shear, climb, and mixed? | Signed shear and volumetric event sums are available; final fractions await SC aggregation. |

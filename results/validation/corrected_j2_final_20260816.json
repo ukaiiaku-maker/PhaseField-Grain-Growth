@@ -1,0 +1,72 @@
+{
+  "status": "passed_stagnant_physical_result",
+  "campaign": "results/campaigns/20260816T160354Z-188fe232c6",
+  "regime": "J2",
+  "temperature_K": 900.0,
+  "realizations": 5,
+  "steps_per_realization": 3500,
+  "fit_window": {
+    "start": 13.999999999999876,
+    "end": 140.00000000000642,
+    "samples": 1576,
+    "initial_mean_grain_count": 200.0,
+    "end_mean_grain_count": 199.4
+  },
+  "kinetic_observability": {
+    "observable": false,
+    "relative_radius_change": 0.0,
+    "minimum_required_relative_radius_change": 0.02,
+    "reason": "growth_law_suppressed_for_stagnant_or_censored_ensemble"
+  },
+  "growth_exponent": null,
+  "growth_coefficient": 0.0,
+  "jerkiness_CV": 4.24167175731978,
+  "Fano": 3208.4045603795275,
+  "burstiness": 0.11193973883463582,
+  "stationary_fraction": 0.5839396200047859,
+  "motion_top_1pct": 0.26044676482932816,
+  "motion_top_5pct": 0.4804172945938303,
+  "motion_top_10pct": 0.6028714398458608,
+  "reverse_motion_fraction": 0.5818421804889065,
+  "velocity_curvature_R2": 0.000022069663466311792,
+  "primitive_event_count": 68815481,
+  "primitive_event_counts": {
+    "activation_hit": 60804329,
+    "tj_activation_hit": 8011152
+  },
+  "event_conditioned_resistance_fraction": {
+    "gb_activation_hit": 0.2482239404208757,
+    "tj_activation_hit": 0.7517760595791243
+  },
+  "tj_compatibility_failures": {
+    "endpoint_failure_rows": 66545846,
+    "completed_gb_mode_events": 60804329,
+    "endpoint_failure_incidence_per_mode_event": 1.0944261221927143,
+    "low_barrier_failure_rows": 47035488,
+    "fraction_of_failure_rows_low_barrier": 0.7068132847841472,
+    "unique_tj_entities": 6365,
+    "counts_by_barrier_type": {
+      "easy": 47035488,
+      "intermediate": 15657041,
+      "high": 3853317
+    },
+    "bare_barrier_ev_quantiles": {
+      "q00": 0.29000000000000004,
+      "q50": 0.29000000000000004,
+      "q75": 0.35000000000000003,
+      "q99": 0.5900000000000001,
+      "q100": 0.5900000000000001
+    },
+    "effective_barrier_ev_quantiles": {
+      "q00": 0.0,
+      "q50": 0.0,
+      "q75": 0.0,
+      "q90": 0.13947253321258046,
+      "q99": 0.4564129585599809,
+      "q100": 1.443776862887383
+    }
+  },
+  "simulation_git_sha": "990c3a0d96e29290e13612387c32576f16cf993e",
+  "analysis_git_sha": "adc0ee382ac164c62160804a94d3fcb6b33cb51d",
+  "interpretation": "Corrected strict persistent TJ compatibility produces complete physical stagnation with extreme event activity and intermittency. Relative to J1, multihit kinetics raises CV and Fano but lowers waiting-time burstiness, so intermittency changes are metric dependent."
+}
