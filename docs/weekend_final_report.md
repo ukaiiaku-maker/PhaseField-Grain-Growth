@@ -531,9 +531,13 @@ resistance. It also reports event-conditioned `1/r` distributions and normalized
 shares for every observed primitive type, separating GB/shear-compatible,
 TJ-compatible, nucleation, exchange, and transport passages. Those shares are
 explicitly diagnostics at observed events, not causal probabilities; matched
-blocked-time comparisons remain necessary for Q8/Q9. Event shear and volumetric
-strain are summed separately. Comparative mechanism results are **pending
-production inference**.
+blocked-time comparisons remain necessary for causal attribution. Event shear
+and volumetric strain are summed separately. The exact 165-run mechanism
+composite rejects a universal resistance rule: C5 is transport-dominated,
+T1--T3 and explicit J1/J2 are TJ-dominated, while SC1--SC4 change qualitatively
+with constraint architecture. The selected C5 temperature series further shows
+that all-event transport residence falls from 92.86% to 79.33% over
+800--1100 K as generic activation rises from 6.36% to 19.37%.
 
 ## 11. Scientific questions Q1--Q24
 
