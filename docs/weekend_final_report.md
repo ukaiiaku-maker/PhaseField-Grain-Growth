@@ -337,16 +337,16 @@ five matched seeds at each temperature and recovers its imposed 0.45 eV
 intrinsic barrier as `0.450000 eV` with bootstrap 95% CI
 `[0.437646, 0.462170]`, Arrhenius `R²=1.0`, and all three adjacent-temperature
 slopes equal to 0.45 eV within `4e-11`. Its common exponent is `1.63449`
-(95% CI `[1.43851,1.82699]`) over a 70.2% radius increase. The remaining
-selected and fully physical families remain **pending production inference**.
+(95% CI `[1.43851,1.82699]`) over a 70.2% radius increase. J2 and the
+remaining fully physical families remain **pending production inference**.
 
-The selected campaign has completed 210/240 runs: B1, G2, T2, S2, C2--C5,
-SC3, and P2 each have all 20 matched temperature/seed conditions, and P4 is
-10/20. The remaining P4 conditions continue with zero tracebacks before the
-queued J2 family. The fully
+The selected campaign has completed 220/240 runs: B1, G2, T2, S2, C2--C5,
+SC3, P2, and P4 each have all 20 matched temperature/seed conditions. Six J2
+realizations are active and the remainder are queued, with zero failed
+manifests. The fully
 physical campaign is running at `results/campaigns/20260817T082103Z-01b68e843b` with
-220 enumerated conditions and 10 workers; five families are complete and
-FP-C4 is in progress. All initially verified manifests
+220 enumerated conditions and 10 workers; seven families are complete and
+FP-SC3 is in progress. All initially verified manifests
 record clean SHA `878081a206a4b75f243ddfd25821b252c954a87c`. An earlier 10-run
 launch that recorded a dirty SHA is preserved but excluded from inference.
 The completed G2 persistent-multihit family provides the first production
@@ -431,6 +431,16 @@ above the analyzed range, not a uniquely determined sixth-power law. Its
 temperature invariance independently verifies that the measured behavior is
 geometric rather than Arrhenius.
 
+The completed P4 TJ-pinning geometry gives common `n=1.391001` (95% CI
+`[1.208506,1.570753]`) and coefficients that rise only
+0.153734→0.177086 over 800--1100 K. Growth activation is `0.035788 eV`
+(95% CI `[0.020473,0.050778]`) and event-exposure activation is
+`0.040475 eV` (95% CI `[0.025317,0.055120]`); both fits have `R²≈0.91`.
+Their local slopes flatten from 0.0600/0.0689 eV below 900 K to
+0.0114/0.0169 eV above 1000 K. CV falls 1.943→1.660 while the event-count
+Fano factor remains only 2.08--2.85. The response is therefore a weak, curved
+geometry-controlled encounter effect, not recovery of a microscopic barrier.
+
 The completed SC3 full-field parallel-mode family has common `n=1.000` and
 essentially no grain-growth activation: `Q_app=-0.007028 eV` (95% CI
 `[-0.023510,0.007732]`, `R²=0.3326`). Its event-exposure activation is only
@@ -497,6 +507,28 @@ constant at 0.531, 0.559, and 0.529 eV, but local event slopes rise from
 velocity--curvature `R²<=0.00158`. Exchange-controlled event kinetics thus
 show a transition near 900 K without changing the coarse growth exponent.
 
+The completed FP-C4 transport-limited family retains common `n=1.000`.
+Growth activation is `0.570248 eV` (95% CI `[0.540432,0.602873]`) and
+event-exposure activation is `0.544791 eV` (95% CI
+`[0.542716,0.547256]`). Both Arrhenius fits show a post-900 K transition:
+local growth slopes change 0.365→0.723→0.665 eV and local event slopes
+0.354→0.643→0.708 eV. In contrast, isolated C4 event slopes remain
+nearly flat at 0.270→0.263→0.255 eV. CV falls 1.321→1.007,
+reverse-curvature motion remains 77.85--79.44%, and velocity--curvature
+`R²<=0.00064`.
+
+The completed FP-C5 serial-climb family also retains common `n=1.000`.
+Growth activation is `0.575085 eV` (95% CI `[0.552814,0.595009]`) and
+event-exposure activation is `0.586228 eV` (95% CI
+`[0.583840,0.589226]`). Its post-900 K transition is pronounced: local
+growth slopes change 0.376→0.742→0.635 eV and local event slopes
+0.377→0.688→0.777 eV. Completed serial stages remain 99.14--98.39%
+transport-controlled. Across all observed events, transport residence falls
+92.36→79.28% while generic activation rises 6.84→19.42%; these fractions are
+nearly the same as isolated C5 even though the fully physical activation scale
+is much higher. CV falls 1.367→1.011, Fano rises 55.2→1507.6, and
+velocity--curvature `R²<=0.00209`.
+
 The plotting path applies the same distinction: it retains event-level
 Arrhenius and local-slope panels even when every growth coefficient is zero.
 
@@ -551,15 +583,15 @@ immutable source campaign completes.
 | Question | Required inference | Current evidence gate |
 |---|---|---|
 | Q1 | Can high-barrier compatibility events yield strong grain-scale jerkiness with smooth ensemble scaling? | Yes, with a scaling caveat. Corrected SC4 gives CV `1.172`, Fano `584.80`, and smooth ensemble fit `R²=0.9637`, but its `n=1` is at the scan bound and is not conventional parabolic scaling. Explicit J1/J2 show that stronger compatibility can instead arrest growth entirely. |
-| Q2 | How does geometric encounter measure set the coarse-grained exponent? | It changes the scaling class. P1's GB-area analogue has `n=1`, TJ pinning P4 has `n=1.3935` (CI `[1.0000,1.7691]`), and swept-area spatial P2/P3 exceed the scan range at `n=6`. The selected P2 temperature control independently repeats the same upper-bound class at all four temperatures. At fixed G-series geometry, changing single-hit to multihit lowers `K` 0.17450→0.10734→0.07307 without changing the bound-limited `n=1`. |
+| Q2 | How does geometric encounter measure set the coarse-grained exponent? | It changes the scaling class. P1's GB-area analogue has `n=1`; the exact 900 K TJ-pinning P4 fit has `n=1.3935`, and its four-temperature selected counterpart independently gives `n=1.3910` (CI `[1.2085,1.5708]`). Swept-area spatial P2/P3 exceed the scan range at `n=6`, with selected P2 repeating that upper-bound class at all four temperatures. At fixed G-series geometry, changing single-hit to multihit lowers `K` 0.17450→0.10734→0.07307 without changing the bound-limited `n=1`. |
 | Q3 | How do single-hit Poisson and multihit kinetics differ? | Corrected explicit J1/J2 are both stagnant, but persistent multihit J2 raises CV from 3.231 to 4.242 and Fano from 291 to 3208 while lowering burstiness from 0.442 to 0.112 and increasing primitive events 19-fold. The effect depends on the diagnostic. |
 | Q4 | Does increasing `K` raise or lower intermittency at fixed spatial correlation? | In the completed L24 series, K=1→3→5 raises trajectory CV (1.435→1.704→1.905) and burstiness (-0.075→-0.018→0.025), but lowers event-count Fano (53.28→38.94→32.87); the answer is metric dependent, consistent with multihit self-averaging of event counts. |
 | Q5 | Can reduced shear memory reproduce Qiu-like velocity-curvature decorrelation without full elasticity? | Yes. In S2, velocity--curvature `R²` is only 0.0014--0.0028 and velocity correlates negatively with stored shear (`-0.074` to `-0.085`). FP-S2 independently retains `R²<=0.00379` and negative correlation (`-0.083` to `-0.080`) after adding intrinsic Arrhenius mobility. |
 | Q6 | Can shear memory generate reverse-curvature migration? | Yes. S2 reverse-motion fraction is 56.94--72.00%; FP-S2 remains 63.64--70.75%. Negative velocity--stored-shear correlation in both series verifies reversal from mechanical back force. |
-| Q7 | Can climb alone generate intermittency and velocity-curvature decorrelation? | Yes. The exact 900 K C1--C5 composite gives CV 0.994--1.178, reverse motion 70.4--80.2%, and velocity--curvature `R²=1.6e-4`--`8.2e-4`; selected C4 spans CV 1.016--1.324 and `R²<=0.00162` across temperature. FP-C2/FP-C3 independently give CV 0.977--1.159, reverse motion 69.42--77.65%, and `R²<=0.00205`. The decorrelation is substantial; intermittency is moderate compared with strict TJ cases. |
-| Q8 | What resistance fractions arise from nucleation, exchange, transport, shear, and TJ compatibility? | Fractions are condition-specific, not global. Across 800--1100 K, selected C5 all-event residence changes from 92.86% to 79.33% transport, 0.70% to 1.16% exchange, 0.08% to 0.14% nucleation, and 6.36% to 19.37% generic activation; the exact 900 K composite value is 88.88% transport. T1--T3 are 78.04--78.92% TJ; J1/J2 are 97.07%/75.18% TJ. SC4 is 98.75% transport and 0.39% TJ. These are event-conditioned mean-`1/r` fractions, not causal probabilities. |
+| Q7 | Can climb alone generate intermittency and velocity-curvature decorrelation? | Yes. The exact 900 K C1--C5 composite gives CV 0.994--1.178, reverse motion 70.4--80.2%, and velocity--curvature `R²=1.6e-4`--`8.2e-4`; selected C4 spans CV 1.016--1.324. FP-C2--FP-C5 give CV 0.977--1.367, reverse motion 69.42--80.56%, and `R²<=0.00221`. The decorrelation is substantial; intermittency is moderate compared with strict TJ cases. |
+| Q8 | What resistance fractions arise from nucleation, exchange, transport, shear, and TJ compatibility? | Fractions are condition-specific, not global. Across 800--1100 K, selected C5 all-event residence changes from 92.86% to 79.33% transport, 0.70% to 1.16% exchange, 0.08% to 0.14% nucleation, and 6.36% to 19.37% generic activation; FP-C5 closely repeats 92.36%→79.28% transport and 6.84%→19.42% generic activation. The exact 900 K composite value is 88.88% transport. T1--T3 are 78.04--78.92% TJ; J1/J2 are 97.07%/75.18% TJ. SC4 is 98.75% transport and 0.39% TJ. These are event-conditioned mean-`1/r` fractions, not causal probabilities. |
 | Q9 | Are simultaneous shear and climb additive in residence time, strongly coupled, or dominated by one process? | Architecture-dependent. Independent-and SC1 (`K=0.07496`) follows slow C5 (`0.07226`) and is transport-dominated; mixed-event SC2 is much faster (`0.62315`); parallel SC3 is intermediate (`0.34784`); strict SC4 is again transport-dominated (`K=0.15522`). A single additive rule is rejected. |
-| Q10 | How does apparent grain-growth activation compare with imposed microscopic barriers? | B1 recovers 0.45 eV exactly within uncertainty. Mechanism-isolation event/growth Q is 0.250122/0.143697 eV for G2, 0.266257/0.275837 eV for T2, 0.196481/0.101674 eV for S2, 0.379942/0.331391 eV for C2, 0.220058/0.166992 eV for C3, 0.264346/0.264693 eV for C4, and 0.309896/0.258759 eV for C5. Fully physical event/growth Q becomes 0.531786/0.500831 eV (G2), 0.582746/0.658646 eV (T2), 0.495505/0.479876 eV (S2), 0.658582/0.675428 eV (C2), and 0.522374/0.541221 eV (C3). Coarse-grained Q is emergent rather than a direct microscopic-barrier readout. |
+| Q10 | How does apparent grain-growth activation compare with imposed microscopic barriers? | B1 recovers 0.45 eV exactly within uncertainty. Mechanism-isolation event/growth Q is 0.250122/0.143697 eV for G2, 0.266257/0.275837 eV for T2, 0.196481/0.101674 eV for S2, 0.379942/0.331391 eV for C2, 0.220058/0.166992 eV for C3, 0.264346/0.264693 eV for C4, 0.309896/0.258759 eV for C5, and only 0.040475/0.035788 eV for geometric P4. Fully physical event/growth Q becomes 0.531786/0.500831 eV (G2), 0.582746/0.658646 eV (T2), 0.495505/0.479876 eV (S2), 0.658582/0.675428 eV (C2), 0.522374/0.541221 eV (C3), 0.544791/0.570248 eV (C4), and 0.586228/0.575085 eV (C5). Coarse-grained Q is emergent rather than a direct microscopic-barrier readout. |
 | Q11 | Can similar apparent activation energies coexist with very different mobilities? | Yes provisionally: G2 event Q=0.2501 eV and T2 event Q=0.2663 eV are close, while their growth coefficients differ substantially (for example 0.10734 versus 0.06991 at 900 K) because their compatibility statistics differ. Final paired inference awaits all selected regimes. |
 | Q12 | Under what conditions does physical stagnation occur? | Explicit TJ compatibility can cause physical stagnation even under enormous event activity: J1 changes characteristic radius by only 1.02%, while strict persistent J2 changes it by 0% across 3,500 steps. High event count is not evidence of coarsening. |
 | Q13 | Which parameters maximize jerkiness without destroying realistic mean scaling? | None of the 12 completed search candidates passes the strict scaling gate. `JK-L24-K3-SPARSE` is closest (`n=1.188`, CI `[1.000,1.798]`, CV 1.811) but remains rejected; the high-barrier candidate has the largest CV (3.111) and also fails scaling. |
@@ -572,8 +604,8 @@ immutable source campaign completes.
 | Q20 | Can the geometric TJ surrogate reproduce explicit-mode scaling and intermittency? | No for the tested parameters. Explicit J1/J2 are stagnant with CV 3.231/4.242 and Fano 291/3208; surrogate J3 coarsens with `n=1`, `K=0.13380`, CV 1.449, and Fano 107.25. |
 | Q21 | What accumulated strain fractions are shear, climb, and mixed? | In SC1--SC4, absolute signed strain components are 99.920--99.997% shear and 0.003--0.080% volumetric. SC2 assigns both components to one mixed event. These are dimensionless signed-strain component fractions, not energy or resistance fractions. |
 | Q22 | Does apparent grain rotation emerge from event-wise tangential displacement? | Not directly identifiable: orientations are fixed and no grain-rigid-body rotation state is evolved. Event tangential strain is retained, but this remains a stated model limitation. |
-| Q23 | At what temperature does the dominant difficult event cross from shear/TJ compatibility to climb/point-defect control? | C2/C3 supply declining isolated nucleation/exchange trends; C4 transport event slopes remain 0.270→0.255 eV, and serial C5 slopes rise only 0.300→0.325 eV while transport remains dominant. In FP-C2, slopes instead stabilize near 0.74--0.76 eV above 900 K; the C3/FP-C3 pair reverses event curvature from 0.252→0.158 to 0.398→0.621 eV. A coupled-process crossover still requires FP-C4/FP-C5 and FP-SC3. |
-| Q24 | Does that crossover curve the Arrhenius plot or change the growth exponent? | C2/C3 and FP-G2/FP-T2/FP-S2/FP-C2/FP-C3 all retain common `n=1` while local Arrhenius slopes change. FP-C2 growth/event slopes change 0.572→0.743→0.739 and 0.514→0.746→0.761 eV, opposite C2's declining slopes; FP-C3 reverses C3's event curvature while its growth remains nearly linear. Coupled physics curves Arrhenius behavior without changing the fitted common exponent. |
+| Q23 | At what temperature does the dominant difficult event cross from shear/TJ compatibility to climb/point-defect control? | C2/C3 supply declining isolated nucleation/exchange trends; C4 transport event slopes remain 0.270→0.255 eV, and serial C5 slopes rise only 0.300→0.325 eV. FP-C2 stabilizes near 0.74--0.76 eV above 900 K; C3/FP-C3 reverses event curvature from 0.252→0.158 to 0.398→0.621 eV; C4/FP-C4 similarly changes 0.270→0.255 to 0.354→0.708 eV; and FP-C5 event slopes rise 0.377→0.688→0.777 eV. Multiple independent and serial climb channels therefore place the fully physical crossover near 900 K; FP-SC3 remains the shear-coupled test. |
+| Q24 | Does that crossover curve the Arrhenius plot or change the growth exponent? | C2--C5 and FP-G2/FP-T2/FP-S2/FP-C2--FP-C5 all retain common `n=1` while local Arrhenius slopes change. FP-C2 growth/event slopes change 0.572→0.743→0.739 and 0.514→0.746→0.761 eV; FP-C3 and FP-C4 reverse their isolated event curvature; FP-C5 independently shows post-900 K slope growth without changing `n`. Coupled physics curves Arrhenius behavior without changing the fitted common exponent. |
 
 ## 12. Unexpected physics and preserved failures
 
