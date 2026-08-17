@@ -205,16 +205,16 @@ rather than the prior attempt-limited explosion. The now-superseded SC4 repair c
 five seeds with zero tracebacks and gives `n=1.3248` (95% CI
 `[1.0000, 2.2126]`), `K=0.1763`, jerkiness CV `1.162`, and Fano factor
 `280.95`; it is retained as diagnostic evidence but excluded from inference
-because it used the autocatalytic full-field sign. Final cross-regime
-interpretation awaits the corrected full-field/TJ campaign and composite.
+because it used the autocatalytic full-field sign. The corrected full-field/TJ
+replacements are included in the exact composite; superseded runs remain excluded.
 
 The corrected-sign SC4 replacement is now complete for five seeds. Its interim
 fit gives `n=1.000` at the scan bound, `K=0.15522`, fit `R²=0.96374`, CV
 `1.17168`, Fano `584.80`, reverse-motion fraction `0.65717`, and velocity--
 curvature `R²=6.3e-5` across 1,254,987 primitive events. Within its serial climb
 stages, expected `1/r` resistance is 99.15% transport, 0.74% exchange, and
-0.11% nucleation. This is corrected interim evidence; matched cross-regime
-inference still awaits the exact composite.
+0.11% nucleation. This corrected result is one of the five-seed conditions
+admitted to the exact composite.
 
 The corrected explicit-compatibility J1 replacement is complete for five
 seeds at 900 K. It is physically stagnant under the objective observability
@@ -241,6 +241,44 @@ fail); 70.68% involve nominally easy modes. Relative to J1, persistent
 multihit kinetics raises CV and Fano but lowers waiting-time burstiness, so the
 intermittency effect is metric dependent. All 30 corrected repair runs are now
 complete with zero tracebacks and audited restart checksums.
+
+The exact composite resolves the matched mechanism contrasts. With geometric
+GB encounters held fixed, G1→G2→G3 changes the event history from single hit
+to persistent and packet-reset multihit: all three remain at `n=1`, while `K`
+falls 0.17450→0.10734→0.07307 and CV rises 1.330→1.516→1.686. Across the
+distinct geometric scaling controls, however, the GB-area analogue P1 has
+`n=1`, TJ pinning P4 has `n=1.3935` (95% CI `[1.0000,1.7691]`), and swept-area
+spatial controls P2/P3 reach the upper scan bound `n=6`. The latter are lower-
+bound statements on steepness, not uniquely identified sixth-order laws.
+
+Climb/free-volume accommodation alone is strongly decorrelating but only
+moderately intermittent: C1--C5 have CV 0.994--1.178, reverse-motion fraction
+0.704--0.802, and velocity--curvature `R²=1.6e-4`--`8.2e-4`. In serial C5,
+the event-conditioned residence fraction over all observed primitive types is
+88.88% transport, 0.84% exchange, 0.10% nucleation, and 10.19% generic
+activation; within the three climb stages it is 98.96%, 0.93%, and 0.11%.
+The coupled SC results are architecture-dependent. Independently necessary
+SC1 has `K=0.07496`, close to slow serial-climb C5 (`0.07226`), and 99.28% of
+its climb-stage residence is transport. The mixed co-relaxing event SC2 is
+much faster (`K=0.62315`), parallel competition SC3 is intermediate
+(`K=0.34784`), and strict SC4 returns to `K=0.15522` with 98.75% of all
+event-conditioned residence in transport and 0.39% in TJ activation. Thus
+shear and climb are neither universally additive nor governed by one fixed
+fraction: serial constraints are climb-dominated, whereas mixed/parallel
+coupling removes or bypasses that residence bottleneck.
+
+The discrete isotropic spectrum generates signed event shear even without
+feedback (E0 accumulated shear 158.50). Full-field selection E1 raises that
+to 4256.82 and lowers `K` from 0.59314 to 0.37073; local-memory E2 gives
+171.27 and `K=0.53170`. This establishes stress/curvature mode selection and
+strong backend sensitivity, but not quantitative equality to a continuously
+coupled Qiu field. Explicit TJ conservation is more decisive: J1/J2 are
+stagnant, whereas geometric surrogate J3 has `n=1`, `K=0.13380`, CV 1.449,
+and Fano 107.25. The surrogate therefore does not reproduce explicit-mode
+arrest or its extreme intermittency. In SC1--SC4, absolute signed accumulated
+strain is 99.920--99.997% shear component and 0.003--0.080% volumetric
+component; these are component fractions of signed strain, not energy or
+causal resistance fractions.
 
 Final analysis reads checkpointed event ledgers in bounded-memory batches. A
 production regression over 31,255,548 primitive rows produced a byte-identical
@@ -424,27 +462,27 @@ immutable source campaign completes.
 
 | Question | Required inference | Current evidence gate |
 |---|---|---|
-| Q1 | Can high-barrier compatibility events yield strong grain-scale jerkiness with smooth ensemble scaling? | Corrected SC4 gives CV `1.172`, Fano `584.80`, and ensemble-fit `R²=0.9637`; final answer awaits the matched 165-condition composite. |
-| Q2 | How does geometric encounter measure set the coarse-grained exponent? | Pending the G-series and explicit-versus-surrogate composite comparison. |
+| Q1 | Can high-barrier compatibility events yield strong grain-scale jerkiness with smooth ensemble scaling? | Yes, with a scaling caveat. Corrected SC4 gives CV `1.172`, Fano `584.80`, and smooth ensemble fit `R²=0.9637`, but its `n=1` is at the scan bound and is not conventional parabolic scaling. Explicit J1/J2 show that stronger compatibility can instead arrest growth entirely. |
+| Q2 | How does geometric encounter measure set the coarse-grained exponent? | It changes the scaling class. P1's GB-area analogue has `n=1`, TJ pinning P4 has `n=1.3935` (CI `[1.0000,1.7691]`), and swept-area spatial P2/P3 exceed the scan range at `n=6`. At fixed G-series geometry, changing single-hit to multihit lowers `K` 0.17450→0.10734→0.07307 without changing the bound-limited `n=1`. |
 | Q3 | How do single-hit Poisson and multihit kinetics differ? | Corrected explicit J1/J2 are both stagnant, but persistent multihit J2 raises CV from 3.231 to 4.242 and Fano from 291 to 3208 while lowering burstiness from 0.442 to 0.112 and increasing primitive events 19-fold. The effect depends on the diagnostic. |
 | Q4 | Does increasing `K` raise or lower intermittency at fixed spatial correlation? | In the completed L24 series, K=1→3→5 raises trajectory CV (1.435→1.704→1.905) and burstiness (-0.075→-0.018→0.025), but lowers event-count Fano (53.28→38.94→32.87); the answer is metric dependent, consistent with multihit self-averaging of event counts. |
 | Q5 | Can reduced shear memory reproduce Qiu-like velocity-curvature decorrelation without full elasticity? | Yes. In S2, velocity--curvature `R²` is only 0.0014--0.0028 and velocity correlates negatively with stored shear (`-0.074` to `-0.085`). FP-S2 independently retains `R²<=0.00379` and negative correlation (`-0.083` to `-0.080`) after adding intrinsic Arrhenius mobility. |
 | Q6 | Can shear memory generate reverse-curvature migration? | Yes. S2 reverse-motion fraction is 56.94--72.00%; FP-S2 remains 63.64--70.75%. Negative velocity--stored-shear correlation in both series verifies reversal from mechanical back force. |
-| Q7 | Can climb alone generate intermittency and velocity-curvature decorrelation? | Pending C1--C5 composite results. |
-| Q8 | What resistance fractions arise from nucleation, exchange, transport, shear, and TJ compatibility? | In corrected SC4, serial climb `1/r` resistance is 99.15% transport, 0.74% exchange, and 0.11% nucleation; final shear/TJ attribution awaits C/J/SC aggregation. |
-| Q9 | Are simultaneous shear and climb additive in residence time, strongly coupled, or dominated by one process? | Corrected SC4 is transport-dominated in observed-event resistance, but causal comparison remains pending the SC1--SC4 matched composite. |
+| Q7 | Can climb alone generate intermittency and velocity-curvature decorrelation? | Yes. C1--C5 give CV 0.994--1.178, reverse motion 70.4--80.2%, and velocity--curvature `R²=1.6e-4`--`8.2e-4`. The decorrelation is substantial; intermittency is moderate compared with strict TJ cases. |
+| Q8 | What resistance fractions arise from nucleation, exchange, transport, shear, and TJ compatibility? | Fractions are condition-specific, not global. C5 all-event residence is 88.88% transport, 0.84% exchange, 0.10% nucleation, and 10.19% generic activation. T1--T3 are 78.04--78.92% TJ; J1/J2 are 97.07%/75.18% TJ. SC4 is 98.75% transport and 0.39% TJ. These are event-conditioned mean-`1/r` fractions, not causal probabilities. |
+| Q9 | Are simultaneous shear and climb additive in residence time, strongly coupled, or dominated by one process? | Architecture-dependent. Independent-and SC1 (`K=0.07496`) follows slow C5 (`0.07226`) and is transport-dominated; mixed-event SC2 is much faster (`0.62315`); parallel SC3 is intermediate (`0.34784`); strict SC4 is again transport-dominated (`K=0.15522`). A single additive rule is rejected. |
 | Q10 | How does apparent grain-growth activation compare with imposed microscopic barriers? | B1 recovers 0.45 eV exactly within uncertainty. Mechanism-isolation event/growth Q is 0.250122/0.143697 eV for G2, 0.266257/0.275837 eV for T2, and 0.196481/0.101674 eV for S2. Fully physical event/growth Q becomes 0.531786/0.500831 eV, 0.582746/0.658646 eV, and 0.495505/0.479876 eV, respectively. Coarse-grained Q is emergent rather than a direct microscopic-barrier readout. |
 | Q11 | Can similar apparent activation energies coexist with very different mobilities? | Yes provisionally: G2 event Q=0.2501 eV and T2 event Q=0.2663 eV are close, while their growth coefficients differ substantially (for example 0.10734 versus 0.06991 at 900 K) because their compatibility statistics differ. Final paired inference awaits all selected regimes. |
 | Q12 | Under what conditions does physical stagnation occur? | Explicit TJ compatibility can cause physical stagnation even under enormous event activity: J1 changes characteristic radius by only 1.02%, while strict persistent J2 changes it by 0% across 3,500 steps. High event count is not evidence of coarsening. |
 | Q13 | Which parameters maximize jerkiness without destroying realistic mean scaling? | None of the 12 completed search candidates passes the strict scaling gate. `JK-L24-K3-SPARSE` is closest (`n=1.188`, CI `[1.000,1.798]`, CV 1.811) but remains rejected; the high-barrier candidate has the largest CV (3.111) and also fails scaling. |
-| Q14 | Can anisotropic stress/curvature selection from an isotropic discrete mode spectrum generate effective shear coupling? | Mode-selection regressions pass; production magnitude awaits E/SC results. |
+| Q14 | Can anisotropic stress/curvature selection from an isotropic discrete mode spectrum generate effective shear coupling? | Yes in the model sense. E0 generates signed shear 158.50 without feedback; full-field E1 gives 4256.82 and local-memory E2 gives 171.27. The magnitude is strongly backend-dependent, so quantitative equality to continuous Qiu coupling is not claimed. |
 | Q15 | Can effective shear coupling acquire temperature dependence through Arrhenius mode occupation rather than an imposed coupling factor? | Pending event-resolved temperature series. |
 | Q16 | How often do low-barrier modes fail explicit TJ compatibility? | Corrected J1 has 426,780 endpoint failures across 3,178,918 GB events (13.43% incidence), 60.55% nominally easy. J2 has 66,545,846 failures across 60,804,329 GB events (1.094 incidence; two endpoints may fail), 70.68% nominally easy. |
 | Q17 | What barrier distribution is sampled during TJ compatibility failures? | Corrected J1 bare barriers have median 0.29 eV, 75th percentile 0.35 eV, and 99th percentile 0.59 eV; residual work broadens effective barriers from zero to 0.769 eV. |
 | Q18 | Does explicit Burgers conservation yield long waits and abrupt TJ motion? | Yes. TJ activation contributes 97.07% of J1 and 75.18% of J2 event-conditioned expected residence; both are stagnant yet strongly intermittent (CV 3.231 and 4.242). |
-| Q19 | How sensitive are growth and jerkiness to minimum Burgers magnitude and mode discreteness? | Discrete minimum-Burgers tests pass; production sensitivity awaits matched regime fits. |
-| Q20 | Can the geometric TJ surrogate reproduce explicit-mode scaling and intermittency? | J3 replacement is complete; final answer awaits J1/J2 and the composite. |
-| Q21 | What accumulated strain fractions are shear, climb, and mixed? | Signed shear and volumetric event sums are available; final fractions await SC aggregation. |
+| Q19 | How sensitive are growth and jerkiness to minimum Burgers magnitude and mode discreteness? | Minimum-Burgers and angular-quadrature component tests pass, but the 165-run matrix holds the mode library fixed. A matched production sensitivity is still required for a macroscopic answer. |
+| Q20 | Can the geometric TJ surrogate reproduce explicit-mode scaling and intermittency? | No for the tested parameters. Explicit J1/J2 are stagnant with CV 3.231/4.242 and Fano 291/3208; surrogate J3 coarsens with `n=1`, `K=0.13380`, CV 1.449, and Fano 107.25. |
+| Q21 | What accumulated strain fractions are shear, climb, and mixed? | In SC1--SC4, absolute signed strain components are 99.920--99.997% shear and 0.003--0.080% volumetric. SC2 assigns both components to one mixed event. These are dimensionless signed-strain component fractions, not energy or resistance fractions. |
 | Q22 | Does apparent grain rotation emerge from event-wise tangential displacement? | Not directly identifiable: orientations are fixed and no grain-rigid-body rotation state is evolved. Event tangential strain is retained, but this remains a stated model limitation. |
 | Q23 | At what temperature does the dominant difficult event cross from shear/TJ compatibility to climb/point-defect control? | The completed FP-G2/FP-T2/FP-S2 families cannot yet locate a climb crossover; FP-C2--FP-C5 and FP-SC3 are required. The three completed families already show distinct adjacent-temperature slope changes. |
 | Q24 | Does that crossover curve the Arrhenius plot or change the growth exponent? | FP-G2, FP-T2, and FP-S2 all retain common `n=1` while their local Arrhenius slopes change strongly. FP-S2 growth/event slopes rise 0.443→0.564 and 0.336→0.638 eV; FP-T2 event slope changes 0.445→0.658→0.693 eV while TJ resistance falls 84.07%→66.64%. Coupled physics curves Arrhenius behavior without changing the fitted common exponent. |
