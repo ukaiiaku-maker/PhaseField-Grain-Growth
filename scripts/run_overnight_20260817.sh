@@ -6,7 +6,7 @@ VIDEO_PROCESSES="${VIDEO_PROCESSES:-6}"
 SKIP_TESTS="${SKIP_TESTS:-0}"
 RUN_VIDEO="${RUN_VIDEO:-1}"
 RUN_LONG="${RUN_LONG:-1}"
-RENDER_VIDEO="${RENDER_VIDEO:-1}"
+RENDER_VIDEO="${RENDER_VIDEO:-0}"
 
 export PYTHONPATH="${PYTHONPATH:-src}"
 mkdir -p results/production_summaries results/plots results/validation results/video_runs
