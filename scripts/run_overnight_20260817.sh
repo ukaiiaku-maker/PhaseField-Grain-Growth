@@ -8,11 +8,23 @@ RUN_VIDEO="${RUN_VIDEO:-1}"
 RUN_LONG="${RUN_LONG:-1}"
 RENDER_VIDEO="${RENDER_VIDEO:-0}"
 
+if [[ -n "${PYTHON_BIN:-}" ]]; then
+  :
+elif [[ -x /opt/anaconda3/bin/python ]]; then
+  PYTHON_BIN=/opt/anaconda3/bin/python
+elif command -v python3 >/dev/null 2>&1; then
+  PYTHON_BIN="$(command -v python3)"
+else
+  PYTHON_BIN="$(command -v python)"
+fi
+
+export PYTHON_BIN
 export PYTHONPATH="${PYTHONPATH:-src}"
 mkdir -p results/production_summaries results/plots results/validation results/video_runs
 
-python - <<'PY'
-import importlib
+echo "Using Python: $PYTHON_BIN"
+"$PYTHON_BIN" - <<'PY'
+import importlib, sys
 mods = ["numpy", "numba", "scipy", "pyarrow", "yaml", "pandas", "matplotlib", "pytest"]
 missing = []
 for name in mods:
@@ -21,18 +33,17 @@ for name in mods:
     except Exception as exc:
         missing.append(f"{name}: {exc}")
 if missing:
-    raise SystemExit("Missing runtime dependencies:\n  " + "\n  ".join(missing) +
-                     "\nRun: python -m pip install -e '.[analysis,test]'")
-print("Runtime dependency check passed.")
+    raise SystemExit("Missing runtime dependencies in " + sys.executable + ":\n  " + "\n  ".join(missing))
+print("Runtime dependency check passed in", sys.executable)
 PY
 
 echo "=== phase 1: baseline reconciliation + climb backpressure audit ==="
-SKIP_TESTS="$SKIP_TESTS" PROCESSES="$PROCESSES" \
+PYTHON_BIN="$PYTHON_BIN" SKIP_TESTS="$SKIP_TESTS" PROCESSES="$PROCESSES" \
   bash scripts/run_next_audit_20260817.sh
 
 if [[ "$RUN_VIDEO" == "1" ]]; then
   echo "=== phase 2: representative frame-preserving runs ==="
-  VIDEO_ROOT=$(python scripts/run_video_cases.py \
+  VIDEO_ROOT=$("$PYTHON_BIN" scripts/run_video_cases.py \
     configs/production/video_representative_200.yaml \
     --processes "$VIDEO_PROCESSES" | tail -n 1)
   printf '%s\n' "$VIDEO_ROOT" | tee results/validation/overnight_video_root.txt
@@ -41,24 +52,24 @@ if [[ "$RUN_VIDEO" == "1" ]]; then
     echo "=== rendering representative videos ==="
     for run_dir in "$VIDEO_ROOT"/*; do
       [[ -d "$run_dir/frames" ]] || continue
-      python scripts/render_microstructure_video.py "$run_dir" || true
+      "$PYTHON_BIN" scripts/render_microstructure_video.py "$run_dir" || true
     done
   fi
 fi
 
 if [[ "$RUN_LONG" == "1" ]]; then
   echo "=== phase 3: long-horizon selected-mechanism scaling ==="
-  LONG_CAMPAIGN=$(python scripts/run_campaign.py \
+  LONG_CAMPAIGN=$("$PYTHON_BIN" scripts/run_campaign.py \
     configs/production/overnight_long_horizon_200.yaml \
     --processes "$PROCESSES" --output-root results/campaigns | tail -n 1)
   printf '%s\n' "$LONG_CAMPAIGN" | tee results/validation/overnight_long_campaign_path.txt
 
-  python scripts/analyze_campaign.py "$LONG_CAMPAIGN" \
+  "$PYTHON_BIN" scripts/analyze_campaign.py "$LONG_CAMPAIGN" \
     --output results/production_summaries/overnight_long_horizon_summary.csv
-  python scripts/plot_campaign.py "$LONG_CAMPAIGN" \
+  "$PYTHON_BIN" scripts/plot_campaign.py "$LONG_CAMPAIGN" \
     --summary results/production_summaries/overnight_long_horizon_summary.csv \
     --output results/plots/overnight_long_horizon
-  python scripts/audit_barrierless_fraction.py "$LONG_CAMPAIGN" \
+  "$PYTHON_BIN" scripts/audit_barrierless_fraction.py "$LONG_CAMPAIGN" \
     --regime G2 --regime T2 --regime S2 --regime C5 \
     --output results/production_summaries/overnight_long_horizon_barrierless.csv
 fi
