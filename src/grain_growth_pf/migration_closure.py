@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any
 
 import numpy as np
@@ -52,8 +53,6 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 f"blocked_gate_profile must be one of {sorted(self.VALID_GATE_PROFILES)}, "
                 f"got {profile!r}"
             )
-        # These must exist before EventResolvedSimulation.__init__ invokes the
-        # overridden _update_physics() for the initial state.
         self.migration_closure = closure
         self.blocked_gate_profile = profile
         super().__init__(*args, **kwargs)
@@ -76,10 +75,20 @@ class MigrationClosureSimulation(EventResolvedSimulation):
         prior_hidden_displacement = domain.normal_displacement_ledger
         prior_release_remaining = domain.normal_release_remaining
 
+        record_mode = mode
+        if self.migration_closure == "gate_only" and event_type == "climb_quota_completion":
+            # The serial climb state machine has already accommodated the
+            # configured quota immediately before this summary event is
+            # recorded.  The legacy call path then accommodated mode.delta_q a
+            # second time inside EventResolvedSimulation._record_event().  Zero
+            # only the bookkeeping q-fields for this summary row so the climb
+            # cycle releases its quota exactly once.
+            record_mode = replace(mode, point_defect_quota=0.0, delta_q=0.0)
+
         super()._record_event(
             domain,
             segment,
-            mode,
+            record_mode,
             rate,
             driving,
             event_type,
@@ -91,9 +100,6 @@ class MigrationClosureSimulation(EventResolvedSimulation):
         )
 
         if self.migration_closure == "gate_only":
-            # The event may change admissibility, Burgers residual, shear state,
-            # free-volume state, and the full-field eigenstrain. It must not
-            # also inject a second normal-migration channel into the PF model.
             domain.normal_displacement_ledger = prior_hidden_displacement
             domain.normal_release_remaining = prior_release_remaining
 
