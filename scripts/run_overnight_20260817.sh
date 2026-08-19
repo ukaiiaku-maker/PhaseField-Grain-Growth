@@ -6,7 +6,7 @@ VIDEO_PROCESSES="${VIDEO_PROCESSES:-6}"
 SKIP_TESTS="${SKIP_TESTS:-0}"
 RUN_VIDEO="${RUN_VIDEO:-1}"
 RUN_LONG="${RUN_LONG:-1}"
-RENDER_VIDEO="${RENDER_VIDEO:-0}"
+RENDER_VIDEO="${RENDER_VIDEO:-1}"
 
 if [[ -n "${PYTHON_BIN:-}" ]]; then
   :
@@ -49,11 +49,8 @@ if [[ "$RUN_VIDEO" == "1" ]]; then
   printf '%s\n' "$VIDEO_ROOT" | tee results/validation/overnight_video_root.txt
 
   if [[ "$RENDER_VIDEO" == "1" ]]; then
-    echo "=== rendering representative videos ==="
-    for run_dir in "$VIDEO_ROOT"/*; do
-      [[ -d "$run_dir/frames" ]] || continue
-      "$PYTHON_BIN" scripts/render_microstructure_video.py "$run_dir" || true
-    done
+    echo "=== rendering representative PNG sequences and videos ==="
+    "$PYTHON_BIN" scripts/render_video_campaign.py "$VIDEO_ROOT" || true
   fi
 fi
 
@@ -77,4 +74,4 @@ fi
 echo "=== overnight campaign complete ==="
 echo "Primary summaries: results/production_summaries/"
 echo "Plots:             results/plots/"
-echo "Video raw frames:  results/video_runs/"
+echo "Video outputs:     results/video_runs/"
