@@ -37,21 +37,26 @@ class MigrationClosureSimulation(EventResolvedSimulation):
     VALID_GATE_PROFILES = {"line", "diffuse"}
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, **kwargs)
-        closure = str(self.config.parameters.get("migration_closure", "gate_only"))
+        config = kwargs.get("config", args[0] if args else None)
+        if config is None:
+            raise TypeError("MigrationClosureSimulation requires a ModelConfig")
+        closure = str(config.parameters.get("migration_closure", "gate_only"))
         if closure not in self.VALID_MIGRATION_CLOSURES:
             raise ValueError(
                 f"migration_closure must be one of {sorted(self.VALID_MIGRATION_CLOSURES)}, "
                 f"got {closure!r}"
             )
-        profile = str(self.config.parameters.get("blocked_gate_profile", "line"))
+        profile = str(config.parameters.get("blocked_gate_profile", "line"))
         if profile not in self.VALID_GATE_PROFILES:
             raise ValueError(
                 f"blocked_gate_profile must be one of {sorted(self.VALID_GATE_PROFILES)}, "
                 f"got {profile!r}"
             )
+        # These must exist before EventResolvedSimulation.__init__ invokes the
+        # overridden _update_physics() for the initial state.
         self.migration_closure = closure
         self.blocked_gate_profile = profile
+        super().__init__(*args, **kwargs)
 
     def _record_event(
         self,
@@ -118,8 +123,6 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 distance = float(np.hypot(oy * dx, ox * dx))
                 if distance > halfwidth:
                     continue
-                # Raised-cosine taper: exact floor at the centerline and a
-                # continuous return to the intrinsic mobility at the edge.
                 weight = 0.5 * (1.0 + np.cos(np.pi * distance / halfwidth))
                 target = 1.0 - (1.0 - floor) * weight
                 offsets.append((oy, ox, float(target)))
