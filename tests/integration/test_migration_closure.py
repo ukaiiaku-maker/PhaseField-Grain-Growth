@@ -5,7 +5,7 @@ from grain_growth_pf.disconnections.mode import ModeDriving
 from grain_growth_pf.migration_closure import MigrationClosureSimulation
 
 
-def _config(tmp_path, *, closure="gate_only", profile="line"):
+def _config(tmp_path, *, closure="gate_only", profile="line", modules=()):
     return ModelConfig(
         regime=f"closure-{closure}-{profile}",
         seed=731,
@@ -13,6 +13,7 @@ def _config(tmp_path, *, closure="gate_only", profile="line"):
             shape=(24, 24), interface_width=4.0, time_step=0.01,
             intrinsic_mobility=0.2, adaptive_stepping=True,
         ),
+        active_modules=tuple(modules),
         output_cadence=1,
         max_steps=1,
         termination_grains=1,
@@ -57,6 +58,29 @@ def test_legacy_hybrid_event_retains_normal_pf_displacement(tmp_path):
     simulation._record_event(domain, segment, mode, 1.0, ModeDriving(), "test", 0.0)
     expected = mode.step_height * float(simulation.config.parameters.get("packet_size", 1.0))
     assert np.isclose(domain.normal_displacement_ledger, expected)
+    _close(simulation)
+
+
+def test_gate_only_climb_completion_does_not_accommodate_quota_twice(tmp_path):
+    simulation = MigrationClosureSimulation(
+        _config(
+            tmp_path, closure="gate_only", modules=("free_volume", "serial_climb")
+        ),
+        tmp_path / "climb-single-release",
+    )
+    segment = next(iter(simulation.snapshot.boundaries.values()))
+    domain = simulation.domains[segment.entity_id]
+    domain.free_volume.required_total = 5.0
+    domain.free_volume.accommodated_total = 1.0
+    # Mimic the explicit serial-cycle quota release performed immediately
+    # before _record_event in EventResolvedSimulation._advance_climb.
+    domain.free_volume.accommodate(1.0)
+    accommodated_after_cycle = domain.free_volume.accommodated_total
+    mode = next(mode for mode in simulation.modes if mode.point_defect_quota != 0)
+    simulation._record_event(
+        domain, segment, mode, 1.0, ModeDriving(), "climb_quota_completion", 0.0
+    )
+    assert domain.free_volume.accommodated_total == accommodated_after_cycle
     _close(simulation)
 
 
