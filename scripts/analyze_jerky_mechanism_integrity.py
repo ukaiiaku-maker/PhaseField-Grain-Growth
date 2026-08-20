@@ -15,6 +15,7 @@ from grain_growth_pf.analysis.growth_law import (
     fit_growth_law,
     fit_growth_law_fixed_exponent,
 )
+from grain_growth_pf.io.event_ledger import event_ledger_path, read_event_ledger
 
 
 def _runs(root: Path) -> list[Path]:
@@ -60,6 +61,9 @@ def _series_fit(time: np.ndarray, radius: np.ndarray) -> tuple[float, float, flo
 def _frame_shear(run: Path) -> dict[str, float]:
     max_state = max_stress = max_qiu = 0.0
     rms_state = []
+    boundary_rms = []
+    stored_energy = []
+    nonzero_fraction = []
     frame_count = 0
     for frame in sorted((run / "frames").glob("frame-*.npz")):
         with np.load(frame) as data:
@@ -71,6 +75,32 @@ def _frame_shear(run: Path) -> dict[str, float]:
                 shear = np.asarray(data["shear"], dtype=float)
                 max_state = max(max_state, float(np.max(np.abs(shear))))
                 rms_state.append(float(np.sqrt(np.mean(shear**2))))
+            if "boundary_shear_state_rms" in data:
+                boundary_rms.append(float(data["boundary_shear_state_rms"]))
+            elif "shear" in data:
+                shear = np.asarray(data["shear"], dtype=float)
+                if "boundary_mask" in data:
+                    values = shear[np.asarray(data["boundary_mask"], dtype=bool)]
+                else:
+                    labels = np.asarray(data["labels"])
+                    mask = (
+                        (labels != np.roll(labels, 1, axis=0))
+                        | (labels != np.roll(labels, 1, axis=1))
+                    )
+                    values = shear[mask]
+                boundary_rms.append(
+                    float(np.sqrt(np.mean(values**2))) if values.size else 0.0
+                )
+                nonzero_fraction.append(
+                    float(np.mean(np.abs(values) > 1e-12)) if values.size else 0.0
+                )
+            if "nonzero_gb_length_fraction" in data:
+                if len(nonzero_fraction) < frame_count:
+                    nonzero_fraction.append(float(data["nonzero_gb_length_fraction"]))
+                else:
+                    nonzero_fraction[-1] = float(data["nonzero_gb_length_fraction"])
+            if "stored_shear_energy" in data:
+                stored_energy.append(float(data["stored_shear_energy"]))
             if "shear_stress_max_abs" in data:
                 max_stress = max(max_stress, float(data["shear_stress_max_abs"]))
             if "qiu_shear_stress_max_abs" in data:
@@ -86,6 +116,18 @@ def _frame_shear(run: Path) -> dict[str, float]:
         "frame_count": frame_count,
         "max_abs_shear_state": max_state if frame_count else np.nan,
         "mean_frame_shear_state_rms": float(np.mean(rms_state)) if rms_state else np.nan,
+        "max_boundary_shear_state_rms": (
+            float(np.max(boundary_rms)) if boundary_rms else np.nan
+        ),
+        "max_stored_shear_energy": (
+            float(np.max(stored_energy)) if stored_energy else np.nan
+        ),
+        "max_nonzero_gb_length_fraction": (
+            float(np.max(nonzero_fraction)) if nonzero_fraction else np.nan
+        ),
+        "final_nonzero_gb_length_fraction": (
+            float(nonzero_fraction[-1]) if nonzero_fraction else np.nan
+        ),
         "max_abs_local_shear_stress": (
             max(max_stress, boundary_max) if np.isfinite(boundary_max) else max_stress
         ),
@@ -119,6 +161,61 @@ def _activation_work(run: Path) -> dict[str, float]:
         "mean_abs_work_free_volume": float(np.mean(free)),
         "p90_abs_work_shear": float(np.quantile(shear, 0.90)),
         "p90_abs_work_free_volume": float(np.quantile(free, 0.90)),
+    }
+
+
+def _shear_release_audit(run: Path) -> dict[str, float]:
+    empty = {
+        "shear_release_rows": 0,
+        "fraction_release_ge_prestate": np.nan,
+        "fraction_post_release_state_zero": np.nan,
+        "median_abs_shear_state_before_release": np.nan,
+        "p90_abs_shear_state_before_release": np.nan,
+        "median_shear_release": np.nan,
+    }
+    work_path = run / "activation_work.csv"
+    ledger_path = event_ledger_path(run)
+    if not work_path.exists() or not ledger_path.exists():
+        return empty
+    work = pd.read_csv(work_path)
+    if work.empty:
+        return empty
+    events = read_event_ledger(
+        ledger_path,
+        columns=(
+            "time", "step", "event_type", "entity_id", "shear_state_s",
+            "release_Delta_s",
+        ),
+    )
+    if events.empty:
+        return empty
+    # CSV and Parquet readers can differ by a few ulps when parsing the same
+    # event time, so use a sub-picosecond matching key rather than raw floats.
+    work["_time_key"] = work["time"].round(12)
+    events["_time_key"] = events["time"].round(12)
+    keys = ["_time_key", "step", "event_type", "entity_id"]
+    work["_occurrence"] = work.groupby(keys, dropna=False).cumcount()
+    events["_occurrence"] = events.groupby(keys, dropna=False).cumcount()
+    joined = work.merge(events, on=keys + ["_occurrence"], how="inner")
+    if joined.empty:
+        return empty
+    before = np.abs(joined["shear_state_before_release"].to_numpy(float))
+    after = np.abs(joined["shear_state_s"].fillna(0.0).to_numpy(float))
+    release = np.abs(joined["release_Delta_s"].fillna(0.0).to_numpy(float))
+    active = before > 1e-12
+    if not np.any(active):
+        return {**empty, "shear_release_rows": len(joined)}
+    return {
+        "shear_release_rows": len(joined),
+        "fraction_release_ge_prestate": float(
+            np.mean(release[active] >= before[active] - 1e-12)
+        ),
+        "fraction_post_release_state_zero": float(
+            np.mean(after[active] <= 1e-12)
+        ),
+        "median_abs_shear_state_before_release": float(np.median(before[active])),
+        "p90_abs_shear_state_before_release": float(np.quantile(before[active], 0.90)),
+        "median_shear_release": float(np.median(release[active])),
     }
 
 
@@ -168,6 +265,7 @@ def main() -> None:
             "number_of_events": standard.get("number_of_events", 0),
             **_frame_shear(run),
             **_activation_work(run),
+            **_shear_release_audit(run),
             "run": str(run),
         })
 

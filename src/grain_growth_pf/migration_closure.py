@@ -11,6 +11,7 @@ from grain_growth_pf.disconnections.barriers import assign_barriers
 from grain_growth_pf.disconnections.mode import DisconnectionMode, ModeDriving, K_B_EV
 from grain_growth_pf.entities.arclength_tracker import ArclengthEntityTracker
 from grain_growth_pf.entities.gb_segment import GBSegment
+from grain_growth_pf.entities.triple_junction import TripleJunction
 from grain_growth_pf.pf.kinematics import interface_kinematics
 from grain_growth_pf.simulation import DomainPhysics, EventResolvedSimulation
 
@@ -278,6 +279,111 @@ class MigrationClosureSimulation(EventResolvedSimulation):
         if self.migration_closure == "gate_only":
             domain.normal_displacement_ledger = prior_hidden_displacement
             domain.normal_release_remaining = prior_release_remaining
+
+    def _tj_mode_driving(
+        self, tj: TripleJunction, mode: DisconnectionMode,
+    ) -> ModeDriving:
+        """Average the conjugate GB forces meeting at a triple junction.
+
+        A TJ release samples the connected physical-arclength domains that meet
+        at the junction.  Averaging supplies one local transition-state force
+        without making the result depend on pixel count or domain subdivision.
+        """
+        burgers = np.asarray(mode.burgers, dtype=float)
+        b_direction = burgers / max(
+            float(np.linalg.norm(burgers)), np.finfo(float).tiny
+        )
+        capillary: list[float] = []
+        shear: list[float] = []
+        vacancy_mu: list[float] = []
+
+        stress = None
+        if self.full_field is not None:
+            y, x = np.rint(tj.position).astype(int) % np.asarray(self.config.pf.shape)
+            stress = self.full_field.stress[:, :, y, x]
+
+        for boundary_id in sorted(tj.adjoining_boundaries):
+            segment = self.snapshot.boundaries.get(boundary_id)
+            boundary_domain = self.domains.get(boundary_id)
+            if segment is None or boundary_domain is None:
+                continue
+            normal = np.asarray(segment.normal, dtype=float)
+            tangent = np.asarray((-normal[1], normal[0]))
+            resolved = (
+                boundary_domain.shear.internal_shear_stress
+                * float(b_direction @ tangent)
+            )
+            if stress is not None:
+                resolved += float(b_direction @ stress @ normal)
+            capillary.append(float(self.config.pf.gb_energy * segment.curvature))
+            shear.append(resolved)
+            vacancy_mu.append(float(boundary_domain.free_volume.chemical_potential))
+
+        return ModeDriving(
+            float(np.mean(capillary)) if capillary else 0.0,
+            float(np.mean(shear)) if shear else 0.0,
+            float(np.mean(vacancy_mu)) if vacancy_mu else 0.0,
+        )
+
+    def _record_tj_activation_work(
+        self,
+        domain: DomainPhysics,
+        tj: TripleJunction,
+        mode: DisconnectionMode,
+        driving: ModeDriving,
+        bare_barrier_ev: float,
+        effective_barrier_ev: float,
+        event_time: float,
+    ) -> None:
+        if not hasattr(self, "_activation_work_writer"):
+            return
+        boundary_domains = [
+            self.domains[boundary_id]
+            for boundary_id in sorted(tj.adjoining_boundaries)
+            if boundary_id in self.domains
+        ]
+        shear_state = (
+            float(np.mean([item.shear.state for item in boundary_domains]))
+            if boundary_domains else 0.0
+        )
+        free_volume_deficit = (
+            float(np.mean([item.free_volume.deficit for item in boundary_domains]))
+            if boundary_domains else 0.0
+        )
+        work_capillary = driving.normal_pressure * mode.activation_volume_normal
+        work_shear = driving.resolved_shear * mode.activation_volume_shear
+        work_free_volume = (
+            driving.vacancy_chemical_potential * mode.activation_vacancies
+        )
+        self._activation_work_writer.writerow({
+            "time": event_time,
+            "step": self.solver.step_number,
+            "event_type": "tj_compatibility_release",
+            "entity_id": domain.entity_id,
+            "grain_i": tj.grain_ids[0],
+            "grain_j": tj.grain_ids[1],
+            "DeltaG0": bare_barrier_ev,
+            "effective_DeltaG": effective_barrier_ev,
+            "capillary_pressure": driving.normal_pressure,
+            "resolved_shear": driving.resolved_shear,
+            "free_volume_chemical_potential": driving.vacancy_chemical_potential,
+            "activation_volume_normal": mode.activation_volume_normal,
+            "activation_volume_shear": mode.activation_volume_shear,
+            "activation_vacancies": mode.activation_vacancies,
+            "work_capillary": work_capillary,
+            "work_shear": work_shear,
+            "work_free_volume": work_free_volume,
+            "work_total_without_tj_residual": (
+                work_capillary + work_shear + work_free_volume
+            ),
+            "shear_state_before_release": shear_state,
+            "free_volume_deficit_before_release": free_volume_deficit,
+        })
+
+    def _tj_gate_radius_pixels(self) -> int:
+        # The corrected closure applies its TJ gate exactly once, below, using
+        # tj_correlation_length/grid_spacing.  Ignore the legacy pixel radius.
+        return 0
 
     def _apply_diffuse_blocked_gate(self) -> None:
         if self.blocked_gate_profile != "diffuse":

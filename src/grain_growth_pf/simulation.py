@@ -793,6 +793,32 @@ class EventResolvedSimulation:
                                "climb_quota_completion", delta_length, event_time)
             domain.blocked = domain.free_volume.deficit > float(self.config.parameters.get("climb_trigger_quota", 0.25))
 
+    def _tj_mode_driving(
+        self, tj: TripleJunction, mode: DisconnectionMode,
+    ) -> ModeDriving:
+        """Return conjugate driving forces for a TJ release.
+
+        The base event model has no local TJ work closure.  Specialized
+        simulations can provide one without changing the persistent TJ clock.
+        """
+        return ModeDriving(0.0, 0.0, 0.0)
+
+    def _record_tj_activation_work(
+        self,
+        domain: DomainPhysics,
+        tj: TripleJunction,
+        mode: DisconnectionMode,
+        driving: ModeDriving,
+        bare_barrier_ev: float,
+        effective_barrier_ev: float,
+        event_time: float,
+    ) -> None:
+        """Hook for specialized TJ activation-work diagnostics."""
+
+    def _tj_gate_radius_pixels(self) -> int:
+        """Legacy TJ gate radius; corrected closures override this in length units."""
+        return int(self.config.parameters.get("tj_correlation_radius", 2))
+
     def _update_tj_physics(self, mobility: np.ndarray) -> None:
         modules = set(self.config.active_modules)
         enabled = bool(modules.intersection({"tj_compatibility", "tj_pinning", "tj_burgers_strict", "tj_burgers_residual", "tj_geometric_surrogate"}))
@@ -835,7 +861,8 @@ class EventResolvedSimulation:
                     ),
                 )
                 increment = packet * np.asarray(mode.burgers)
-                barrier = float(self.config.parameters.get("tj_barrier_ev", 0.6))
+                bare_barrier = float(self.config.parameters.get("tj_barrier_ev", 0.6))
+                residual_barrier_shift = 0.0
                 if "tj_burgers_residual" in modules:
                     stiffness = float(
                         self.config.parameters.get("tj_residual_stiffness_ev", 1.0)
@@ -843,8 +870,13 @@ class EventResolvedSimulation:
                     before = float(tj.residual_burgers @ tj.residual_burgers)
                     after_vector = tj.residual_burgers + increment
                     after = float(after_vector @ after_vector)
-                    barrier += 0.5 * stiffness * (after - before)
-                effective_barrier = max(0.0, barrier)
+                    residual_barrier_shift = 0.5 * stiffness * (after - before)
+                driving = self._tj_mode_driving(tj, mode)
+                effective_barrier = max(
+                    0.0,
+                    bare_barrier + residual_barrier_shift
+                    - mode.activation_work_ev(driving),
+                )
                 rate = float(self.config.parameters.get("tj_attempt_frequency", 1e3)) * np.exp(
                     -effective_barrier / (K_B_EV * self.config.pf.temperature))
                 completions, hits = self._advance_activation(
@@ -859,6 +891,11 @@ class EventResolvedSimulation:
                     tj_travel=delta_path,
                 )
                 if completions:
+                    event_time = completions[0].time
+                    self._record_tj_activation_work(
+                        domain, tj, mode, driving, bare_barrier,
+                        effective_barrier, event_time,
+                    )
                     domain.event_counter += 1
                     if explicit_residual:
                         tj.add_burgers(increment)
@@ -866,13 +903,24 @@ class EventResolvedSimulation:
                         explicit_residual and np.linalg.norm(tj.residual_burgers) > 1e-10
                     )
                     self.ledger.write({
-                        "run_id": self.run_id, "time": completions[0].time,
+                        "run_id": self.run_id, "time": event_time,
                         "step": self.solver.step_number,
                         "temperature": self.config.pf.temperature, "seed": self.config.seed,
                         "event_id": f"{key}:{domain.event_counter}", "event_type": "tj_compatibility_release",
                         "grain_ids": ";".join(map(str, tj.grain_ids)), "entity_id": key,
                         "position": tj.position, "geometry_measure_Q": tj.travel_distance,
                         "TJ_travel": delta_path, "instantaneous_rate": rate,
+                        "barrier_type": "tj_compatibility",
+                        "DeltaG0": bare_barrier,
+                        "effective_DeltaG": effective_barrier,
+                        "activation_volume": (
+                            f"{mode.activation_volume_normal};"
+                            f"{mode.activation_volume_shear}"
+                        ),
+                        "local_shear_stress": driving.resolved_shear,
+                        "local_normal_free_volume_stress": (
+                            driving.vacancy_chemical_potential
+                        ),
                         "cumulative_hazard": domain.activation.clock.cumulative_hazard,
                         "random_hazard_threshold": domain.activation.clock.threshold,
                         "hit_count": domain.activation.hit_count, "required_hits_K": domain.hits,
@@ -880,7 +928,7 @@ class EventResolvedSimulation:
                     })
             if domain.blocked:
                 y, x = np.rint(tj.position).astype(int) % np.asarray(self.config.pf.shape)
-                radius = int(self.config.parameters.get("tj_correlation_radius", 2))
+                radius = self._tj_gate_radius_pixels()
                 for oy in range(-radius, radius + 1):
                     for ox in range(-radius, radius + 1):
                         mobility[(y + oy) % mobility.shape[0], (x + ox) % mobility.shape[1]] = 0.0

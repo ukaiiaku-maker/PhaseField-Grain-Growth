@@ -32,6 +32,7 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
             return
         labels = self.solver.labels.astype(np.uint16, copy=True)
         blocked = np.zeros(self.config.pf.shape, dtype=np.uint8)
+        boundary_mask = np.zeros(self.config.pf.shape, dtype=np.uint8)
         shear = np.zeros(self.config.pf.shape, dtype=np.float32)
         shear_stress = np.zeros(self.config.pf.shape, dtype=np.float32)
         free_volume = np.zeros(self.config.pf.shape, dtype=np.float32)
@@ -42,6 +43,7 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
                 continue
             points = segment.points.astype(int) % shape
             yy, xx = points[:, 0], points[:, 1]
+            boundary_mask[yy, xx] = 1
             if domain.blocked:
                 blocked[yy, xx] = 1
             shear[yy, xx] = float(domain.shear.state)
@@ -52,10 +54,17 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
             if self.full_field is not None
             else np.zeros(self.config.pf.shape, dtype=np.float32)
         )
+        on_boundary = boundary_mask.astype(bool)
+        boundary_shear = shear[on_boundary].astype(float)
+        nonzero_boundary = np.abs(boundary_shear) > 1e-12
+        stored_shear_energy = float(sum(
+            domain.shear.energy for domain in self.domains.values()
+        ))
         np.savez_compressed(
             path,
             labels=labels,
             blocked=blocked,
+            boundary_mask=boundary_mask,
             shear=shear,
             shear_stress=shear_stress,
             qiu_shear_stress=qiu_shear_stress,
@@ -66,6 +75,13 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
             temperature=np.asarray(float(self.config.pf.temperature)),
             shear_state_max_abs=np.asarray(float(np.max(np.abs(shear)))),
             shear_state_rms=np.asarray(float(np.sqrt(np.mean(shear.astype(float) ** 2)))),
+            boundary_shear_state_rms=np.asarray(
+                float(np.sqrt(np.mean(boundary_shear**2))) if boundary_shear.size else 0.0
+            ),
+            nonzero_gb_length_fraction=np.asarray(
+                float(np.mean(nonzero_boundary)) if boundary_shear.size else 0.0
+            ),
+            stored_shear_energy=np.asarray(stored_shear_energy),
             shear_stress_max_abs=np.asarray(float(np.max(np.abs(shear_stress)))),
             qiu_shear_stress_max_abs=np.asarray(float(np.max(np.abs(qiu_shear_stress)))),
         )
