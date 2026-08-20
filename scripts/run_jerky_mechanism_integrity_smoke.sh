@@ -21,6 +21,7 @@ echo "=== focused jerky-growth regression tests ==="
   tests/geometry/test_arclength_tracker.py \
   tests/integration/test_migration_closure.py \
   tests/integration/test_jerky_mechanism_integrity.py \
+  tests/unit/test_activation_work_decomposition.py \
   tests/unit/test_modes_climb_mechanics.py
 
 echo "=== short B0/G/T/GT/S/C/coupled/Qiu integrity campaign ==="
