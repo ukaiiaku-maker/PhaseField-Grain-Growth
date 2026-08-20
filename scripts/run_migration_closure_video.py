@@ -33,6 +33,7 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
         labels = self.solver.labels.astype(np.uint16, copy=True)
         blocked = np.zeros(self.config.pf.shape, dtype=np.uint8)
         shear = np.zeros(self.config.pf.shape, dtype=np.float32)
+        shear_stress = np.zeros(self.config.pf.shape, dtype=np.float32)
         free_volume = np.zeros(self.config.pf.shape, dtype=np.float32)
         shape = np.asarray(self.config.pf.shape)
         for segment in self.snapshot.boundaries.values():
@@ -44,12 +45,29 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
             if domain.blocked:
                 blocked[yy, xx] = 1
             shear[yy, xx] = float(domain.shear.state)
+            shear_stress[yy, xx] = float(domain.shear.internal_shear_stress)
             free_volume[yy, xx] = float(domain.free_volume.deficit)
+        qiu_shear_stress = (
+            self.full_field.stress[0, 1].astype(np.float32, copy=True)
+            if self.full_field is not None
+            else np.zeros(self.config.pf.shape, dtype=np.float32)
+        )
         np.savez_compressed(
-            path, labels=labels, blocked=blocked, shear=shear, free_volume=free_volume,
+            path,
+            labels=labels,
+            blocked=blocked,
+            shear=shear,
+            shear_stress=shear_stress,
+            qiu_shear_stress=qiu_shear_stress,
+            free_volume=free_volume,
             mobility=self.solver.mobility_scale.astype(np.float32),
-            time=np.asarray(float(self.solver.time)), step=np.asarray(step),
+            time=np.asarray(float(self.solver.time)),
+            step=np.asarray(step),
             temperature=np.asarray(float(self.config.pf.temperature)),
+            shear_state_max_abs=np.asarray(float(np.max(np.abs(shear)))),
+            shear_state_rms=np.asarray(float(np.sqrt(np.mean(shear.astype(float) ** 2)))),
+            shear_stress_max_abs=np.asarray(float(np.max(np.abs(shear_stress)))),
+            qiu_shear_stress_max_abs=np.asarray(float(np.max(np.abs(qiu_shear_stress)))),
         )
 
     def _save_checkpoint(self) -> None:
@@ -101,7 +119,7 @@ def main() -> None:
             prepare_initial_condition(base.pf, seed, base.parameters, state, sha)
             files[seed] = str(state)
         configs = [replace(
-            config, parameters={**config.parameters, "initial_state_file": files[config.seed]}
+            config, parameters={**config.parameters, "initial_state_file": files[config.seed]},
         ) for config in configs]
 
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -120,8 +138,11 @@ def main() -> None:
             outcomes = pool.map(_worker, payloads, chunksize=1)
     status = "completed" if all(item["status"] == "completed" for item in outcomes) else "failed"
     (root / "video_manifest.json").write_text(json.dumps({
-        "status": status, "git_sha": sha, "source_spec": args.spec,
-        "workers": workers, "runs": outcomes,
+        "status": status,
+        "git_sha": sha,
+        "source_spec": args.spec,
+        "workers": workers,
+        "runs": outcomes,
     }, indent=2) + "\n", encoding="utf-8")
     print(root)
     if status != "completed":
