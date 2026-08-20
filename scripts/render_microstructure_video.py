@@ -21,6 +21,8 @@ def _global_limits(frames: list[Path], key: str) -> tuple[float, float]:
     hi = -np.inf
     for frame in frames:
         with np.load(frame) as data:
+            if key not in data:
+                continue
             a = np.asarray(data[key], dtype=float)
             finite = a[np.isfinite(a)]
             if finite.size:
@@ -36,11 +38,21 @@ def _global_limits(frames: list[Path], key: str) -> tuple[float, float]:
 
 def _load(frame: Path):
     with np.load(frame) as data:
+        labels = data["labels"].copy()
+        blocked = data["blocked"].copy()
+        shear = data["shear"].copy()
+        free_volume = data["free_volume"].copy()
+        mobility = (
+            data["mobility"].copy()
+            if "mobility" in data
+            else np.ones(labels.shape, dtype=np.float32)
+        )
         return (
-            data["labels"].copy(),
-            data["blocked"].copy(),
-            data["shear"].copy(),
-            data["free_volume"].copy(),
+            labels,
+            blocked,
+            shear,
+            free_volume,
+            mobility,
             int(data["step"]),
             float(data["time"]),
         )
@@ -60,7 +72,10 @@ def main() -> None:
     )
     parser.add_argument(
         "--composite", action=argparse.BooleanOptionalAction, default=True,
-        help="Render microstructure, shear, and free-volume panels (default: yes).",
+        help=(
+            "Render grain structure, mobility/pinning footprint, shear, and "
+            "free-volume panels (default: yes)."
+        ),
     )
     args = parser.parse_args()
 
@@ -81,26 +96,38 @@ def main() -> None:
     if fv_lo == fv_hi:
         fv_hi = fv_lo + 1.0
 
-    labels0, blocked0, shear0, fv0, step0, time0 = _load(frames[0])
+    labels0, blocked0, shear0, fv0, mobility0, step0, time0 = _load(frames[0])
 
     if args.composite:
-        fig, axes = plt.subplots(1, 3, figsize=(15, 5), constrained_layout=True)
-        ax_micro, ax_shear, ax_fv = axes
+        fig, axes = plt.subplots(1, 4, figsize=(20, 5), constrained_layout=True)
+        ax_micro, ax_mobility, ax_shear, ax_fv = axes
     else:
         fig, ax_micro = plt.subplots(figsize=(6, 6), constrained_layout=True)
-        ax_shear = ax_fv = None
+        ax_mobility = ax_shear = ax_fv = None
 
-    image = ax_micro.imshow(colors[labels0 % len(colors)], interpolation="nearest", origin="lower")
+    image = ax_micro.imshow(
+        colors[labels0 % len(colors)], interpolation="nearest", origin="lower"
+    )
     overlay = ax_micro.imshow(
         np.ma.masked_where(blocked0 == 0, blocked0),
-        interpolation="nearest", origin="lower", alpha=0.65, cmap="Reds", vmin=0, vmax=1,
+        interpolation="nearest", origin="lower", alpha=0.65,
+        cmap="Reds", vmin=0, vmax=1,
     )
-    ax_micro.set_title("grain structure; blocked GB/TJ in red")
+    ax_micro.set_title("grain structure; blocked GB domains in red")
     ax_micro.set_xticks([])
     ax_micro.set_yticks([])
 
-    shear_image = fv_image = None
+    mobility_image = shear_image = fv_image = None
     if args.composite:
+        mobility_image = ax_mobility.imshow(
+            mobility0, interpolation="nearest", origin="lower", cmap="gray",
+            vmin=0.0, vmax=1.0,
+        )
+        ax_mobility.set_title("mobility scale: black = pinned")
+        ax_mobility.set_xticks([])
+        ax_mobility.set_yticks([])
+        fig.colorbar(mobility_image, ax=ax_mobility, fraction=0.046, pad=0.04)
+
         shear_image = ax_shear.imshow(
             shear0, interpolation="nearest", origin="lower", cmap="coolwarm",
             vmin=-shear_abs, vmax=shear_abs,
@@ -122,15 +149,17 @@ def main() -> None:
     title = fig.suptitle(f"{run_dir.name}   step={step0}   t={time0:.3f}")
 
     def update(index: int):
-        labels, blocked, shear, free_volume, step, time = _load(frames[index])
+        labels, blocked, shear, free_volume, mobility, step, time = _load(frames[index])
         image.set_data(colors[labels % len(colors)])
         overlay.set_data(np.ma.masked_where(blocked == 0, blocked))
         artists = [image, overlay, title]
         if args.composite:
+            assert mobility_image is not None
             assert shear_image is not None and fv_image is not None
+            mobility_image.set_data(mobility)
             shear_image.set_data(shear)
             fv_image.set_data(free_volume)
-            artists.extend([shear_image, fv_image])
+            artists.extend([mobility_image, shear_image, fv_image])
         title.set_text(f"{run_dir.name}   step={step}   t={time:.3f}")
         return artists
 
