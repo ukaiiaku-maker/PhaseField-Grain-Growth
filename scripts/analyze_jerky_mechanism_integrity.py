@@ -22,7 +22,10 @@ def _runs(root: Path) -> list[Path]:
     campaign = root / "campaign_manifest.json"
     if video.exists():
         manifest = json.loads(video.read_text())
-        return [Path(item["path"]) for item in manifest["runs"] if item.get("status") == "completed"]
+        return [
+            Path(item["path"]) for item in manifest["runs"]
+            if item.get("status") == "completed"
+        ]
     if campaign.exists():
         manifest = json.loads(campaign.read_text())
         return [Path(item) for item in manifest["runs"]]
@@ -72,36 +75,40 @@ def _frame_shear(run: Path) -> dict[str, float]:
                 max_stress = max(max_stress, float(data["shear_stress_max_abs"]))
             if "qiu_shear_stress_max_abs" in data:
                 max_qiu = max(max_qiu, float(data["qiu_shear_stress_max_abs"]))
+
+    boundary_path = run / "boundary_tracks.csv"
+    boundary_max = np.nan
+    if boundary_path.exists():
+        boundary = pd.read_csv(boundary_path, usecols=["resolved_shear"])
+        if len(boundary):
+            boundary_max = float(np.nanmax(np.abs(boundary["resolved_shear"].to_numpy(float))))
     return {
         "frame_count": frame_count,
-        "max_abs_shear_state": max_state,
+        "max_abs_shear_state": max_state if frame_count else np.nan,
         "mean_frame_shear_state_rms": float(np.mean(rms_state)) if rms_state else np.nan,
-        "max_abs_local_shear_stress": max_stress,
-        "max_abs_qiu_shear_stress": max_qiu,
+        "max_abs_local_shear_stress": (
+            max(max_stress, boundary_max) if np.isfinite(boundary_max) else max_stress
+        ),
+        "max_abs_qiu_shear_stress": max_qiu if frame_count else np.nan,
+        "max_abs_boundary_resolved_shear": boundary_max,
     }
 
 
 def _activation_work(run: Path) -> dict[str, float]:
     path = run / "activation_work.csv"
+    empty = {
+        "activation_rows": 0,
+        "mean_abs_work_capillary": np.nan,
+        "mean_abs_work_shear": np.nan,
+        "mean_abs_work_free_volume": np.nan,
+        "p90_abs_work_shear": np.nan,
+        "p90_abs_work_free_volume": np.nan,
+    }
     if not path.exists() or path.stat().st_size == 0:
-        return {
-            "activation_rows": 0,
-            "mean_abs_work_capillary": np.nan,
-            "mean_abs_work_shear": np.nan,
-            "mean_abs_work_free_volume": np.nan,
-            "p90_abs_work_shear": np.nan,
-            "p90_abs_work_free_volume": np.nan,
-        }
+        return empty
     frame = pd.read_csv(path)
     if frame.empty:
-        return {
-            "activation_rows": 0,
-            "mean_abs_work_capillary": np.nan,
-            "mean_abs_work_shear": np.nan,
-            "mean_abs_work_free_volume": np.nan,
-            "p90_abs_work_shear": np.nan,
-            "p90_abs_work_free_volume": np.nan,
-        }
+        return empty
     cap = np.abs(frame["work_capillary"].to_numpy(float))
     shear = np.abs(frame["work_shear"].to_numpy(float))
     free = np.abs(frame["work_free_volume"].to_numpy(float))
@@ -118,7 +125,10 @@ def _activation_work(run: Path) -> dict[str, float]:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("root")
-    parser.add_argument("--output", default="results/production_summaries/jerky_mechanism_integrity.csv")
+    parser.add_argument(
+        "--output",
+        default="results/production_summaries/jerky_mechanism_integrity.csv",
+    )
     args = parser.parse_args()
 
     rows = []
@@ -134,7 +144,7 @@ def main() -> None:
         free = fit_growth_law(time, r, transient_fraction=0.0)
         kt_series, kg_series, series_r2 = _series_fit(time, r)
         standard = analyze_run(run)
-        row = {
+        rows.append({
             "regime": regime,
             "N_start": int(selected["grain_count"].iloc[0]),
             "N_end": int(selected["grain_count"].iloc[-1]),
@@ -159,8 +169,7 @@ def main() -> None:
             **_frame_shear(run),
             **_activation_work(run),
             "run": str(run),
-        }
-        rows.append(row)
+        })
 
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -172,7 +181,9 @@ def main() -> None:
         "",
         "Primary questions: G should retain approximately parabolic mean scaling while becoming intermittent; T should approach a linear mean kinetic limit; GT is also fit to t=(R-R0)/KT+(R^2-R0^2)/KG. Shear and climb work are reported separately from capillary work for event-resolved GB barrier crossings.",
         "",
-        table.to_markdown(index=False),
+        "```text",
+        table.to_string(index=False),
+        "```",
         "",
     ]
     md.write_text("\n".join(lines), encoding="utf-8")
