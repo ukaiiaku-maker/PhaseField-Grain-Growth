@@ -54,6 +54,7 @@ class DomainPhysics:
     free_volume: FreeVolumeState = field(init=False)
     climb: SerialClimbCycle = field(init=False)
     blocked: bool = False
+    compatibility_pending: bool = False
     previous_length: float = 0.0
     previous_area_i: float = 0.0
     previous_area_j: float = 0.0
@@ -89,7 +90,9 @@ class DomainPhysics:
                       "clock_threshold": self.climb.clock.threshold,
                       "clock_last_rate": self.climb.clock.last_rate,
                       "last_completion_time": self.climb.last_completion_time},
-            "blocked": self.blocked, "previous_length": self.previous_length,
+            "blocked": self.blocked,
+            "compatibility_pending": self.compatibility_pending,
+            "previous_length": self.previous_length,
             "previous_area_i": self.previous_area_i, "previous_area_j": self.previous_area_j,
             "previous_time": self.previous_time,
             "normal_displacement_ledger": self.normal_displacement_ledger,
@@ -119,6 +122,7 @@ class DomainPhysics:
         self.climb.clock.last_rate = state["climb"]["clock_last_rate"]
         self.climb.last_completion_time = state["climb"].get("last_completion_time")
         self.blocked = state["blocked"]
+        self.compatibility_pending = state.get("compatibility_pending", False)
         self.previous_length = state["previous_length"]
         self.previous_area_i = state.get("previous_area_i", 0.0)
         self.previous_area_j = state.get("previous_area_j", 0.0)
@@ -787,11 +791,19 @@ class EventResolvedSimulation:
         if complete:
             release = float(self.config.parameters.get("climb_release_quota", 1.0))
             domain.free_volume.accommodate(release)
-            domain.blocked = domain.free_volume.deficit > float(self.config.parameters.get("climb_trigger_quota", 0.25))
+            domain.blocked = (
+                domain.compatibility_pending
+                or domain.free_volume.deficit
+                > float(self.config.parameters.get("climb_trigger_quota", 0.25))
+            )
             mode, total, driving = self._activation_mode(domain, segment)
             self._record_event(domain, segment, mode, total, driving,
                                "climb_quota_completion", delta_length, event_time)
-            domain.blocked = domain.free_volume.deficit > float(self.config.parameters.get("climb_trigger_quota", 0.25))
+            domain.blocked = (
+                domain.compatibility_pending
+                or domain.free_volume.deficit
+                > float(self.config.parameters.get("climb_trigger_quota", 0.25))
+            )
 
     def _tj_mode_driving(
         self, tj: TripleJunction, mode: DisconnectionMode,

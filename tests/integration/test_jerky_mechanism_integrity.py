@@ -2,9 +2,11 @@ from pathlib import Path
 import csv
 
 import numpy as np
+import pandas as pd
 
 from grain_growth_pf.config import ModelConfig, PFConfig
 from grain_growth_pf.migration_closure import MigrationClosureSimulation
+from scripts.analyze_jerky_mechanism_integrity import _shear_release_audit
 
 
 def _close(simulation):
@@ -93,6 +95,33 @@ def test_activation_work_diagnostic_is_written_for_gb_release(tmp_path):
     assert work.stat().st_size > len(",".join(simulation.ACTIVATION_WORK_FIELDS))
 
 
+def test_climb_block_does_not_invoke_hidden_gb_compatibility_release(tmp_path):
+    config = _base(
+        tmp_path,
+        "C-only",
+        modules=("free_volume", "serial_climb"),
+    )
+    config = ModelConfig.from_dict({
+        **config.to_dict(),
+        "max_steps": 40,
+        "parameters": {
+            **config.parameters,
+            "excess_volume_per_area": 0.5,
+            "climb_trigger_quota": 1e-4,
+            "nucleation_prefactor": 1e8,
+            "exchange_prefactor": 1e8,
+            "transport_prefactor": 1e8,
+            "nucleation_barrier_ev": 0.01,
+            "exchange_barrier_ev": 0.01,
+            "transport_barrier_ev": 0.01,
+        },
+    })
+    output = tmp_path / "climb-only"
+    MigrationClosureSimulation(config, output).run()
+    work = pd.read_csv(output / "activation_work.csv")
+    assert "compatibility_release" not in set(work["event_type"])
+
+
 def test_tj_release_uses_local_shear_activation_work(tmp_path):
     config = _base(
         tmp_path,
@@ -170,3 +199,33 @@ def test_corrected_tj_gate_ignores_legacy_pixel_radius(tmp_path):
     assert simulation._tj_gate_radius_pixels() == 0
     assert np.count_nonzero(mobility == 0.0) == 1
     _close(simulation)
+
+
+def test_shear_release_audit_does_not_treat_tj_work_as_gb_relaxation(tmp_path):
+    pd.DataFrame([
+        {
+            "time": 1.0, "step": 10, "event_type": "tj_compatibility_release",
+            "entity_id": "tj:1-2-3", "shear_state_before_release": 0.4,
+        },
+        {
+            "time": 2.0, "step": 20, "event_type": "compatibility_release",
+            "entity_id": "gb:1-2:0", "shear_state_before_release": 0.3,
+        },
+    ]).to_csv(tmp_path / "activation_work.csv", index=False)
+    pd.DataFrame([
+        {
+            "time": 1.0, "step": 10, "event_type": "tj_compatibility_release",
+            "entity_id": "tj:1-2-3", "shear_state_s": np.nan,
+            "release_Delta_s": 0.0,
+        },
+        {
+            "time": 2.0, "step": 20, "event_type": "compatibility_release",
+            "entity_id": "gb:1-2:0", "shear_state_s": 0.0,
+            "release_Delta_s": 1.0,
+        },
+    ]).to_csv(tmp_path / "events.csv", index=False)
+
+    audit = _shear_release_audit(tmp_path)
+    assert audit["shear_release_rows"] == 1
+    assert audit["fraction_release_ge_prestate"] == 1.0
+    assert audit["fraction_post_release_state_zero"] == 1.0

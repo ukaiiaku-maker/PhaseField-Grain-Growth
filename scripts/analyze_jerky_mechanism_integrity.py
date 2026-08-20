@@ -60,10 +60,12 @@ def _series_fit(time: np.ndarray, radius: np.ndarray) -> tuple[float, float, flo
 
 def _frame_shear(run: Path) -> dict[str, float]:
     max_state = max_stress = max_qiu = 0.0
+    max_free_volume = 0.0
     rms_state = []
     boundary_rms = []
     stored_energy = []
     nonzero_fraction = []
+    free_volume_fraction = []
     frame_count = 0
     for frame in sorted((run / "frames").glob("frame-*.npz")):
         with np.load(frame) as data:
@@ -101,6 +103,19 @@ def _frame_shear(run: Path) -> dict[str, float]:
                     nonzero_fraction[-1] = float(data["nonzero_gb_length_fraction"])
             if "stored_shear_energy" in data:
                 stored_energy.append(float(data["stored_shear_energy"]))
+            if "free_volume" in data:
+                free_volume = np.asarray(data["free_volume"], dtype=float)
+                if "boundary_mask" in data:
+                    free_volume = free_volume[
+                        np.asarray(data["boundary_mask"], dtype=bool)
+                    ]
+                if free_volume.size:
+                    max_free_volume = max(
+                        max_free_volume, float(np.max(np.abs(free_volume)))
+                    )
+                    free_volume_fraction.append(
+                        float(np.mean(np.abs(free_volume) > 1e-12))
+                    )
             if "shear_stress_max_abs" in data:
                 max_stress = max(max_stress, float(data["shear_stress_max_abs"]))
             if "qiu_shear_stress_max_abs" in data:
@@ -128,6 +143,13 @@ def _frame_shear(run: Path) -> dict[str, float]:
         "final_nonzero_gb_length_fraction": (
             float(nonzero_fraction[-1]) if nonzero_fraction else np.nan
         ),
+        "max_abs_free_volume_deficit": max_free_volume if frame_count else np.nan,
+        "max_nonzero_free_volume_gb_fraction": (
+            float(np.max(free_volume_fraction)) if free_volume_fraction else np.nan
+        ),
+        "final_nonzero_free_volume_gb_fraction": (
+            float(free_volume_fraction[-1]) if free_volume_fraction else np.nan
+        ),
         "max_abs_local_shear_stress": (
             max(max_stress, boundary_max) if np.isfinite(boundary_max) else max_stress
         ),
@@ -145,6 +167,9 @@ def _activation_work(run: Path) -> dict[str, float]:
         "mean_abs_work_free_volume": np.nan,
         "p90_abs_work_shear": np.nan,
         "p90_abs_work_free_volume": np.nan,
+        "tj_activation_rows": 0,
+        "mean_abs_tj_work_shear": np.nan,
+        "mean_abs_tj_work_free_volume": np.nan,
     }
     if not path.exists() or path.stat().st_size == 0:
         return empty
@@ -154,6 +179,7 @@ def _activation_work(run: Path) -> dict[str, float]:
     cap = np.abs(frame["work_capillary"].to_numpy(float))
     shear = np.abs(frame["work_shear"].to_numpy(float))
     free = np.abs(frame["work_free_volume"].to_numpy(float))
+    tj = frame["event_type"].eq("tj_compatibility_release").to_numpy(bool)
     return {
         "activation_rows": len(frame),
         "mean_abs_work_capillary": float(np.mean(cap)),
@@ -161,6 +187,13 @@ def _activation_work(run: Path) -> dict[str, float]:
         "mean_abs_work_free_volume": float(np.mean(free)),
         "p90_abs_work_shear": float(np.quantile(shear, 0.90)),
         "p90_abs_work_free_volume": float(np.quantile(free, 0.90)),
+        "tj_activation_rows": int(np.count_nonzero(tj)),
+        "mean_abs_tj_work_shear": (
+            float(np.mean(shear[tj])) if np.any(tj) else np.nan
+        ),
+        "mean_abs_tj_work_free_volume": (
+            float(np.mean(free[tj])) if np.any(tj) else np.nan
+        ),
     }
 
 
@@ -197,10 +230,14 @@ def _shear_release_audit(run: Path) -> dict[str, float]:
     work["_occurrence"] = work.groupby(keys, dropna=False).cumcount()
     events["_occurrence"] = events.groupby(keys, dropna=False).cumcount()
     joined = work.merge(events, on=keys + ["_occurrence"], how="inner")
+    # TJ compatibility events can be driven by adjacent shear without
+    # releasing any GB shear memory.  Their ledger shear state is intentionally
+    # absent, so exclude them instead of interpreting NaN as a zeroed state.
+    joined = joined[joined["shear_state_s"].notna()]
     if joined.empty:
         return empty
     before = np.abs(joined["shear_state_before_release"].to_numpy(float))
-    after = np.abs(joined["shear_state_s"].fillna(0.0).to_numpy(float))
+    after = np.abs(joined["shear_state_s"].to_numpy(float))
     release = np.abs(joined["release_Delta_s"].fillna(0.0).to_numpy(float))
     active = before > 1e-12
     if not np.any(active):

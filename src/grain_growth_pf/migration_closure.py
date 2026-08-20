@@ -215,6 +215,7 @@ class MigrationClosureSimulation(EventResolvedSimulation):
     ) -> None:
         prior_hidden_displacement = domain.normal_displacement_ledger
         prior_release_remaining = domain.normal_release_remaining
+        prior_compatibility_pending = domain.compatibility_pending
 
         capillary_pressure = float(self.config.pf.gb_energy * segment.curvature)
         work_capillary = capillary_pressure * mode.activation_volume_normal
@@ -275,6 +276,22 @@ class MigrationClosureSimulation(EventResolvedSimulation):
             field_position=field_position,
             effective_barrier_ev=effective_barrier_ev,
         )
+
+        if event_type == "compatibility_release":
+            domain.compatibility_pending = False
+        else:
+            domain.compatibility_pending = prior_compatibility_pending
+        climb_enabled = bool(set(self.config.active_modules).intersection({
+            "free_volume", "serial_climb", "nucleation_limited",
+            "multihit_nucleation", "exchange_limited", "transport_limited",
+            "mixed_shear_climb_event", "independent_and",
+        }))
+        climb_blocked = (
+            climb_enabled
+            and domain.free_volume.deficit
+            >= float(self.config.parameters.get("climb_trigger_quota", 0.25))
+        )
+        domain.blocked = domain.compatibility_pending or climb_blocked
 
         if self.migration_closure == "gate_only":
             domain.normal_displacement_ledger = prior_hidden_displacement
@@ -582,6 +599,7 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 and not domain.blocked
             ):
                 domain.blocked = True
+                domain.compatibility_pending = True
                 self._begin_activation_window(domain)
                 domain.climb.activate(self.solver.time)
 
@@ -598,10 +616,11 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 and domain.encounter.advance(swept_measure, maximum_events=1)
             ):
                 domain.blocked = True
+                domain.compatibility_pending = True
                 self._begin_activation_window(domain)
                 domain.climb.activate(self.solver.time)
 
-            if domain.blocked and self.solver.step_number > 0:
+            if domain.compatibility_pending and self.solver.step_number > 0:
                 (
                     candidates, rates, normal_pressure, resolved_shear,
                     vacancy_mu, effective,
