@@ -6,7 +6,10 @@ import pandas as pd
 
 from grain_growth_pf.config import ModelConfig, PFConfig
 from grain_growth_pf.migration_closure import MigrationClosureSimulation
-from scripts.analyze_jerky_mechanism_integrity import _shear_release_audit
+from scripts.analyze_jerky_mechanism_integrity import (
+    _pin_durations,
+    _shear_release_audit,
+)
 
 
 def _close(simulation):
@@ -229,3 +232,20 @@ def test_shear_release_audit_does_not_treat_tj_work_as_gb_relaxation(tmp_path):
     assert audit["shear_release_rows"] == 1
     assert audit["fraction_release_ge_prestate"] == 1.0
     assert audit["fraction_post_release_state_zero"] == 1.0
+
+
+def test_pin_duration_audit_tracks_contiguous_entity_episodes(tmp_path):
+    pd.DataFrame([
+        {"time": 0.0, "entity_id": "gb:a", "blocked": 0},
+        {"time": 1.0, "entity_id": "gb:a", "blocked": 1},
+        {"time": 2.0, "entity_id": "gb:a", "blocked": 1},
+        {"time": 3.0, "entity_id": "gb:a", "blocked": 0},
+        {"time": 0.0, "entity_id": "gb:b", "blocked": 1},
+        {"time": 1.0, "entity_id": "gb:b", "blocked": 0},
+    ]).to_csv(tmp_path / "boundary_tracks.csv", index=False)
+
+    audit = _pin_durations(tmp_path)
+    assert audit["pin_episode_count"] == 2
+    assert np.isclose(audit["median_pin_duration"], 1.5)
+    assert np.isclose(audit["p90_pin_duration"], 1.9)
+    assert np.isclose(audit["max_pin_duration"], 2.0)

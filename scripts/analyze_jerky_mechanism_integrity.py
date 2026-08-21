@@ -197,6 +197,47 @@ def _activation_work(run: Path) -> dict[str, float]:
     }
 
 
+def _pin_durations(run: Path) -> dict[str, float]:
+    empty = {
+        "pin_episode_count": 0,
+        "median_pin_duration": np.nan,
+        "p90_pin_duration": np.nan,
+        "max_pin_duration": np.nan,
+    }
+    path = run / "boundary_tracks.csv"
+    if not path.exists() or path.stat().st_size == 0:
+        return empty
+    frame = pd.read_csv(path, usecols=["time", "entity_id", "blocked"])
+    if frame.empty:
+        return empty
+    durations: list[float] = []
+    for _, group in frame.groupby("entity_id", sort=False):
+        group = group.sort_values("time")
+        time = group["time"].to_numpy(float)
+        blocked = group["blocked"].to_numpy(bool)
+        if not np.any(blocked):
+            continue
+        gaps = np.diff(time)
+        cadence = float(np.median(gaps[gaps > 0])) if np.any(gaps > 0) else 0.0
+        start = None
+        for index, value in enumerate(blocked):
+            if value and start is None:
+                start = index
+            if start is not None and (not value or index == len(blocked) - 1):
+                end = index - 1 if not value else index
+                durations.append(max(0.0, time[end] - time[start] + cadence))
+                start = None
+    if not durations:
+        return empty
+    values = np.asarray(durations, dtype=float)
+    return {
+        "pin_episode_count": len(values),
+        "median_pin_duration": float(np.median(values)),
+        "p90_pin_duration": float(np.quantile(values, 0.90)),
+        "max_pin_duration": float(np.max(values)),
+    }
+
+
 def _shear_release_audit(run: Path) -> dict[str, float]:
     empty = {
         "shear_release_rows": 0,
@@ -295,6 +336,10 @@ def main() -> None:
                 "linear" if fit1.r_squared > fit2.r_squared else "parabolic"
             ),
             "jerkiness_CV": standard.get("jerkiness_CV", np.nan),
+            "stationary_fraction": standard.get("stationary_fraction", np.nan),
+            "motion_top_1pct": standard.get("motion_top_1pct", np.nan),
+            "motion_top_5pct": standard.get("motion_top_5pct", np.nan),
+            "motion_top_10pct": standard.get("motion_top_10pct", np.nan),
             "Fano": standard.get("Fano", np.nan),
             "burstiness": standard.get("burstiness", np.nan),
             "reverse_motion_fraction": standard.get("reverse_motion_fraction", np.nan),
@@ -302,6 +347,7 @@ def main() -> None:
             "number_of_events": standard.get("number_of_events", 0),
             **_frame_shear(run),
             **_activation_work(run),
+            **_pin_durations(run),
             **_shear_release_audit(run),
             "run": str(run),
         })
