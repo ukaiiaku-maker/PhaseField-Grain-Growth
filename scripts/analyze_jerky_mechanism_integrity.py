@@ -15,6 +15,7 @@ from grain_growth_pf.analysis.growth_law import (
     fit_growth_law,
     fit_growth_law_fixed_exponent,
 )
+from grain_growth_pf.analysis.jerkiness import jerkiness_metrics
 from grain_growth_pf.io.event_ledger import event_ledger_path, read_event_ledger
 
 
@@ -318,6 +319,11 @@ def main() -> None:
         fit2 = fit_growth_law_fixed_exponent(time, r, 2.0, transient_fraction=0.0)
         free = fit_growth_law(time, r, transient_fraction=0.0)
         kt_series, kg_series, series_r2 = _series_fit(time, r)
+        speed = np.abs(np.diff(r) / np.diff(time))
+        stationary_tolerance = 0.05 * float(np.mean(speed)) if len(speed) else 0.0
+        trajectory_intermittency = jerkiness_metrics(
+            time, r, stationary_tolerance=stationary_tolerance
+        )
         standard = analyze_run(run)
         rows.append({
             "regime": regime,
@@ -336,10 +342,11 @@ def main() -> None:
                 "linear" if fit1.r_squared > fit2.r_squared else "parabolic"
             ),
             "jerkiness_CV": standard.get("jerkiness_CV", np.nan),
-            "stationary_fraction": standard.get("stationary_fraction", np.nan),
-            "motion_top_1pct": standard.get("motion_top_1pct", np.nan),
-            "motion_top_5pct": standard.get("motion_top_5pct", np.nan),
-            "motion_top_10pct": standard.get("motion_top_10pct", np.nan),
+            "stationary_fraction": trajectory_intermittency["stationary_fraction"],
+            "stationary_speed_tolerance": stationary_tolerance,
+            "motion_top_1pct": trajectory_intermittency["motion_top_1pct"],
+            "motion_top_5pct": trajectory_intermittency["motion_top_5pct"],
+            "motion_top_10pct": trajectory_intermittency["motion_top_10pct"],
             "Fano": standard.get("Fano", np.nan),
             "burstiness": standard.get("burstiness", np.nan),
             "reverse_motion_fraction": standard.get("reverse_motion_fraction", np.nan),
