@@ -119,6 +119,7 @@ confirms C or shows a temperature-dependent need for G/T/S.
   `results/jerky_integrity_smoke/20260820T220630Z-fffb17dfa0`
 - Full factorial:
   `results/jerky_factorial_900K/20260820T233721Z-f5d010440c`
+  (16 G/T/S/C subsets including B0, plus QIU: 17 completed cases total)
 - Discriminating screen:
   `results/jerky_discriminating_900K/20260821T080200Z-124f03cd0d`
 - Aggregate tables:
