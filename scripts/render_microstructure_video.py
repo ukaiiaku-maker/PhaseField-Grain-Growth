@@ -47,14 +47,23 @@ def _load(frame: Path):
             if "mobility" in data
             else np.ones(labels.shape, dtype=np.float32)
         )
+        pending = data["pending_state"].copy() if "pending_state" in data else blocked.copy()
+        climb_stage = (
+            data["climb_stage"].copy()
+            if "climb_stage" in data else np.zeros(labels.shape, dtype=np.uint8)
+        )
+        sink_activity = (
+            data["sink_activity"].copy()
+            if "sink_activity" in data else np.zeros(labels.shape, dtype=np.uint8)
+        )
         return (
-            labels,
-            blocked,
-            shear,
-            free_volume,
-            mobility,
-            int(data["step"]),
-            float(data["time"]),
+            labels, blocked, shear, free_volume, mobility, pending, climb_stage,
+            sink_activity, int(data["step"]), float(data["time"]),
+            int(data["grain_count"]) if "grain_count" in data else int(len(np.unique(labels))),
+            float(data["N_required"]) if "N_required" in data else float(np.sum(free_volume)),
+            float(data["N_accommodated_GB"]) if "N_accommodated_GB" in data else 0.0,
+            float(data["N_accommodated_TJ"]) if "N_accommodated_TJ" in data else 0.0,
+            float(data["conservation_residual"]) if "conservation_residual" in data else 0.0,
         )
 
 
@@ -96,14 +105,17 @@ def main() -> None:
     if fv_lo == fv_hi:
         fv_hi = fv_lo + 1.0
 
-    labels0, blocked0, shear0, fv0, mobility0, step0, time0 = _load(frames[0])
+    (
+        labels0, blocked0, shear0, fv0, mobility0, pending0, stage0,
+        activity0, step0, time0, grains0, required0, gb0, tj0, residual0,
+    ) = _load(frames[0])
 
     if args.composite:
-        fig, axes = plt.subplots(1, 4, figsize=(20, 5), constrained_layout=True)
-        ax_micro, ax_mobility, ax_shear, ax_fv = axes
+        fig, axes = plt.subplots(2, 3, figsize=(16, 10), constrained_layout=True)
+        ax_micro, ax_pending, ax_mobility, ax_shear, ax_fv, ax_sink = axes.flat
     else:
         fig, ax_micro = plt.subplots(figsize=(6, 6), constrained_layout=True)
-        ax_mobility = ax_shear = ax_fv = None
+        ax_pending = ax_mobility = ax_shear = ax_fv = ax_sink = None
 
     image = ax_micro.imshow(
         colors[labels0 % len(colors)], interpolation="nearest", origin="lower"
@@ -117,8 +129,17 @@ def main() -> None:
     ax_micro.set_xticks([])
     ax_micro.set_yticks([])
 
-    mobility_image = shear_image = fv_image = None
+    pending_image = mobility_image = shear_image = fv_image = None
+    stage_image = activity_overlay = None
     if args.composite:
+        pending_image = ax_pending.imshow(
+            pending0, interpolation="nearest", origin="lower", cmap="tab10",
+            vmin=0, vmax=7,
+        )
+        ax_pending.set_title("pending bits: G=1, T=2, C=4")
+        ax_pending.set_xticks([])
+        ax_pending.set_yticks([])
+
         mobility_image = ax_mobility.imshow(
             mobility0, interpolation="nearest", origin="lower", cmap="gray",
             vmin=0.0, vmax=1.0,
@@ -146,21 +167,50 @@ def main() -> None:
         ax_fv.set_yticks([])
         fig.colorbar(fv_image, ax=ax_fv, fraction=0.046, pad=0.04)
 
-    title = fig.suptitle(f"{run_dir.name}   step={step0}   t={time0:.3f}")
+        stage_image = ax_sink.imshow(
+            stage0, interpolation="nearest", origin="lower", cmap="viridis",
+            vmin=0, vmax=4,
+        )
+        activity_overlay = ax_sink.imshow(
+            np.ma.masked_where(activity0 == 0, activity0),
+            interpolation="nearest", origin="lower", cmap="autumn",
+            vmin=0, vmax=2, alpha=0.9,
+        )
+        ax_sink.set_title("climb stage 0–4; sink GB=1, TJ=2")
+        ax_sink.set_xticks([])
+        ax_sink.set_yticks([])
+
+    title = fig.suptitle(
+        f"{run_dir.name}  step={step0}  t={time0:.3f}  N={grains0}  "
+        f"defects req={required0:.3g} GB={gb0:.3g} TJ={tj0:.3g} eps={residual0:.1e}"
+    )
 
     def update(index: int):
-        labels, blocked, shear, free_volume, mobility, step, time = _load(frames[index])
+        (
+            labels, blocked, shear, free_volume, mobility, pending, stage,
+            activity, step, time, grains, required, gb_sink, tj_sink, residual,
+        ) = _load(frames[index])
         image.set_data(colors[labels % len(colors)])
         overlay.set_data(np.ma.masked_where(blocked == 0, blocked))
         artists = [image, overlay, title]
         if args.composite:
             assert mobility_image is not None
-            assert shear_image is not None and fv_image is not None
+            assert pending_image is not None and shear_image is not None and fv_image is not None
+            assert stage_image is not None and activity_overlay is not None
+            pending_image.set_data(pending)
             mobility_image.set_data(mobility)
             shear_image.set_data(shear)
             fv_image.set_data(free_volume)
-            artists.extend([mobility_image, shear_image, fv_image])
-        title.set_text(f"{run_dir.name}   step={step}   t={time:.3f}")
+            stage_image.set_data(stage)
+            activity_overlay.set_data(np.ma.masked_where(activity == 0, activity))
+            artists.extend([
+                pending_image, mobility_image, shear_image, fv_image,
+                stage_image, activity_overlay,
+            ])
+        title.set_text(
+            f"{run_dir.name}  step={step}  t={time:.3f}  N={grains}  "
+            f"defects req={required:.3g} GB={gb_sink:.3g} TJ={tj_sink:.3g} eps={residual:.1e}"
+        )
         return artists
 
     if args.png_frames:

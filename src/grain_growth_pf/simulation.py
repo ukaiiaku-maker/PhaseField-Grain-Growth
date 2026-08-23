@@ -55,6 +55,7 @@ class DomainPhysics:
     climb: SerialClimbCycle = field(init=False)
     blocked: bool = False
     compatibility_pending: bool = False
+    area_loss_pending: bool = False
     previous_length: float = 0.0
     previous_area_i: float = 0.0
     previous_area_j: float = 0.0
@@ -92,6 +93,7 @@ class DomainPhysics:
                       "last_completion_time": self.climb.last_completion_time},
             "blocked": self.blocked,
             "compatibility_pending": self.compatibility_pending,
+            "area_loss_pending": self.area_loss_pending,
             "previous_length": self.previous_length,
             "previous_area_i": self.previous_area_i, "previous_area_j": self.previous_area_j,
             "previous_time": self.previous_time,
@@ -123,6 +125,7 @@ class DomainPhysics:
         self.climb.last_completion_time = state["climb"].get("last_completion_time")
         self.blocked = state["blocked"]
         self.compatibility_pending = state.get("compatibility_pending", False)
+        self.area_loss_pending = state.get("area_loss_pending", False)
         self.previous_length = state["previous_length"]
         self.previous_area_i = state.get("previous_area_i", 0.0)
         self.previous_area_j = state.get("previous_area_j", 0.0)
@@ -833,7 +836,11 @@ class EventResolvedSimulation:
 
     def _update_tj_physics(self, mobility: np.ndarray) -> None:
         modules = set(self.config.active_modules)
-        enabled = bool(modules.intersection({"tj_compatibility", "tj_pinning", "tj_burgers_strict", "tj_burgers_residual", "tj_geometric_surrogate"}))
+        compatibility_enabled = bool(modules.intersection({
+            "tj_compatibility", "tj_pinning", "tj_burgers_strict",
+            "tj_burgers_residual", "tj_geometric_surrogate",
+        }))
+        enabled = compatibility_enabled or "tj_defect_sink" in modules
         if not enabled:
             self.tj_domains.clear()
             return
@@ -851,6 +858,11 @@ class EventResolvedSimulation:
             domain = self.tj_domains[key]
             delta_path = max(0.0, tj.travel_distance - domain.previous_length)
             domain.previous_length = tj.travel_distance
+            if not compatibility_enabled:
+                # A true TJ defect sink owns a separate, compatibility-checked
+                # renewal clock in MigrationClosureSimulation.  Keeping its
+                # domain here must not activate the legacy random TJ gate.
+                continue
             explicit_residual = bool(
                 modules.intersection({"tj_burgers_strict", "tj_burgers_residual"})
                 and np.linalg.norm(tj.residual_burgers) > 1e-10
@@ -1165,6 +1177,17 @@ class EventResolvedSimulation:
             })
         self.boundary_handle.flush()
 
+    def _extra_checkpoint_state(self) -> dict[str, Any]:
+        """Extension hook for parallel physics models.
+
+        The legacy model returns an empty mapping, so its numerical state and
+        evolution are unchanged.
+        """
+        return {}
+
+    def _load_extra_checkpoint_state(self, state: dict[str, Any]) -> None:
+        """Restore extension state written by :meth:`_extra_checkpoint_state`."""
+
     def _save_checkpoint(self) -> None:
         event_ledger_offset = self.ledger.checkpoint()
         stream_offsets = {}
@@ -1194,6 +1217,7 @@ class EventResolvedSimulation:
             "accumulated_volumetric_strain": self.accumulated_volumetric_strain,
             "previous_entity_time": self.previous_entity_time,
             "event_ledger_offset": event_ledger_offset,
+            "extension_state": self._extra_checkpoint_state(),
             **stream_offsets,
         }
         serialized_state = json.dumps(state, indent=2) + "\n"
@@ -1289,6 +1313,7 @@ class EventResolvedSimulation:
         self.energy_records = state["energy_records"]
         self.accumulated_shear_strain = float(state.get("accumulated_shear_strain", 0.0))
         self.accumulated_volumetric_strain = float(state.get("accumulated_volumetric_strain", 0.0))
+        self._load_extra_checkpoint_state(dict(state.get("extension_state", {})))
 
     def run(self) -> Path:
         failure: str | None = None

@@ -36,6 +36,13 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
         shear = np.zeros(self.config.pf.shape, dtype=np.float32)
         shear_stress = np.zeros(self.config.pf.shape, dtype=np.float32)
         free_volume = np.zeros(self.config.pf.shape, dtype=np.float32)
+        pending_state = np.zeros(self.config.pf.shape, dtype=np.uint8)
+        climb_stage = np.zeros(self.config.pf.shape, dtype=np.uint8)
+        sink_activity = np.zeros(self.config.pf.shape, dtype=np.uint8)
+        stage_codes = {
+            "inactive": 0, "nucleation": 1, "exchange": 2,
+            "transport": 3, "quota_completion": 4,
+        }
         shape = np.asarray(self.config.pf.shape)
         for segment in self.snapshot.boundaries.values():
             domain = self.domains.get(segment.entity_id)
@@ -46,9 +53,33 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
             boundary_mask[yy, xx] = 1
             if domain.blocked:
                 blocked[yy, xx] = 1
+            if domain.compatibility_pending:
+                pending_state[yy, xx] |= 1
+            if domain.area_loss_pending or domain.free_volume.deficit > 0.0:
+                pending_state[yy, xx] |= 4
             shear[yy, xx] = float(domain.shear.state)
             shear_stress[yy, xx] = float(domain.shear.internal_shear_stress)
-            free_volume[yy, xx] = float(domain.free_volume.deficit)
+            local_inventory = (
+                self.defect_inventory.active_vacancy.get(domain.entity_id, 0.0)
+                + self.defect_inventory.active_interstitial.get(domain.entity_id, 0.0)
+                if self.area_loss_enabled else domain.free_volume.deficit
+            )
+            free_volume[yy, xx] = float(local_inventory)
+            climb_stage[yy, xx] = stage_codes.get(domain.climb.stage.value, 0)
+            if domain.entity_id in self._last_gb_sink_entities:
+                sink_activity[yy, xx] = 1
+        for key, tj in self.snapshot.triple_junctions.items():
+            domain = self.tj_domains.get(key)
+            if domain is None:
+                continue
+            y, x = np.rint(tj.position).astype(int) % shape
+            if domain.blocked:
+                pending_state[y, x] |= 2
+            if domain.area_loss_pending:
+                pending_state[y, x] |= 4
+            climb_stage[y, x] = stage_codes.get(domain.climb.stage.value, 0)
+            if key in self._last_tj_sink_entities:
+                sink_activity[y, x] = 2
         qiu_shear_stress = (
             self.full_field.stress[0, 1].astype(np.float32, copy=True)
             if self.full_field is not None
@@ -60,6 +91,16 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
         stored_shear_energy = float(sum(
             domain.shear.energy for domain in self.domains.values()
         ))
+        inventory = (
+            self.defect_inventory.diagnostics()
+            if self.area_loss_enabled else {
+                "N_required": float(sum(d.free_volume.required_total for d in self.domains.values())),
+                "N_accommodated_GB": float(sum(d.free_volume.accommodated_total for d in self.domains.values())),
+                "N_accommodated_TJ": 0.0,
+                "N_active_deficit": float(sum(d.free_volume.deficit for d in self.domains.values())),
+                "conservation_residual": 0.0,
+            }
+        )
         np.savez_compressed(
             path,
             labels=labels,
@@ -69,10 +110,19 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
             shear_stress=shear_stress,
             qiu_shear_stress=qiu_shear_stress,
             free_volume=free_volume,
+            pending_state=pending_state,
+            climb_stage=climb_stage,
+            sink_activity=sink_activity,
             mobility=self.solver.mobility_scale.astype(np.float32),
             time=np.asarray(float(self.solver.time)),
             step=np.asarray(step),
             temperature=np.asarray(float(self.config.pf.temperature)),
+            grain_count=np.asarray(len(self.snapshot.grains)),
+            N_required=np.asarray(float(inventory["N_required"])),
+            N_accommodated_GB=np.asarray(float(inventory["N_accommodated_GB"])),
+            N_accommodated_TJ=np.asarray(float(inventory["N_accommodated_TJ"])),
+            N_active_deficit=np.asarray(float(inventory["N_active_deficit"])),
+            conservation_residual=np.asarray(float(inventory["conservation_residual"])),
             shear_state_max_abs=np.asarray(float(np.max(np.abs(shear)))),
             shear_state_rms=np.asarray(float(np.sqrt(np.mean(shear.astype(float) ** 2)))),
             boundary_shear_state_rms=np.asarray(

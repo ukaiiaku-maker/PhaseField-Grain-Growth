@@ -33,6 +33,9 @@ def _close(simulation):
     simulation.ledger.close()
     simulation.track_handle.close()
     simulation.boundary_handle.close()
+    simulation._activation_work_handle.close()
+    if simulation._mechanism_state_handle is not None:
+        simulation._mechanism_state_handle.close()
 
 
 def test_gate_only_event_does_not_add_normal_pf_displacement(tmp_path):

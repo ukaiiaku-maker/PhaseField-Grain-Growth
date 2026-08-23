@@ -1,0 +1,15 @@
+source_root: results/jerky_integrity_smoke/20260820T220630Z-fffb17dfa0
+max_steps: 10000
+termination_grains: 70
+output_cadence: 10
+video_frame_cadence: 50
+regimes:
+  B0: B0
+  G: G
+  T: T
+  S: S
+  GT: GT
+  GS: GS
+  TS: TS
+  GTS: GTS
+  QIU: QIU

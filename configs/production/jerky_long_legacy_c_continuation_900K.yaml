@@ -1,0 +1,14 @@
+source_root: results/jerky_factorial_900K/20260820T233721Z-f5d010440c
+max_steps: 10000
+termination_grains: 70
+output_cadence: 10
+video_frame_cadence: 50
+regimes:
+  LEGACY_C: C
+  LEGACY_GC: GC
+  LEGACY_TC: TC
+  LEGACY_SC: SC
+  LEGACY_GTC: GTC
+  LEGACY_GSC: GSC
+  LEGACY_TSC: TSC
+  LEGACY_GTSC: GTSC

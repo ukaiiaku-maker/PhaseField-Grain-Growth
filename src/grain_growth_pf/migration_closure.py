@@ -7,6 +7,16 @@ from typing import Any
 
 import numpy as np
 
+from grain_growth_pf.climb.area_loss import (
+    ConservedDefectInventory,
+    best_compatible_tj_velocity,
+    gb_excess_volume_density,
+    released_point_defect_quota,
+    validate_tj_sink_candidate,
+)
+from grain_growth_pf.climb.exchange import butler_volmer_flux
+from grain_growth_pf.climb.serial_cycle import ClimbStage
+from grain_growth_pf.climb.transport import diffusivity, transport_time
 from grain_growth_pf.disconnections.barriers import assign_barriers
 from grain_growth_pf.disconnections.mode import DisconnectionMode, ModeDriving, K_B_EV
 from grain_growth_pf.entities.arclength_tracker import ArclengthEntityTracker
@@ -40,6 +50,22 @@ class MigrationClosureSimulation(EventResolvedSimulation):
         "work_free_volume", "work_total_without_tj_residual",
         "shear_state_before_release", "free_volume_deficit_before_release",
     )
+    DEFECT_HISTORY_FIELDS = (
+        "time", "step", "gb_measure", "released_excess_volume",
+        "released_defect_quota", "N_required", "N_required_signed",
+        "N_accommodated_GB", "N_accommodated_TJ", "N_external",
+        "N_active_deficit", "N_retired", "N_stored_signed",
+        "conservation_residual", "vacancy_conservation_residual",
+        "interstitial_conservation_residual", "max_abs_conservation_residual",
+        "GB_accommodation_fraction", "TJ_accommodation_fraction",
+        "external_accommodation_fraction", "active_deficit_fraction",
+        "retired_inventory_fraction",
+    )
+    MECHANISM_STATE_FIELDS = (
+        "run_id", "time", "step", "entity_type", "entity_id", "grain_ids",
+        "G_pending", "T_pending", "C_pending", "blocked", "climb_stage",
+        "local_defect_inventory", "GB_sink_activity", "TJ_sink_activity",
+    )
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         config = kwargs.get("config", args[0] if args else None)
@@ -59,6 +85,25 @@ class MigrationClosureSimulation(EventResolvedSimulation):
             )
         self.migration_closure = closure
         self.blocked_gate_profile = profile
+        modules = set(config.active_modules)
+        self.area_loss_enabled = "area_loss_climb" in modules
+        if modules.intersection({"gb_defect_sink", "tj_defect_sink"}) and not self.area_loss_enabled:
+            raise ValueError("GB/TJ defect sinks require the area_loss_climb source")
+        if self.area_loss_enabled and "gb_defect_sink" not in modules:
+            raise ValueError("area_loss_climb requires an explicit gb_defect_sink alternative")
+        self.defect_inventory = ConservedDefectInventory()
+        self.previous_total_gb_measure: float | None = None
+        self.last_released_excess_volume = 0.0
+        self.last_released_defect_quota = 0.0
+        self.max_abs_conservation_residual = 0.0
+        self._area_loss_initializing = True
+        self._defect_history_handle = None
+        self._defect_history_writer = None
+        self._mechanism_state_handle = None
+        self._mechanism_state_writer = None
+        self._last_gb_sink_entities: set[str] = set()
+        self._last_tj_sink_entities: set[str] = set()
+        self._pending_sink_completions: list[dict[str, Any]] = []
         super().__init__(*args, **kwargs)
 
         if bool(config.parameters.get("arclength_domains", True)):
@@ -85,6 +130,23 @@ class MigrationClosureSimulation(EventResolvedSimulation):
             # is zero, so this does not advance any physical reaction coordinate.
             self._update_physics()
 
+        if self.area_loss_enabled:
+            self.previous_total_gb_measure = self._total_gb_measure()
+            history_path = self.output_dir / "defect_inventory.csv"
+            history_exists = history_path.exists() and history_path.stat().st_size > 0
+            self._defect_history_handle = history_path.open(
+                "a", newline="", encoding="utf-8"
+            )
+            self._defect_history_writer = csv.DictWriter(
+                self._defect_history_handle, fieldnames=self.DEFECT_HISTORY_FIELDS
+            )
+            if not history_exists:
+                self._defect_history_writer.writeheader()
+            self._area_loss_initializing = False
+            self._write_defect_history()
+        else:
+            self._area_loss_initializing = False
+
         work_path = self.output_dir / "activation_work.csv"
         work_exists = work_path.exists() and work_path.stat().st_size > 0
         self._activation_work_handle = work_path.open(
@@ -97,6 +159,18 @@ class MigrationClosureSimulation(EventResolvedSimulation):
             self._activation_work_writer.writeheader()
             self._activation_work_handle.flush()
 
+        state_path = self.output_dir / "mechanism_state.csv"
+        state_exists = state_path.exists() and state_path.stat().st_size > 0
+        self._mechanism_state_handle = state_path.open(
+            "a", newline="", encoding="utf-8"
+        )
+        self._mechanism_state_writer = csv.DictWriter(
+            self._mechanism_state_handle, fieldnames=self.MECHANISM_STATE_FIELDS
+        )
+        if not state_exists:
+            self._mechanism_state_writer.writeheader()
+        self._write_mechanism_state()
+
     def run(self):
         try:
             return super().run()
@@ -104,6 +178,643 @@ class MigrationClosureSimulation(EventResolvedSimulation):
             if hasattr(self, "_activation_work_handle"):
                 self._activation_work_handle.flush()
                 self._activation_work_handle.close()
+            if self._defect_history_handle is not None:
+                self._defect_history_handle.flush()
+                self._defect_history_handle.close()
+            if self._mechanism_state_handle is not None:
+                self._mechanism_state_handle.flush()
+                self._mechanism_state_handle.close()
+
+    def _total_gb_measure(self) -> float:
+        return float(sum(segment.length for segment in self.snapshot.boundaries.values()))
+
+    def _extra_checkpoint_state(self) -> dict[str, Any]:
+        state = super()._extra_checkpoint_state()
+        if self.area_loss_enabled:
+            state["area_loss_climb"] = {
+                "inventory": self.defect_inventory.state_dict(),
+                "previous_total_gb_measure": self.previous_total_gb_measure,
+                "last_released_excess_volume": self.last_released_excess_volume,
+                "last_released_defect_quota": self.last_released_defect_quota,
+                "max_abs_conservation_residual": self.max_abs_conservation_residual,
+            }
+        return state
+
+    def _load_extra_checkpoint_state(self, state: dict[str, Any]) -> None:
+        super()._load_extra_checkpoint_state(state)
+        area_loss = state.get("area_loss_climb")
+        if not self.area_loss_enabled:
+            return
+        if area_loss is None:
+            raise ValueError("area-loss climb checkpoint lacks conserved inventory")
+        self.defect_inventory = ConservedDefectInventory.from_state_dict(
+            dict(area_loss["inventory"])
+        )
+        previous = area_loss.get("previous_total_gb_measure")
+        self.previous_total_gb_measure = None if previous is None else float(previous)
+        self.last_released_excess_volume = float(
+            area_loss.get("last_released_excess_volume", 0.0)
+        )
+        self.last_released_defect_quota = float(
+            area_loss.get("last_released_defect_quota", 0.0)
+        )
+        self.max_abs_conservation_residual = float(
+            area_loss.get("max_abs_conservation_residual", 0.0)
+        )
+
+    def _write_defect_history(self) -> None:
+        if self._defect_history_writer is None:
+            return
+        self.defect_inventory.assert_conserved()
+        residual = abs(self.defect_inventory.conservation_residual)
+        self.max_abs_conservation_residual = max(
+            self.max_abs_conservation_residual, residual
+        )
+        row = {
+            "time": self.solver.time,
+            "step": self.solver.step_number,
+            "gb_measure": self._total_gb_measure(),
+            "released_excess_volume": self.last_released_excess_volume,
+            "released_defect_quota": self.last_released_defect_quota,
+            "max_abs_conservation_residual": self.max_abs_conservation_residual,
+            **self.defect_inventory.diagnostics(),
+        }
+        self._defect_history_writer.writerow(row)
+        self._defect_history_handle.flush()
+
+    def _write_tracks(self) -> None:
+        super()._write_tracks()
+        if self.area_loss_enabled:
+            self._write_defect_history()
+        self._write_mechanism_state()
+
+    def _write_mechanism_state(self) -> None:
+        if self._mechanism_state_writer is None:
+            return
+        trigger = float(self.config.parameters.get("climb_trigger_quota", 0.25))
+        for key, segment in sorted(self.snapshot.boundaries.items()):
+            domain = self.domains.get(key)
+            if domain is None:
+                continue
+            local_inventory = (
+                self.defect_inventory.active_vacancy.get(key, 0.0)
+                + self.defect_inventory.active_interstitial.get(key, 0.0)
+                if self.area_loss_enabled else max(domain.free_volume.deficit, 0.0)
+            )
+            self._mechanism_state_writer.writerow({
+                "run_id": self.run_id, "time": self.solver.time,
+                "step": self.solver.step_number, "entity_type": "GB",
+                "entity_id": key,
+                "grain_ids": f"{segment.grain_i};{segment.grain_j}",
+                "G_pending": int(domain.compatibility_pending), "T_pending": 0,
+                "C_pending": int(domain.area_loss_pending or local_inventory > trigger),
+                "blocked": int(domain.blocked), "climb_stage": domain.climb.stage.value,
+                "local_defect_inventory": local_inventory,
+                "GB_sink_activity": int(key in self._last_gb_sink_entities),
+                "TJ_sink_activity": 0,
+            })
+        for key, tj in sorted(self.snapshot.triple_junctions.items()):
+            domain = self.tj_domains.get(key)
+            if domain is None:
+                continue
+            self._mechanism_state_writer.writerow({
+                "run_id": self.run_id, "time": self.solver.time,
+                "step": self.solver.step_number, "entity_type": "TJ",
+                "entity_id": key, "grain_ids": ";".join(map(str, tj.grain_ids)),
+                "G_pending": 0,
+                "T_pending": int(domain.blocked and not domain.area_loss_pending),
+                "C_pending": int(domain.area_loss_pending),
+                "blocked": int(domain.blocked), "climb_stage": domain.climb.stage.value,
+                "local_defect_inventory": self.defect_inventory.stored_total if self.area_loss_enabled else 0.0,
+                "GB_sink_activity": 0,
+                "TJ_sink_activity": int(key in self._last_tj_sink_entities),
+            })
+        self._mechanism_state_handle.flush()
+
+    def _register_area_loss_source(self, current_ids: set[str]) -> None:
+        """Create signed defect demand only from material-wide GB measure loss."""
+        current_measure = self._total_gb_measure()
+        if self._area_loss_initializing or self.previous_total_gb_measure is None:
+            self.previous_total_gb_measure = current_measure
+            self.last_released_excess_volume = 0.0
+            self.last_released_defect_quota = 0.0
+            return
+
+        parameters = self.config.parameters
+        density = gb_excess_volume_density(
+            excess_volume_per_area=(
+                float(parameters["excess_volume_per_area"])
+                if "excess_volume_per_area" in parameters else None
+            ),
+            delta_gb=parameters.get("gb_excess_width"),
+            rho_lattice=parameters.get("rho_lattice"),
+            rho_gb=parameters.get("rho_gb"),
+        )
+        formation_volume = float(parameters.get("point_defect_formation_volume", 0.01))
+        alpha = float(parameters.get("gb_excess_volume_alpha", 1.0))
+        quota = released_point_defect_quota(
+            self.previous_total_gb_measure,
+            current_measure,
+            density,
+            formation_volume,
+            alpha,
+        )
+        self.last_released_excess_volume = quota * formation_volume
+        self.last_released_defect_quota = quota
+        self.defect_inventory.retire_missing(current_ids)
+
+        if quota > 0.0:
+            local_losses = {
+                key: max(self.domains[key].previous_length - segment.length, 0.0)
+                for key, segment in self.snapshot.boundaries.items()
+                if key in self.domains and self.domains[key].previous_length > 0.0
+            }
+            local_total = sum(local_losses.values())
+            if local_total > 0.0:
+                for key, loss in sorted(local_losses.items()):
+                    if loss > 0.0:
+                        self.defect_inventory.require(quota * loss / local_total, key)
+            else:
+                # Topology may remove an entire domain before a local shortening
+                # can be attributed. Keep that demand in a material reservoir.
+                self.defect_inventory.require(quota, "material-reservoir")
+        self.previous_total_gb_measure = current_measure
+        self.max_abs_conservation_residual = max(
+            self.max_abs_conservation_residual,
+            abs(self.defect_inventory.conservation_residual),
+        )
+
+    def _available_flux_sign(self) -> int:
+        vacancy = sum(self.defect_inventory.active_vacancy.values()) + self.defect_inventory.retired_vacancy
+        interstitial = (
+            sum(self.defect_inventory.active_interstitial.values())
+            + self.defect_inventory.retired_interstitial
+        )
+        if vacancy <= 0.0 and interstitial <= 0.0:
+            return 0
+        return 1 if vacancy >= interstitial else -1
+
+    def _area_loss_stage_rates(
+        self,
+        domain: DomainPhysics,
+        length: float,
+        *,
+        prefix: str,
+        barrier_penalty: float = 0.0,
+    ) -> tuple[float, float, float]:
+        p = self.config.parameters
+        temperature = float(self.config.pf.temperature)
+
+        def parameter(name: str, fallback: str, default: float) -> float:
+            return float(p.get(prefix + name, p.get(fallback, default)))
+
+        def arrhenius(prefactor: float, barrier: float) -> float:
+            return float(prefactor * np.exp(-max(barrier, 0.0) / (K_B_EV * temperature)))
+
+        nucleation = arrhenius(
+            parameter("nucleation_prefactor", "nucleation_prefactor", 1e5),
+            parameter("nucleation_barrier_ev", "nucleation_barrier_ev", 0.45)
+            + max(float(barrier_penalty), 0.0),
+        )
+        exchange_current = arrhenius(
+            parameter("exchange_prefactor", "exchange_prefactor", 1e5),
+            parameter("exchange_barrier_ev", "exchange_barrier_ev", 0.55),
+        )
+        stiffness = float(p.get("free_volume_stiffness", 0.05))
+        chemical_potential = stiffness * self.defect_inventory.stored_signed
+        exchange_flux = abs(butler_volmer_flux(
+            chemical_potential,
+            temperature,
+            exchange_current,
+            float(p.get(prefix + "exchange_transfer_coefficient", p.get("exchange_transfer_coefficient", 0.5))),
+        ))
+        exchange = exchange_flux / max(domain.climb.required_quota, np.finfo(float).tiny)
+        diffusion = diffusivity(
+            temperature,
+            parameter("transport_prefactor", "transport_prefactor", 1e5),
+            parameter("transport_barrier_ev", "transport_barrier_ev", 0.65),
+        )
+        path_length = float(p.get(prefix + "transport_length", max(length, self.config.pf.grid_spacing)))
+        transport = 1.0 / transport_time(
+            path_length,
+            diffusion,
+            float(p.get(prefix + "transport_geometry_factor", p.get("transport_geometry_factor", 1.0))),
+        )
+        return nucleation, exchange, transport
+
+    def _record_area_loss_row(
+        self,
+        *,
+        domain: DomainPhysics,
+        entity_type: str,
+        entity_id: str,
+        grain_ids: str,
+        position: Any,
+        event_type: str,
+        event_time: float,
+        sink_path: str,
+        rate: float = 0.0,
+        threshold: float = 0.0,
+        stage_residence_time: float = 0.0,
+        signed_quota: float = 0.0,
+        inventory_before: float | None = None,
+        inventory_after: float | None = None,
+        compatibility_norm: float = 0.0,
+        compatibility_residual: Any = "",
+        requested_velocity: Any = "",
+        compatible_velocity: Any = "",
+        burgers_before: Any = "",
+        burgers_after: Any = "",
+        residual_energy_change: float = 0.0,
+        candidate_allowed: bool = True,
+        candidate_reason: str = "",
+        work_interfacial: float = 0.0,
+        work_tj_residual: float = 0.0,
+        work_chemical: float = 0.0,
+    ) -> None:
+        domain.event_counter += 1
+        before = self.defect_inventory.stored_total if inventory_before is None else inventory_before
+        after = self.defect_inventory.stored_total if inventory_after is None else inventory_after
+        self.ledger.write({
+            "run_id": self.run_id,
+            "time": event_time,
+            "step": self.solver.step_number,
+            "temperature": self.config.pf.temperature,
+            "seed": self.config.seed,
+            "event_id": f"{entity_id}:{domain.event_counter}",
+            "event_type": event_type,
+            "grain_ids": grain_ids,
+            "entity_id": entity_id,
+            "position": position,
+            "geometry_measure_Q": self._total_gb_measure(),
+            "barrier_type": "area_loss_climb",
+            "instantaneous_rate": rate,
+            "cumulative_hazard": threshold,
+            "random_hazard_threshold": threshold,
+            "hit_count": 1,
+            "required_hits_K": 1,
+            "point_defect_quota": abs(signed_quota),
+            "Nv": signed_quota,
+            "Git_SHA": self.sha,
+            "sink_path": sink_path,
+            "signed_defect_quota": signed_quota,
+            "inventory_before": before,
+            "inventory_after": after,
+            "conservation_residual": self.defect_inventory.conservation_residual,
+            "compatibility_norm": compatibility_norm,
+            "compatibility_residual": compatibility_residual,
+            "tj_velocity_requested": requested_velocity,
+            "tj_velocity_compatible": compatible_velocity,
+            "burgers_before": burgers_before,
+            "burgers_after": burgers_after,
+            "residual_energy_change": residual_energy_change,
+            "candidate_allowed": int(candidate_allowed),
+            "candidate_reason": candidate_reason,
+            "stage_residence_time": stage_residence_time,
+            "work_applied": 0.0,
+            "work_gb_internal": 0.0,
+            "work_tj_residual": work_tj_residual,
+            "work_chemical": work_chemical,
+            "work_interfacial": work_interfacial,
+            "work_total": work_interfacial + work_tj_residual + work_chemical,
+        })
+
+    def _record_sink_transitions(
+        self,
+        domain: DomainPhysics,
+        entity_type: str,
+        entity_id: str,
+        grain_ids: str,
+        position: Any,
+        sink_path: str,
+        rates: tuple[float, float, float],
+    ) -> None:
+        destination = {
+            ClimbStage.EXCHANGE: ("nucleation", rates[0]),
+            ClimbStage.TRANSPORT: ("exchange", rates[1]),
+            ClimbStage.COMPLETE: ("transport", rates[2]),
+        }
+        for transition_time, transition_stage, threshold in domain.climb.last_transitions:
+            stage, rate = destination[transition_stage]
+            self._record_area_loss_row(
+                domain=domain,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                grain_ids=grain_ids,
+                position=position,
+                event_type=f"{sink_path}_{stage}",
+                event_time=transition_time,
+                sink_path=sink_path,
+                rate=rate,
+                threshold=threshold,
+                stage_residence_time=(threshold / rate if rate > 0.0 else np.inf),
+            )
+
+    def _select_signed_disconnection(self, flux_sign: int) -> DisconnectionMode:
+        candidates = [
+            mode for mode in self.modes
+            if int(np.sign(mode.point_defect_quota)) == int(np.sign(flux_sign))
+        ]
+        if not candidates:
+            raise RuntimeError(f"no disconnection mode carries defect sign {flux_sign}")
+        return min(candidates, key=lambda mode: (mode.barrier_ev, mode.mode_id))
+
+    def _advance_area_loss_gb_sink(
+        self, domain: DomainPhysics, segment: GBSegment
+    ) -> None:
+        if (
+            self._area_loss_initializing
+            or not self.area_loss_enabled
+            or "gb_defect_sink" not in self.config.active_modules
+        ):
+            return
+        trigger = float(self.config.parameters.get("climb_trigger_quota", 0.25))
+        local = (
+            self.defect_inventory.active_vacancy.get(domain.entity_id, 0.0)
+            + self.defect_inventory.active_interstitial.get(domain.entity_id, 0.0)
+        )
+        reservoir = (
+            self.defect_inventory.retired_inventory
+            + self.defect_inventory.active_vacancy.get("material-reservoir", 0.0)
+            + self.defect_inventory.active_interstitial.get("material-reservoir", 0.0)
+        )
+        first_domain = min(self.snapshot.boundaries) if self.snapshot.boundaries else ""
+        eligible = local > trigger or (reservoir > trigger and domain.entity_id == first_domain)
+        if not eligible:
+            domain.area_loss_pending = False
+            domain.blocked = domain.compatibility_pending
+            return
+
+        flux_sign = self._available_flux_sign()
+        if flux_sign == 0:
+            return
+        domain.area_loss_pending = True
+        domain.blocked = True
+        if domain.climb.stage in {ClimbStage.INACTIVE, ClimbStage.COMPLETE}:
+            domain.climb.activate(self.solver.time - self.config.pf.time_step)
+        rates = self._area_loss_stage_rates(
+            domain, segment.length, prefix="gb_sink_"
+        )
+        complete = domain.climb.advance(
+            self.config.pf.time_step,
+            self.solver.time - self.config.pf.time_step,
+            *rates,
+        )
+        position = segment.points.mean(axis=0).tolist() if len(segment.points) else ""
+        self._record_sink_transitions(
+            domain,
+            "GB",
+            domain.entity_id,
+            f"{segment.grain_i};{segment.grain_j}",
+            position,
+            "gb_disconnection_sink",
+            rates,
+        )
+        if not complete:
+            return
+        self._pending_sink_completions.append({
+            "event_time": domain.climb.last_completion_time or self.solver.time,
+            "sink": "gb", "flux_sign": flux_sign, "domain": domain,
+            "segment": segment, "position": position,
+        })
+
+    def _tj_kinematics(
+        self, tj: TripleJunction
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, float, np.ndarray]:
+        segments = [
+            self.snapshot.boundaries[key]
+            for key in sorted(tj.adjoining_boundaries)
+            if key in self.snapshot.boundaries
+        ]
+        if len(segments) < 2:
+            raise ValueError("TJ has fewer than two resolved adjoining GB branches")
+        normals = np.asarray([segment.normal for segment in segments], dtype=float)
+        desired = np.asarray([segment.velocity for segment in segments], dtype=float)
+        weights = np.asarray([max(segment.length, self.config.pf.grid_spacing) for segment in segments])
+        compatible, residual, norm = best_compatible_tj_velocity(normals, desired, weights)
+        requested = np.sum(weights[:, None] * desired[:, None] * normals, axis=0) / weights.sum()
+
+        force = np.zeros(2, dtype=float)
+        position = np.asarray(tj.position, dtype=float)
+        shape = np.asarray(self.config.pf.shape, dtype=float)
+        for segment in segments:
+            delta = np.asarray(segment.points, dtype=float) - position
+            if self.config.pf.boundary_conditions == "periodic":
+                delta -= np.round(delta / shape) * shape
+            endpoint = delta[np.argmax(np.linalg.norm(delta, axis=1))]
+            endpoint /= max(np.linalg.norm(endpoint), np.finfo(float).tiny)
+            force += float(self.config.pf.gb_energy) * endpoint
+        return requested, compatible, residual, norm, force
+
+    def _advance_area_loss_tj_sinks(self) -> None:
+        if (
+            self._area_loss_initializing
+            or not self.area_loss_enabled
+            or "tj_defect_sink" not in self.config.active_modules
+        ):
+            return
+        current = set(self.snapshot.triple_junctions)
+        self.tj_domains = {
+            key: value for key, value in self.tj_domains.items() if key in current
+        }
+        trigger = float(self.config.parameters.get("climb_trigger_quota", 0.25))
+        if self.defect_inventory.stored_total <= trigger:
+            for domain in self.tj_domains.values():
+                domain.area_loss_pending = False
+            return
+
+        flux_sign = self._available_flux_sign()
+        for key, tj in sorted(self.snapshot.triple_junctions.items()):
+            if key not in self.tj_domains:
+                fake = GBSegment(tj.grain_ids[0], tj.grain_ids[1], 0)
+                fake.points = np.asarray([tj.position])
+                fake.length = self.config.pf.grid_spacing
+                domain = self._new_domain(fake)
+                domain.entity_id = key
+                self.tj_domains[key] = domain
+            domain = self.tj_domains[key]
+            try:
+                requested, compatible, residual, compatibility_norm, capillary_force = self._tj_kinematics(tj)
+            except ValueError as exc:
+                self._record_area_loss_row(
+                    domain=domain, entity_type="TJ", entity_id=key,
+                    grain_ids=";".join(map(str, tj.grain_ids)), position=tj.position,
+                    event_type="tj_sink_candidate_rejected", event_time=self.solver.time,
+                    sink_path="tj_sink", candidate_allowed=False,
+                    candidate_reason=str(exc),
+                )
+                continue
+            direction = np.asarray(compatible, dtype=float)
+            if np.linalg.norm(direction) <= np.finfo(float).tiny:
+                direction = -capillary_force
+            if np.linalg.norm(direction) <= np.finfo(float).tiny:
+                direction = np.asarray([1.0, 0.0])
+            direction /= np.linalg.norm(direction)
+            step_length = float(self.config.parameters.get("tj_sink_step_length", self.config.pf.grid_spacing))
+            displacement = flux_sign * step_length * direction
+            burgers_increment = (
+                flux_sign * float(self.config.parameters.get("tj_sink_burgers", 0.25))
+                * direction
+            )
+            tolerance = float(self.config.parameters.get("tj_sink_compatibility_tolerance", 0.25))
+            stiffness = float(self.config.parameters.get("tj_residual_stiffness_ev", 1.0))
+            strict_tolerance = (
+                float(self.config.parameters["tj_sink_burgers_tolerance"])
+                if "tj_sink_burgers_tolerance" in self.config.parameters else None
+            )
+            decision = validate_tj_sink_candidate(
+                available_signed_quota=self.defect_inventory.stored_signed,
+                requested_sign=flux_sign,
+                compatibility_norm=compatibility_norm,
+                compatibility_tolerance=tolerance,
+                residual_burgers=tj.residual_burgers,
+                burgers_increment=burgers_increment,
+                residual_stiffness=stiffness,
+                strict_burgers_tolerance=strict_tolerance,
+            )
+            interfacial_change = float(-capillary_force @ displacement)
+            common = dict(
+                domain=domain, entity_type="TJ", entity_id=key,
+                grain_ids=";".join(map(str, tj.grain_ids)), position=tj.position,
+                sink_path="tj_sink", compatibility_norm=compatibility_norm,
+                compatibility_residual=residual.tolist(),
+                requested_velocity=requested.tolist(), compatible_velocity=compatible.tolist(),
+                burgers_before=tj.residual_burgers.tolist(),
+                burgers_after=(tj.residual_burgers + burgers_increment).tolist(),
+                residual_energy_change=decision.residual_energy_change,
+                work_interfacial=interfacial_change,
+                work_tj_residual=decision.residual_energy_change,
+            )
+            if not decision.allowed:
+                domain.area_loss_pending = False
+                self._record_area_loss_row(
+                    **common, event_type="tj_sink_candidate_rejected",
+                    event_time=self.solver.time, candidate_allowed=False,
+                    candidate_reason=decision.reason,
+                )
+                continue
+            domain.area_loss_pending = True
+            domain.blocked = True
+            if domain.climb.stage in {ClimbStage.INACTIVE, ClimbStage.COMPLETE}:
+                domain.climb.activate(self.solver.time - self.config.pf.time_step)
+            penalty = max(interfacial_change, 0.0) + max(decision.residual_energy_change, 0.0)
+            rates = self._area_loss_stage_rates(
+                domain,
+                float(self.config.parameters.get("tj_correlation_length", self.config.pf.grid_spacing)),
+                prefix="tj_sink_",
+                barrier_penalty=penalty,
+            )
+            self._record_area_loss_row(
+                **common, event_type="tj_sink_candidate", event_time=self.solver.time,
+                rate=rates[0], candidate_allowed=True, candidate_reason=decision.reason,
+            )
+            complete = domain.climb.advance(
+                self.config.pf.time_step,
+                self.solver.time - self.config.pf.time_step,
+                *rates,
+            )
+            self._record_sink_transitions(
+                domain, "TJ", key, ";".join(map(str, tj.grain_ids)),
+                tj.position, "tj_sink", rates,
+            )
+            if not complete:
+                continue
+            self._pending_sink_completions.append({
+                "event_time": domain.climb.last_completion_time or self.solver.time,
+                "sink": "tj", "flux_sign": flux_sign, "domain": domain,
+                "tj": tj, "key": key, "burgers_increment": burgers_increment,
+                "common": common,
+            })
+
+    def _resolve_area_loss_sink_completions(self) -> None:
+        """Resolve parallel GB/TJ renewal completions in continuous-time order."""
+        trigger = float(self.config.parameters.get("climb_trigger_quota", 0.25))
+        ordered = sorted(
+            self._pending_sink_completions,
+            key=lambda item: (
+                float(item["event_time"]), str(item["sink"]),
+                item["domain"].entity_id,
+            ),
+        )
+        for candidate in ordered:
+            domain = candidate["domain"]
+            flux_sign = int(candidate["flux_sign"])
+            available_sign = self._available_flux_sign()
+            before = self.defect_inventory.stored_total
+            if available_sign != flux_sign or before <= 0.0:
+                if candidate["sink"] == "tj":
+                    common = candidate["common"]
+                    self._record_area_loss_row(
+                        **common,
+                        event_type="tj_sink_candidate_lost_competition",
+                        event_time=candidate["event_time"],
+                        candidate_allowed=False,
+                        candidate_reason="parallel_sink_consumed_available_flux",
+                    )
+                domain.area_loss_pending = False
+                domain.blocked = domain.compatibility_pending
+                continue
+
+            if candidate["sink"] == "gb":
+                segment = candidate["segment"]
+                requested = flux_sign * float(
+                    self.config.parameters.get("climb_release_quota", 1.0)
+                )
+                accepted = self.defect_inventory.accommodate(
+                    requested, "gb", preferred_entity=domain.entity_id
+                )
+                after = self.defect_inventory.stored_total
+                mode = self._select_signed_disconnection(flux_sign)
+                chemical_work = (
+                    float(self.config.parameters.get("free_volume_stiffness", 0.05))
+                    * self.defect_inventory.stored_signed * accepted
+                )
+                self._record_area_loss_row(
+                    domain=domain, entity_type="GB", entity_id=domain.entity_id,
+                    grain_ids=f"{segment.grain_i};{segment.grain_j}",
+                    position=candidate["position"], event_type="gb_sink_completion",
+                    event_time=candidate["event_time"], sink_path="gb_disconnection_sink",
+                    signed_quota=accepted, inventory_before=before, inventory_after=after,
+                    burgers_before=[0.0, 0.0],
+                    burgers_after=np.asarray(mode.burgers).tolist(),
+                    candidate_reason="selected_by_parallel_completion_time",
+                    work_chemical=chemical_work,
+                )
+                if accepted != 0.0:
+                    self._last_gb_sink_entities.add(domain.entity_id)
+                local_after = (
+                    self.defect_inventory.active_vacancy.get(domain.entity_id, 0.0)
+                    + self.defect_inventory.active_interstitial.get(domain.entity_id, 0.0)
+                )
+                domain.area_loss_pending = local_after > trigger
+            else:
+                tj = candidate["tj"]
+                requested = flux_sign * float(self.config.parameters.get(
+                    "tj_sink_release_quota",
+                    self.config.parameters.get("climb_release_quota", 1.0),
+                ))
+                accepted = self.defect_inventory.accommodate(requested, "tj")
+                after = self.defect_inventory.stored_total
+                if accepted != 0.0:
+                    tj.add_burgers(candidate["burgers_increment"])
+                chemical_work = (
+                    float(self.config.parameters.get("free_volume_stiffness", 0.05))
+                    * self.defect_inventory.stored_signed * accepted
+                )
+                common = candidate["common"]
+                self._record_area_loss_row(
+                    **{**common, "burgers_after": tj.residual_burgers.tolist()},
+                    event_type="tj_sink_completion", event_time=candidate["event_time"],
+                    signed_quota=accepted, inventory_before=before, inventory_after=after,
+                    candidate_allowed=True,
+                    candidate_reason="selected_by_parallel_completion_time",
+                    work_chemical=chemical_work,
+                )
+                if accepted != 0.0:
+                    self._last_tj_sink_entities.add(candidate["key"])
+                domain.area_loss_pending = self.defect_inventory.stored_total > trigger
+            domain.blocked = domain.compatibility_pending or domain.area_loss_pending
+        self._pending_sink_completions.clear()
 
     def _activation_rates(self, domain: DomainPhysics, segment: GBSegment) -> tuple[
         list[DisconnectionMode], np.ndarray, float, np.ndarray, float, np.ndarray
@@ -291,7 +1002,9 @@ class MigrationClosureSimulation(EventResolvedSimulation):
             and domain.free_volume.deficit
             >= float(self.config.parameters.get("climb_trigger_quota", 0.25))
         )
-        domain.blocked = domain.compatibility_pending or climb_blocked
+        domain.blocked = (
+            domain.compatibility_pending or domain.area_loss_pending or climb_blocked
+        )
 
         if self.migration_closure == "gate_only":
             domain.normal_displacement_ledger = prior_hidden_displacement
@@ -453,7 +1166,7 @@ class MigrationClosureSimulation(EventResolvedSimulation):
         modules = set(self.config.active_modules)
         if not modules.intersection({
             "tj_compatibility", "tj_pinning", "tj_burgers_strict",
-            "tj_burgers_residual", "tj_geometric_surrogate",
+            "tj_burgers_residual", "tj_geometric_surrogate", "tj_defect_sink",
         }):
             return
         dx = float(self.config.pf.grid_spacing)
@@ -479,11 +1192,16 @@ class MigrationClosureSimulation(EventResolvedSimulation):
     def _update_physics(self) -> None:
         """Update corrected local kinematics, barriers, and internal stresses."""
         cfg, modules = self.config, set(self.config.active_modules)
+        self._last_gb_sink_entities.clear()
+        self._last_tj_sink_entities.clear()
+        self._pending_sink_completions.clear()
         self._boundary_to_tjs = self._index_boundary_tjs()
         mobility = np.ones(cfg.pf.shape)
         self.driving_field.fill(0.0)
         entity_elapsed = self.solver.time - self.previous_entity_time
         current_ids = set(self.snapshot.boundaries)
+        if self.area_loss_enabled:
+            self._register_area_loss_source(current_ids)
         self.domains = {
             key: state for key, state in self.domains.items() if key in current_ids
         }
@@ -581,7 +1299,7 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 position = tuple(segment.points[len(segment.points) // 2].astype(int))
                 self.full_field.add_event(position, strain)
 
-            if modules.intersection({
+            if not self.area_loss_enabled and modules.intersection({
                 "free_volume", "serial_climb", "nucleation_limited",
                 "multihit_nucleation", "exchange_limited", "transport_limited",
                 "mixed_shear_climb_event", "independent_and",
@@ -709,7 +1427,10 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                             effective_barrier_ev=float(effective[selected]),
                         )
 
-            self._advance_climb(domain, segment, swept_measure)
+            if self.area_loss_enabled:
+                self._advance_area_loss_gb_sink(domain, segment)
+            else:
+                self._advance_climb(domain, segment, swept_measure)
 
             pair_force = float(cfg.parameters.get("easy_beta", 0.35)) * self._boundary_resolved_shear(
                 domain, segment
@@ -737,6 +1458,8 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                         mobility[y, x] = 0.0
 
         self._update_tj_physics(mobility)
+        self._advance_area_loss_tj_sinks()
+        self._resolve_area_loss_sink_completions()
         self._apply_physical_tj_gate(mobility)
         self.solver.set_mobility_scale(mobility)
         if self.full_field is not None:
@@ -744,3 +1467,5 @@ class MigrationClosureSimulation(EventResolvedSimulation):
         self.previous_entity_eta = self.solver.eta.copy()
         self.previous_entity_time = self.solver.time
         self._apply_diffuse_blocked_gate()
+        if self.area_loss_enabled:
+            self.defect_inventory.assert_conserved()
