@@ -43,7 +43,10 @@ def main() -> None:
             step = int(data["step"])
             time = float(data["time"])
             grains = int(data["grain_count"]) if "grain_count" in data else len(np.unique(labels))
-        ax.imshow(colors[labels % len(colors)], origin="lower", interpolation="nearest")
+        ax.imshow(
+            colors[labels.astype(np.int64) % len(colors)],
+            origin="lower", interpolation="nearest",
+        )
         ax.imshow(
             np.ma.masked_where(pending == 0, pending), origin="lower",
             interpolation="nearest", cmap="autumn", alpha=0.65, vmin=0, vmax=7,

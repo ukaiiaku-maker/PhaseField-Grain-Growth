@@ -84,17 +84,31 @@ def _stage_audit(regime: str, events: pd.DataFrame) -> tuple[list[dict[str, Any]
             })
         complete_type = "gb_sink_completion" if path.startswith("gb_") else "tj_sink_completion"
         complete = events[events["event_type"] == complete_type].sort_values(["entity_id", "time"])
-        cycle_times = complete.groupby("entity_id")["time"].diff().dropna()
-        stage_means = [
-            row["observed_mean_residence"] for row in stage_rows[-3:]
-            if np.isfinite(row["observed_mean_residence"])
+        cycle_times: list[float] = []
+        for _, entity_rows in selected.sort_values(["entity_id", "time"]).groupby("entity_id"):
+            accumulated = 0.0
+            seen: set[str] = set()
+            for _, event in entity_rows.iterrows():
+                stage = str(event["event_type"]).removeprefix(path + "_")
+                residence = float(event.get("stage_residence_time", np.nan))
+                if np.isfinite(residence):
+                    accumulated += residence
+                    seen.add(stage)
+                if stage == "transport":
+                    if seen == {"nucleation", "exchange", "transport"}:
+                        cycle_times.append(accumulated)
+                    accumulated = 0.0
+                    seen.clear()
+        implied_means = [
+            row["rate_implied_mean_residence"] for row in stage_rows[-3:]
+            if np.isfinite(row["rate_implied_mean_residence"])
         ]
         cycle_rows.append({
             "regime": regime, "sink_path": path, "completed_cycles": len(complete),
             "observed_cycle_intervals": len(cycle_times),
-            "observed_mean_cycle_time": cycle_times.mean() if len(cycle_times) else np.nan,
-            "observed_median_cycle_time": cycle_times.median() if len(cycle_times) else np.nan,
-            "serial_stage_mean_prediction": sum(stage_means) if len(stage_means) == 3 else np.nan,
+            "observed_mean_cycle_time": np.mean(cycle_times) if cycle_times else np.nan,
+            "observed_median_cycle_time": np.median(cycle_times) if cycle_times else np.nan,
+            "serial_stage_mean_prediction": sum(implied_means) if len(implied_means) == 3 else np.nan,
         })
     return stage_rows, cycle_rows
 
@@ -127,7 +141,7 @@ def _local_responses(regime: str, boundary: pd.DataFrame, events: pd.DataFrame) 
                 signed.append(after - before)
                 absolute.append(abs(after) - abs(before))
                 local = frame.iloc[index - window:index + window + 1]
-                displacement.append(float(np.trapz(
+                displacement.append(float(np.trapezoid(
                     local["normal_velocity"].to_numpy(float), local["time"].to_numpy(float)
                 )))
             if signed:
@@ -143,7 +157,7 @@ def _local_responses(regime: str, boundary: pd.DataFrame, events: pd.DataFrame) 
 
 def _causal_nulls(regime: str, growth: pd.DataFrame, events: pd.DataFrame) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
-    if len(growth) < 10:
+    if len(growth) < 10 or events.empty or "event_type" not in events:
         return rows
     steps = growth["step"].to_numpy(int)
     response = np.abs(growth["radius_rate"].to_numpy(float))
@@ -166,13 +180,15 @@ def _causal_nulls(regime: str, growth: pd.DataFrame, events: pd.DataFrame) -> li
             order = rng.permutation(len(blocks))
             shuffled = np.concatenate([blocks[i] for i in order])[:len(indicator)]
             block.append(score(shuffled))
+        circular_mean = float(np.mean([value for value in circular if np.isfinite(value)])) if any(np.isfinite(circular)) else np.nan
+        block_mean = float(np.mean([value for value in block if np.isfinite(value)])) if any(np.isfinite(block)) else np.nan
         rows.append({
             "regime": regime, "window_frames": window,
             "actual_abs_motion": actual,
-            "circular_null_mean": np.nanmean(circular),
-            "circular_excess": actual - np.nanmean(circular),
-            "block_null_mean": np.nanmean(block),
-            "block_excess": actual - np.nanmean(block),
+            "circular_null_mean": circular_mean,
+            "circular_excess": actual - circular_mean,
+            "block_null_mean": block_mean,
+            "block_excess": actual - block_mean,
             "release_frames": int(indicator.sum()), "shuffles": 200,
         })
     return rows
@@ -252,6 +268,8 @@ def _occupancy(regime: str, state: pd.DataFrame) -> list[dict[str, Any]]:
 
 
 def _spatial_correlations(regime: str, events: pd.DataFrame, shape: tuple[int, int]) -> list[dict[str, Any]]:
+    if events.empty or "event_type" not in events:
+        return []
     releases = events[events["event_type"].isin(COMPLETIONS)].sort_values("time")
     records = []
     parsed = [(_position(row.position), row) for row in releases.itertuples()]

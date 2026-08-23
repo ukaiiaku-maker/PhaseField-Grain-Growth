@@ -494,8 +494,18 @@ class MigrationClosureSimulation(EventResolvedSimulation):
             ClimbStage.TRANSPORT: ("exchange", rates[1]),
             ClimbStage.COMPLETE: ("transport", rates[2]),
         }
+        history = domain.climb.history
+        search_start = max(0, len(history) - len(domain.climb.last_transitions) - 1)
         for transition_time, transition_stage, threshold in domain.climb.last_transitions:
             stage, rate = destination[transition_stage]
+            transition_index = next(
+                index for index in range(search_start + 1, len(history))
+                if history[index][1] == transition_stage
+                and np.isclose(history[index][0], transition_time)
+            )
+            stage_start_time = float(history[transition_index - 1][0])
+            actual_residence = max(0.0, float(transition_time) - stage_start_time)
+            search_start = transition_index
             self._record_area_loss_row(
                 domain=domain,
                 entity_type=entity_type,
@@ -507,7 +517,7 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 sink_path=sink_path,
                 rate=rate,
                 threshold=threshold,
-                stage_residence_time=(threshold / rate if rate > 0.0 else np.inf),
+                stage_residence_time=actual_residence,
             )
 
     def _select_signed_disconnection(self, flux_sign: int) -> DisconnectionMode:
@@ -633,6 +643,10 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 domain.entity_id = key
                 self.tj_domains[key] = domain
             domain = self.tj_domains[key]
+            candidate_cadence = max(
+                1, int(self.config.parameters.get("candidate_diagnostic_cadence", 1))
+            )
+            candidate_diagnostic_due = self.solver.step_number % candidate_cadence == 0
             adjacent_inventory = {
                 boundary_id: (
                     self.defect_inventory.active_vacancy.get(boundary_id, 0.0)
@@ -665,13 +679,14 @@ class MigrationClosureSimulation(EventResolvedSimulation):
             try:
                 requested, compatible, residual, compatibility_norm, capillary_force = self._tj_kinematics(tj)
             except ValueError as exc:
-                self._record_area_loss_row(
-                    domain=domain, entity_type="TJ", entity_id=key,
-                    grain_ids=";".join(map(str, tj.grain_ids)), position=tj.position,
-                    event_type="tj_sink_candidate_rejected", event_time=self.solver.time,
-                    sink_path="tj_sink", candidate_allowed=False,
-                    candidate_reason=str(exc),
-                )
+                if candidate_diagnostic_due:
+                    self._record_area_loss_row(
+                        domain=domain, entity_type="TJ", entity_id=key,
+                        grain_ids=";".join(map(str, tj.grain_ids)), position=tj.position,
+                        event_type="tj_sink_candidate_rejected", event_time=self.solver.time,
+                        sink_path="tj_sink", candidate_allowed=False,
+                        candidate_reason=str(exc),
+                    )
                 continue
             direction = np.asarray(compatible, dtype=float)
             if np.linalg.norm(direction) <= np.finfo(float).tiny:
@@ -716,11 +731,12 @@ class MigrationClosureSimulation(EventResolvedSimulation):
             )
             if not decision.allowed:
                 domain.area_loss_pending = False
-                self._record_area_loss_row(
-                    **common, event_type="tj_sink_candidate_rejected",
-                    event_time=self.solver.time, candidate_allowed=False,
-                    candidate_reason=decision.reason,
-                )
+                if candidate_diagnostic_due:
+                    self._record_area_loss_row(
+                        **common, event_type="tj_sink_candidate_rejected",
+                        event_time=self.solver.time, candidate_allowed=False,
+                        candidate_reason=decision.reason,
+                    )
                 continue
             domain.area_loss_pending = True
             domain.blocked = True
@@ -733,10 +749,11 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 prefix="tj_sink_",
                 barrier_penalty=penalty,
             )
-            self._record_area_loss_row(
-                **common, event_type="tj_sink_candidate", event_time=self.solver.time,
-                rate=rates[0], candidate_allowed=True, candidate_reason=decision.reason,
-            )
+            if candidate_diagnostic_due:
+                self._record_area_loss_row(
+                    **common, event_type="tj_sink_candidate", event_time=self.solver.time,
+                    rate=rates[0], candidate_allowed=True, candidate_reason=decision.reason,
+                )
             complete = domain.climb.advance(
                 self.config.pf.time_step,
                 self.solver.time - self.config.pf.time_step,

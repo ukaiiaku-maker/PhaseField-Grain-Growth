@@ -18,7 +18,7 @@ base:
   mechanics_backend: none
   compatibility_model: off
   active_modules: [area_loss_climb, gb_defect_sink]
-  output_cadence: 10
+  output_cadence: 50
   max_steps: 10000
   termination_grains: 70
   parameters:
@@ -66,6 +66,7 @@ base:
     tj_residual_stiffness_ev: 1.0
     event_ledger_format: parquet
     video_frame_cadence: 50
+    candidate_diagnostic_cadence: 50
 regimes:
   C_GB: {}
   GC_GB: {modules: [gb_compatibility, multihit_persistent, area_loss_climb, gb_defect_sink], compatibility_model: geometric_surrogate}
