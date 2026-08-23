@@ -27,9 +27,14 @@ def gb_excess_volume_density(
             raise ValueError(
                 "supply excess_volume_per_area or delta_gb/rho_lattice/rho_gb"
             )
-        if float(rho_gb) == 0.0:
-            raise ValueError("rho_gb must be nonzero")
-        value = float(delta_gb) * (1.0 - float(rho_lattice) / float(rho_gb))
+        width = float(delta_gb)
+        lattice_density = float(rho_lattice)
+        boundary_density = float(rho_gb)
+        if not np.all(np.isfinite((width, lattice_density, boundary_density))):
+            raise ValueError("GB width and densities must be finite")
+        if width < 0.0 or lattice_density <= 0.0 or boundary_density <= 0.0:
+            raise ValueError("GB width must be nonnegative and densities must be positive")
+        value = width * (1.0 - boundary_density / lattice_density)
     if not np.isfinite(value) or value < 0.0:
         raise ValueError("GB excess-volume density must be finite and nonnegative")
     return value

@@ -59,6 +59,9 @@ def _load(frame: Path):
         return (
             labels, blocked, shear, free_volume, mobility, pending, climb_stage,
             sink_activity, int(data["step"]), float(data["time"]),
+            float(data["temperature"]) if "temperature" in data else np.nan,
+            int(data["seed"]) if "seed" in data else -1,
+            float(data["shear_stiffness"]) if "shear_stiffness" in data else np.nan,
             int(data["grain_count"]) if "grain_count" in data else int(len(np.unique(labels))),
             float(data["N_required"]) if "N_required" in data else float(np.sum(free_volume)),
             float(data["N_accommodated_GB"]) if "N_accommodated_GB" in data else 0.0,
@@ -107,7 +110,8 @@ def main() -> None:
 
     (
         labels0, blocked0, shear0, fv0, mobility0, pending0, stage0,
-        activity0, step0, time0, grains0, required0, gb0, tj0, residual0,
+        activity0, step0, time0, temperature0, seed0, stiffness0, grains0,
+        required0, gb0, tj0, residual0,
     ) = _load(frames[0])
 
     if args.composite:
@@ -181,14 +185,16 @@ def main() -> None:
         ax_sink.set_yticks([])
 
     title = fig.suptitle(
-        f"{run_dir.name}  step={step0}  t={time0:.3f}  N={grains0}  "
+        f"{run_dir.name}  T={temperature0:g} K  seed={seed0}  Ks={stiffness0:g}  "
+        f"step={step0}  t={time0:.3f}  N={grains0}  "
         f"defects req={required0:.3g} GB={gb0:.3g} TJ={tj0:.3g} eps={residual0:.1e}"
     )
 
     def update(index: int):
         (
             labels, blocked, shear, free_volume, mobility, pending, stage,
-            activity, step, time, grains, required, gb_sink, tj_sink, residual,
+            activity, step, time, temperature, seed, stiffness, grains, required,
+            gb_sink, tj_sink, residual,
         ) = _load(frames[index])
         image.set_data(colors[labels % len(colors)])
         overlay.set_data(np.ma.masked_where(blocked == 0, blocked))
@@ -208,7 +214,8 @@ def main() -> None:
                 stage_image, activity_overlay,
             ])
         title.set_text(
-            f"{run_dir.name}  step={step}  t={time:.3f}  N={grains}  "
+            f"{run_dir.name}  T={temperature:g} K  seed={seed}  Ks={stiffness:g}  "
+            f"step={step}  t={time:.3f}  N={grains}  "
             f"defects req={required:.3g} GB={gb_sink:.3g} TJ={tj_sink:.3g} eps={residual:.1e}"
         )
         return artists

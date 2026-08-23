@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import csv
 import json
+from pathlib import Path
 
 import numpy as np
 
@@ -59,6 +61,8 @@ def _close(simulation: MigrationClosureSimulation) -> None:
         simulation._defect_history_handle.close()
     if simulation._mechanism_state_handle is not None:
         simulation._mechanism_state_handle.close()
+    if simulation.event_trace_recorder is not None:
+        simulation.event_trace_recorder.close()
 
 
 def test_area_loss_inventory_checkpoint_restart_is_exact(tmp_path):
@@ -120,3 +124,54 @@ def test_manifest_names_real_area_loss_variant(tmp_path):
     assert manifest["config"]["regime"] == "C_GB"
     assert "area_loss_climb" in manifest["config"]["active_modules"]
     assert (output / "defect_inventory.csv").exists()
+
+
+def _checkpoint_without_trace(path: Path) -> tuple[dict[str, np.ndarray], dict]:
+    with np.load(path / "checkpoint.npz") as archive:
+        arrays = {
+            key: archive[key].copy()
+            for key in archive.files
+            if key != "checkpoint_state_json"
+        }
+        state = json.loads(str(archive["checkpoint_state_json"]))
+    state.get("extension_state", {}).pop("event_trace", None)
+    for key in ("event_ledger_offset", "grain_tracks_offset", "boundary_tracks_offset"):
+        state.pop(key, None)
+    return arrays, state
+
+
+def _events_without_run_id(path: Path) -> list[dict[str, str]]:
+    with (path / "events.csv").open(newline="", encoding="utf-8") as handle:
+        rows = list(csv.DictReader(handle))
+    for row in rows:
+        row.pop("run_id", None)
+    return rows
+
+
+def test_event_trace_on_off_and_window_size_do_not_change_trajectory(tmp_path):
+    modules = ("area_loss_climb", "gb_defect_sink", "tj_defect_sink")
+    baseline_config = _config("C_GBTJ", modules, max_steps=8)
+    baseline = tmp_path / "off"
+    MigrationClosureSimulation(baseline_config, baseline, code_sha="test-sha").run()
+    baseline_arrays, baseline_state = _checkpoint_without_trace(baseline)
+
+    for name, pre_steps, post_steps in (("short", 1, 2), ("long", 5, 7)):
+        traced_config = _config("C_GBTJ", modules, max_steps=8)
+        traced_config.parameters.update({
+            "event_trace_enabled": True,
+            "event_trace_pre_steps": pre_steps,
+            "event_trace_post_steps": post_steps,
+            "event_trace_stride": 1,
+        })
+        traced = tmp_path / name
+        MigrationClosureSimulation(traced_config, traced, code_sha="test-sha").run()
+        traced_arrays, traced_state = _checkpoint_without_trace(traced)
+
+        assert traced_arrays.keys() == baseline_arrays.keys()
+        for key in baseline_arrays:
+            assert np.array_equal(traced_arrays[key], baseline_arrays[key])
+        assert traced_state == baseline_state
+        assert _events_without_run_id(traced) == _events_without_run_id(baseline)
+        assert len((traced / "event_trace_events.csv").read_text().splitlines()) > 1
+        trace_lines = (traced / "event_traces.csv").read_text().splitlines()
+        assert len(trace_lines) > 1

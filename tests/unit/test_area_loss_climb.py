@@ -6,10 +6,53 @@ import pytest
 from grain_growth_pf.climb.area_loss import (
     ConservedDefectInventory,
     best_compatible_tj_velocity,
+    gb_excess_volume_density,
     released_excess_volume,
     released_point_defect_quota,
     validate_tj_sink_candidate,
 )
+
+
+def test_lower_density_gb_has_positive_excess_volume():
+    assert np.isclose(gb_excess_volume_density(
+        delta_gb=2.0, rho_lattice=10.0, rho_gb=8.0,
+    ), 0.4)
+
+
+def test_equal_density_gb_has_zero_excess_volume():
+    assert gb_excess_volume_density(
+        delta_gb=2.0, rho_lattice=10.0, rho_gb=10.0,
+    ) == 0.0
+
+
+def test_decreasing_gb_density_monotonically_increases_excess_volume():
+    values = [
+        gb_excess_volume_density(delta_gb=1.0, rho_lattice=10.0, rho_gb=rho)
+        for rho in (9.0, 8.0, 7.0)
+    ]
+    assert values[0] < values[1] < values[2]
+
+
+def test_direct_excess_volume_override_preserves_production_value():
+    assert gb_excess_volume_density(
+        excess_volume_per_area=0.01,
+        delta_gb=-1.0,
+        rho_lattice=0.0,
+        rho_gb=20.0,
+    ) == 0.01
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"delta_gb": 1.0, "rho_lattice": 10.0, "rho_gb": 12.0},
+        {"delta_gb": 1.0, "rho_lattice": 0.0, "rho_gb": 0.0},
+        {"delta_gb": -1.0, "rho_lattice": 10.0, "rho_gb": 8.0},
+    ],
+)
+def test_nonphysical_derived_excess_volume_is_rejected(kwargs):
+    with pytest.raises(ValueError):
+        gb_excess_volume_density(**kwargs)
 
 
 def test_straight_gb_translation_has_zero_area_loss_demand():

@@ -52,7 +52,7 @@ used as a source.  The production configuration supplies
 `point_defect_formation_volume=0.02`, so one unit of total GB-length loss
 releases 0.5 defect quota.  No density/thickness pair is supplied for these
 runs.  The general optional material expression remains
-`delta_GB * (1 - rho_lattice/rho_GB)`.
+`delta_GB * (1 - rho_GB/rho_lattice)`.
 
 The material-wide signed ledger enforces
 
@@ -312,7 +312,7 @@ excess; a future campaign needs finer event-adjacent output for that test.
 
 ### Resistance and release-state selection
 
-Successive topology-window fits of `Rdot = a R + b` are weak: median R-squared
+Successive topology-window fits of `1/Rdot = a R + b` are weak: median R-squared
 is 0.0717 and only 2.5% of windows reach 0.5.  Several selected cases reverse
 the sign of `a` from early to late topology (for example C_GB, +361.9 to
 -664.7, and C_GBTJ, +34.5 to -1519.1).  A single trajectory-wide linear

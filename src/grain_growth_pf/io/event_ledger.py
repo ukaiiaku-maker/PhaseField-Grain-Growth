@@ -5,7 +5,7 @@ import gzip
 import json
 import os
 from pathlib import Path
-from typing import Any, Iterable, Iterator
+from typing import Any, Callable, Iterable, Iterator
 
 
 EVENT_FIELDS = (
@@ -121,6 +121,7 @@ class EventLedger:
         self._columns: dict[str, list[Any]] | None = None
         self._part_count = 0
         self._event_fields = EVENT_FIELDS
+        self.observer: Callable[[dict[str, Any]], None] | None = None
         self._open()
 
     @property
@@ -170,9 +171,11 @@ class EventLedger:
                     except TypeError:
                         value = str(value)
                 self._columns[name].append(value)
-            return
-        row = {name: record.get(name, "") for name in EVENT_FIELDS}
-        self._writer.writerow(row)
+        else:
+            row = {name: record.get(name, "") for name in EVENT_FIELDS}
+            self._writer.writerow(row)
+        if self.observer is not None:
+            self.observer(dict(record))
 
     @staticmethod
     def _parquet_schema(fields: Iterable[str] = EVENT_FIELDS):

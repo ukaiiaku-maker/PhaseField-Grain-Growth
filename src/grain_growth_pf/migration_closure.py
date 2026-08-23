@@ -22,6 +22,7 @@ from grain_growth_pf.disconnections.mode import DisconnectionMode, ModeDriving, 
 from grain_growth_pf.entities.arclength_tracker import ArclengthEntityTracker
 from grain_growth_pf.entities.gb_segment import GBSegment
 from grain_growth_pf.entities.triple_junction import TripleJunction
+from grain_growth_pf.io.event_trace import EventTraceRecorder, trace_entity_key
 from grain_growth_pf.pf.kinematics import interface_kinematics
 from grain_growth_pf.simulation import DomainPhysics, EventResolvedSimulation
 
@@ -66,6 +67,10 @@ class MigrationClosureSimulation(EventResolvedSimulation):
         "G_pending", "T_pending", "C_pending", "blocked", "climb_stage",
         "local_defect_inventory", "GB_sink_activity", "TJ_sink_activity",
     )
+    EVENT_TRACE_RELEASE_TYPES = {
+        "compatibility_release", "tj_compatibility_release",
+        "gb_sink_completion", "tj_sink_completion", "climb_quota_completion",
+    }
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         config = kwargs.get("config", args[0] if args else None)
@@ -104,7 +109,27 @@ class MigrationClosureSimulation(EventResolvedSimulation):
         self._last_gb_sink_entities: set[str] = set()
         self._last_tj_sink_entities: set[str] = set()
         self._pending_sink_completions: list[dict[str, Any]] = []
+        self.event_trace_enabled = bool(
+            config.parameters.get("event_trace_enabled", False)
+        )
+        self.event_trace_recorder: EventTraceRecorder | None = None
+        self._event_trace_checkpoint_state: dict[str, Any] | None = None
+        self._event_trace_local_displacement: dict[str, float] = {}
+        self._event_trace_records_by_entity: dict[str, list[dict[str, Any]]] = {}
         super().__init__(*args, **kwargs)
+
+        if self.event_trace_enabled:
+            resume = bool(kwargs.get("resume", args[2] if len(args) > 2 else False))
+            self.event_trace_recorder = EventTraceRecorder(
+                self.output_dir,
+                run_id=self.run_id,
+                pre_steps=int(config.parameters.get("event_trace_pre_steps", 25)),
+                post_steps=int(config.parameters.get("event_trace_post_steps", 50)),
+                stride=int(config.parameters.get("event_trace_stride", 1)),
+                resume=resume,
+                checkpoint_state=self._event_trace_checkpoint_state,
+            )
+            self.ledger.observer = self._observe_event_record
 
         if bool(config.parameters.get("arclength_domains", True)):
             old_domains = dict(self.domains)
@@ -184,6 +209,8 @@ class MigrationClosureSimulation(EventResolvedSimulation):
             if self._mechanism_state_handle is not None:
                 self._mechanism_state_handle.flush()
                 self._mechanism_state_handle.close()
+            if self.event_trace_recorder is not None:
+                self.event_trace_recorder.close()
 
     def _total_gb_measure(self) -> float:
         return float(sum(segment.length for segment in self.snapshot.boundaries.values()))
@@ -198,11 +225,17 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 "last_released_defect_quota": self.last_released_defect_quota,
                 "max_abs_conservation_residual": self.max_abs_conservation_residual,
             }
+        if self.event_trace_recorder is not None:
+            state["event_trace"] = self.event_trace_recorder.checkpoint_state()
         return state
 
     def _load_extra_checkpoint_state(self, state: dict[str, Any]) -> None:
         super()._load_extra_checkpoint_state(state)
         area_loss = state.get("area_loss_climb")
+        event_trace = state.get("event_trace")
+        self._event_trace_checkpoint_state = (
+            dict(event_trace) if event_trace is not None else None
+        )
         if not self.area_loss_enabled:
             return
         if area_loss is None:
@@ -220,6 +253,232 @@ class MigrationClosureSimulation(EventResolvedSimulation):
         )
         self.max_abs_conservation_residual = float(
             area_loss.get("max_abs_conservation_residual", 0.0)
+        )
+
+    def _gb_arclength_coordinate(self, entity_id: str) -> float | None:
+        segment = self.snapshot.boundaries.get(entity_id)
+        if segment is None:
+            return None
+        pair = tuple(sorted((segment.grain_i, segment.grain_j)))
+        candidates = sorted(
+            (
+                other for other in self.snapshot.boundaries.values()
+                if tuple(sorted((other.grain_i, other.grain_j))) == pair
+            ),
+            key=lambda other: (other.segment_id, other.entity_id),
+        )
+        cursor = 0.0
+        for other in candidates:
+            if other.entity_id == entity_id:
+                return cursor + 0.5 * float(other.length)
+            cursor += float(other.length)
+        return None
+
+    def _event_trace_neighborhood(self, entity_id: str) -> set[str]:
+        neighborhood: set[str] = set()
+        if entity_id.startswith("tj:"):
+            tj = self.snapshot.triple_junctions.get(entity_id)
+            if tj is None:
+                return {trace_entity_key("TJ", entity_id)}
+            neighborhood.add(trace_entity_key("TJ", entity_id))
+            neighborhood.update(
+                trace_entity_key("GB", boundary_id)
+                for boundary_id in tj.adjoining_boundaries
+                if boundary_id in self.snapshot.boundaries
+            )
+            return neighborhood
+
+        neighborhood.add(trace_entity_key("GB", entity_id))
+        for tj in self._boundary_to_tjs.get(entity_id, ()):
+            neighborhood.add(trace_entity_key("TJ", tj.entity_id))
+            neighborhood.update(
+                trace_entity_key("GB", boundary_id)
+                for boundary_id in tj.adjoining_boundaries
+                if boundary_id in self.snapshot.boundaries
+            )
+        return neighborhood
+
+    def _observe_event_record(self, record: dict[str, Any]) -> None:
+        if (
+            self.event_trace_recorder is None
+            or str(record.get("event_type", "")) not in self.EVENT_TRACE_RELEASE_TYPES
+        ):
+            return
+        entity_id = str(record.get("entity_id", ""))
+        enriched = dict(record)
+        if entity_id.startswith("gb:"):
+            enriched["gb_arclength_coordinate"] = self._gb_arclength_coordinate(entity_id)
+            enriched["adjoining_tj_ids"] = [
+                tj.entity_id for tj in self._boundary_to_tjs.get(entity_id, ())
+            ]
+        else:
+            tj = self.snapshot.triple_junctions.get(entity_id)
+            enriched["adjoining_tj_ids"] = [entity_id] if tj is not None else []
+        self._event_trace_records_by_entity.setdefault(entity_id, []).append(enriched)
+        self.event_trace_recorder.trigger(
+            enriched, self._event_trace_neighborhood(entity_id)
+        )
+
+    def _event_trace_candidate_keys(self) -> set[str]:
+        keys = (
+            set(self.event_trace_recorder.requested_keys)
+            if self.event_trace_recorder is not None else set()
+        )
+        for entity_id, domain in self.domains.items():
+            if (
+                domain.blocked or domain.compatibility_pending or domain.area_loss_pending
+                or domain.climb.stage not in {ClimbStage.INACTIVE, ClimbStage.COMPLETE}
+            ):
+                keys.update(self._event_trace_neighborhood(entity_id))
+        for entity_id, domain in self.tj_domains.items():
+            if (
+                domain.blocked or domain.compatibility_pending or domain.area_loss_pending
+                or domain.climb.stage not in {ClimbStage.INACTIVE, ClimbStage.COMPLETE}
+            ):
+                keys.update(self._event_trace_neighborhood(entity_id))
+        return keys
+
+    def _event_trace_inventory(self) -> dict[str, float]:
+        if self.area_loss_enabled:
+            diagnostics = self.defect_inventory.diagnostics()
+            return {
+                "N_required": float(diagnostics["N_required"]),
+                "N_accommodated_GB": float(diagnostics["N_accommodated_GB"]),
+                "N_accommodated_TJ": float(diagnostics["N_accommodated_TJ"]),
+                "N_stored": float(self.defect_inventory.stored_total),
+                "conservation_residual": float(diagnostics["conservation_residual"]),
+            }
+        return {
+            "N_required": float(sum(d.free_volume.required_total for d in self.domains.values())),
+            "N_accommodated_GB": float(sum(d.free_volume.accommodated_total for d in self.domains.values())),
+            "N_accommodated_TJ": 0.0,
+            "N_stored": float(sum(d.free_volume.deficit for d in self.domains.values())),
+            "conservation_residual": 0.0,
+        }
+
+    def _event_trace_rows(self, requested: set[str]) -> dict[str, dict[str, Any]]:
+        rows: dict[str, dict[str, Any]] = {}
+        inventory = self._event_trace_inventory()
+        stiffness = float(self.config.parameters.get("free_volume_stiffness", 0.05))
+        global_mu = (
+            stiffness * self.defect_inventory.stored_signed
+            if self.area_loss_enabled else 0.0
+        )
+        elapsed = max(self.solver.time - self.previous_entity_time, 0.0)
+        for entity_id, segment in self.snapshot.boundaries.items():
+            key = trace_entity_key("GB", entity_id)
+            if key not in requested:
+                continue
+            domain = self.domains.get(entity_id)
+            if domain is None:
+                continue
+            local_signed = (
+                self.defect_inventory.active_vacancy.get(entity_id, 0.0)
+                - self.defect_inventory.active_interstitial.get(entity_id, 0.0)
+                if self.area_loss_enabled else float(domain.free_volume.deficit)
+            )
+            velocity = float(segment.velocity)
+            capillary_work_rate = float(
+                self.config.pf.gb_energy * segment.curvature * velocity
+            )
+            resolved_shear = float(self._boundary_resolved_shear(domain, segment))
+            shear_work_rate = float(resolved_shear * abs(velocity))
+            chemical_work = float(global_mu * local_signed)
+            latest = self._event_trace_records_by_entity.get(entity_id, [{}])[-1]
+            adjoining = [tj.entity_id for tj in self._boundary_to_tjs.get(entity_id, ())]
+            rows[key] = {
+                "time": float(self.solver.time),
+                "temperature": float(self.config.pf.temperature), "seed": int(self.config.seed),
+                "entity_type": "GB", "entity_id": entity_id,
+                "grain_ids": f"{segment.grain_i};{segment.grain_j}",
+                "position": json.dumps(segment.points.mean(axis=0).tolist()) if len(segment.points) else "",
+                "gb_arclength_coordinate": self._gb_arclength_coordinate(entity_id),
+                "adjoining_tj_ids": json.dumps(adjoining),
+                "local_normal_velocity": velocity,
+                "local_signed_normal_displacement": self._event_trace_local_displacement.get(
+                    entity_id, velocity * elapsed
+                ),
+                "gb_length": float(segment.length), "domain_length": float(segment.length),
+                "curvature": float(segment.curvature),
+                "G_pending": int(domain.compatibility_pending), "T_pending": 0,
+                "C_pending": int(domain.area_loss_pending),
+                "climb_stage": domain.climb.stage.value,
+                "shear_state_s": float(domain.shear.state),
+                "tau_int": float(domain.shear.internal_shear_stress),
+                "free_volume_signed_inventory": float(local_signed),
+                "p_cap_V_n": capillary_work_rate, "tau_V_tau": shear_work_rate,
+                "Delta_mu_v_N_v": chemical_work,
+                "W_total": capillary_work_rate + shear_work_rate + chemical_work,
+                "DeltaG0": latest.get("DeltaG0", ""),
+                "DeltaG_eff": latest.get("effective_DeltaG", ""),
+                "instantaneous_rate": latest.get("instantaneous_rate", ""),
+                "cumulative_hazard": float(domain.activation.clock.cumulative_hazard),
+                "hazard_threshold": float(domain.activation.clock.threshold),
+                "tj_velocity": "", "tj_compatibility_residual": "",
+                "residual_burgers": "", "tj_sink_admissible": "",
+                "signed_point_defect_flux": float(local_signed),
+                **inventory,
+            }
+        for entity_id, tj in self.snapshot.triple_junctions.items():
+            key = trace_entity_key("TJ", entity_id)
+            if key not in requested:
+                continue
+            domain = self.tj_domains.get(entity_id)
+            if domain is None:
+                continue
+            velocity = np.zeros(2, dtype=float)
+            residual = np.asarray([], dtype=float)
+            try:
+                _, velocity, residual, _, _ = self._tj_kinematics(tj)
+            except ValueError:
+                pass
+            latest = self._event_trace_records_by_entity.get(entity_id, [{}])[-1]
+            local_velocity = float(np.linalg.norm(velocity))
+            rows[key] = {
+                "time": float(self.solver.time),
+                "temperature": float(self.config.pf.temperature), "seed": int(self.config.seed),
+                "entity_type": "TJ", "entity_id": entity_id,
+                "grain_ids": ";".join(map(str, tj.grain_ids)),
+                "position": json.dumps(np.asarray(tj.position, dtype=float).tolist()),
+                "gb_arclength_coordinate": "", "adjoining_tj_ids": json.dumps([entity_id]),
+                "local_normal_velocity": local_velocity,
+                "local_signed_normal_displacement": local_velocity * elapsed,
+                "gb_length": "", "domain_length": "", "curvature": "",
+                "G_pending": 0,
+                "T_pending": int(domain.blocked and not domain.area_loss_pending),
+                "C_pending": int(domain.area_loss_pending),
+                "climb_stage": domain.climb.stage.value,
+                "shear_state_s": float(domain.shear.state),
+                "tau_int": float(domain.shear.internal_shear_stress),
+                "free_volume_signed_inventory": (
+                    float(self.defect_inventory.stored_signed) if self.area_loss_enabled else 0.0
+                ),
+                "p_cap_V_n": "", "tau_V_tau": "",
+                "Delta_mu_v_N_v": float(global_mu * self.defect_inventory.stored_signed)
+                if self.area_loss_enabled else 0.0,
+                "W_total": latest.get("work_total", ""),
+                "DeltaG0": latest.get("DeltaG0", ""),
+                "DeltaG_eff": latest.get("effective_DeltaG", ""),
+                "instantaneous_rate": latest.get("instantaneous_rate", ""),
+                "cumulative_hazard": float(domain.activation.clock.cumulative_hazard),
+                "hazard_threshold": float(domain.activation.clock.threshold),
+                "tj_velocity": json.dumps(velocity.tolist()),
+                "tj_compatibility_residual": json.dumps(residual.tolist()),
+                "residual_burgers": json.dumps(tj.residual_burgers.tolist()),
+                "tj_sink_admissible": latest.get("candidate_allowed", ""),
+                "signed_point_defect_flux": (
+                    float(self.defect_inventory.stored_signed) if self.area_loss_enabled else 0.0
+                ),
+                **inventory,
+            }
+        return rows
+
+    def _capture_event_trace(self) -> None:
+        if self.event_trace_recorder is None:
+            return
+        requested = self._event_trace_candidate_keys()
+        self.event_trace_recorder.capture(
+            int(self.solver.step_number), self._event_trace_rows(requested)
         )
 
     def _write_defect_history(self) -> None:
@@ -1259,6 +1518,8 @@ class MigrationClosureSimulation(EventResolvedSimulation):
     def _update_physics(self) -> None:
         """Update corrected local kinematics, barriers, and internal stresses."""
         cfg, modules = self.config, set(self.config.active_modules)
+        self._event_trace_local_displacement.clear()
+        self._event_trace_records_by_entity.clear()
         self._last_gb_sink_entities.clear()
         self._last_tj_sink_entities.clear()
         self._pending_sink_completions.clear()
@@ -1303,6 +1564,7 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 float(measured_velocity * entity_elapsed)
                 if entity_elapsed > 0 and np.isfinite(measured_velocity) else 0.0
             )
+            self._event_trace_local_displacement[key] = local_normal_displacement
             swept_measure = abs(local_normal_displacement) * max(segment.length, cfg.pf.grid_spacing)
 
             # Preserve legacy bookkeeping fields for checkpoint compatibility,
@@ -1531,6 +1793,7 @@ class MigrationClosureSimulation(EventResolvedSimulation):
         self.solver.set_mobility_scale(mobility)
         if self.full_field is not None:
             self.full_field.solve()
+        self._capture_event_trace()
         self.previous_entity_eta = self.solver.eta.copy()
         self.previous_entity_time = self.solver.time
         self._apply_diffuse_blocked_gate()

@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import ks_2samp
 
+from grain_growth_pf.analysis.kinetic_resistance import fit_inverse_growth_rate
 from grain_growth_pf.io.event_ledger import event_ledger_path, read_event_ledger
 
 
@@ -235,17 +236,16 @@ def _resistance_windows(regime: str, growth: pd.DataFrame) -> list[dict[str, Any
     for window, frame in data.groupby("window"):
         if len(frame) < 3:
             continue
-        x = frame["mean_radius"].to_numpy(float)
-        y = 1.0 / frame["radius_rate"].to_numpy(float)
-        slope, intercept = np.polyfit(x, y, 1)
-        prediction = slope * x + intercept
-        ss_total = float(np.sum((y - y.mean()) ** 2))
+        fit = fit_inverse_growth_rate(
+            frame["mean_radius"].to_numpy(float),
+            frame["radius_rate"].to_numpy(float),
+        )
         rows.append({
             "regime": regime, "topology_window": int(window),
             "grain_count_start": int(frame["grain_count"].iloc[0]),
             "grain_count_end": int(frame["grain_count"].iloc[-1]),
-            "points": len(frame), "a": slope, "b": intercept,
-            "r2": 1.0 - float(np.sum((y - prediction) ** 2)) / ss_total if ss_total else np.nan,
+            "points": len(frame), "resistance_law": "1/Rdot = a R + b",
+            "a": fit.a, "b": fit.b, "r2": fit.r_squared,
         })
     return rows
 

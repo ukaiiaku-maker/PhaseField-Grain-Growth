@@ -117,6 +117,10 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
             time=np.asarray(float(self.solver.time)),
             step=np.asarray(step),
             temperature=np.asarray(float(self.config.pf.temperature)),
+            seed=np.asarray(int(self.config.seed)),
+            shear_stiffness=np.asarray(
+                float(self.config.parameters.get("shear_stiffness", 0.0))
+            ),
             grain_count=np.asarray(len(self.snapshot.grains)),
             N_required=np.asarray(float(inventory["N_required"])),
             N_accommodated_GB=np.asarray(float(inventory["N_accommodated_GB"])),

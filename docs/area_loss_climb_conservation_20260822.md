@@ -11,7 +11,7 @@ V_{\mathrm{ex}}^n
 =\alpha\sum_\beta v_{\mathrm{ex},\beta}^{\mathrm{GB}}L_\beta^n,
 \qquad
 v_{\mathrm{ex}}^{\mathrm{GB}}
-=\delta_{\mathrm{GB}}\left(1-\frac{\rho_{\mathrm{lattice}}}{\rho_{\mathrm{GB}}}\right).
+=\delta_{\mathrm{GB}}\left(1-\frac{\rho_{\mathrm{GB}}}{\rho_{\mathrm{lattice}}}\right).
 \]
 
 The implementation also accepts a directly calibrated
