@@ -201,13 +201,21 @@ def main() -> None:
         for config in configs
     ]
     workers = min(max(1, args.processes), len(payloads))
+    root_manifest = root / "video_manifest.json"
+    root_manifest.write_text(json.dumps({
+        "status": "running",
+        "git_sha": sha,
+        "source_spec": args.spec,
+        "workers": workers,
+        "runs": [{"path": payload[1], "status": "pending"} for payload in payloads],
+    }, indent=2) + "\n", encoding="utf-8")
     if workers == 1:
         outcomes = [_worker(payload) for payload in payloads]
     else:
         with mp.get_context("spawn").Pool(workers) as pool:
             outcomes = pool.map(_worker, payloads, chunksize=1)
     status = "completed" if all(item["status"] == "completed" for item in outcomes) else "failed"
-    (root / "video_manifest.json").write_text(json.dumps({
+    root_manifest.write_text(json.dumps({
         "status": status,
         "git_sha": sha,
         "source_spec": args.spec,
