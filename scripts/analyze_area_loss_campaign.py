@@ -8,6 +8,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from scipy.stats import ks_2samp
 
 from grain_growth_pf.io.event_ledger import event_ledger_path, read_event_ledger
 
@@ -85,30 +86,54 @@ def _stage_audit(regime: str, events: pd.DataFrame) -> tuple[list[dict[str, Any]
         complete_type = "gb_sink_completion" if path.startswith("gb_") else "tj_sink_completion"
         complete = events[events["event_type"] == complete_type].sort_values(["entity_id", "time"])
         cycle_times: list[float] = []
+        cycle_rates: list[tuple[float, float, float]] = []
         for _, entity_rows in selected.sort_values(["entity_id", "time"]).groupby("entity_id"):
             accumulated = 0.0
-            seen: set[str] = set()
+            seen: list[str] = []
+            rates: list[float] = []
             for _, event in entity_rows.iterrows():
                 stage = str(event["event_type"]).removeprefix(path + "_")
                 residence = float(event.get("stage_residence_time", np.nan))
+                rate = float(event.get("instantaneous_rate", np.nan))
                 if np.isfinite(residence):
                     accumulated += residence
-                    seen.add(stage)
+                    seen.append(stage)
+                    rates.append(rate)
                 if stage == "transport":
-                    if seen == {"nucleation", "exchange", "transport"}:
+                    if seen == ["nucleation", "exchange", "transport"]:
                         cycle_times.append(accumulated)
+                        cycle_rates.append(tuple(rates))
                     accumulated = 0.0
-                    seen.clear()
+                    seen = []
+                    rates = []
         implied_means = [
             row["rate_implied_mean_residence"] for row in stage_rows[-3:]
             if np.isfinite(row["rate_implied_mean_residence"])
         ]
+        predicted: list[float] = []
+        if cycle_rates:
+            rng = np.random.default_rng(20260822)
+            draws_per_cycle = max(16, min(256, 100_000 // len(cycle_rates)))
+            for rates in cycle_rates:
+                if all(np.isfinite(rate) and rate > 0.0 for rate in rates):
+                    sample = sum(rng.exponential(1.0 / rate, draws_per_cycle) for rate in rates)
+                    predicted.extend(sample.tolist())
+        ks = ks_2samp(cycle_times, predicted) if cycle_times and predicted else None
         cycle_rows.append({
             "regime": regime, "sink_path": path, "completed_cycles": len(complete),
             "observed_cycle_intervals": len(cycle_times),
             "observed_mean_cycle_time": np.mean(cycle_times) if cycle_times else np.nan,
             "observed_median_cycle_time": np.median(cycle_times) if cycle_times else np.nan,
+            "observed_p10_cycle_time": np.quantile(cycle_times, 0.1) if cycle_times else np.nan,
+            "observed_p90_cycle_time": np.quantile(cycle_times, 0.9) if cycle_times else np.nan,
             "serial_stage_mean_prediction": sum(implied_means) if len(implied_means) == 3 else np.nan,
+            "hypoexponential_predicted_mean": np.mean(predicted) if predicted else np.nan,
+            "hypoexponential_predicted_median": np.median(predicted) if predicted else np.nan,
+            "hypoexponential_predicted_p10": np.quantile(predicted, 0.1) if predicted else np.nan,
+            "hypoexponential_predicted_p90": np.quantile(predicted, 0.9) if predicted else np.nan,
+            "hypoexponential_ks_statistic": ks.statistic if ks is not None else np.nan,
+            "hypoexponential_ks_pvalue": ks.pvalue if ks is not None else np.nan,
+            "hypoexponential_model": "conditional_stage_rate_mixture",
         })
     return stage_rows, cycle_rows
 
@@ -161,7 +186,12 @@ def _causal_nulls(regime: str, growth: pd.DataFrame, events: pd.DataFrame) -> li
         return rows
     steps = growth["step"].to_numpy(int)
     response = np.abs(growth["radius_rate"].to_numpy(float))
-    indicator = np.isin(steps, events.loc[events["event_type"].isin(COMPLETIONS), "step"].astype(int))
+    indicator = np.zeros(len(steps), dtype=bool)
+    for event_step in events.loc[events["event_type"].isin(COMPLETIONS), "step"].astype(int):
+        insertion = int(np.searchsorted(steps, event_step))
+        candidates = [index for index in (insertion - 1, insertion) if 0 <= index < len(steps)]
+        if candidates:
+            indicator[min(candidates, key=lambda index: abs(int(steps[index]) - event_step))] = True
     rng = np.random.default_rng(20260822)
     for window in WINDOWS:
         def score(flags: np.ndarray) -> float:
@@ -267,11 +297,51 @@ def _occupancy(regime: str, state: pd.DataFrame) -> list[dict[str, Any]]:
     return rows
 
 
-def _spatial_correlations(regime: str, events: pd.DataFrame, shape: tuple[int, int]) -> list[dict[str, Any]]:
+def _grain_set(value: Any) -> frozenset[int]:
+    return frozenset(int(item) for item in str(value).split(";") if item and item != "nan")
+
+
+def _gb_arclength_coordinates(boundary: pd.DataFrame) -> dict[str, tuple[tuple[int, int], float]]:
+    """Estimate persistent-domain centers along each GB from saved domain lengths."""
+    if boundary.empty:
+        return {}
+    lengths = boundary.groupby(["grain_i", "grain_j", "entity_id"], as_index=False)["length"].median()
+    coordinates: dict[str, tuple[tuple[int, int], float]] = {}
+    for (grain_i, grain_j), frame in lengths.groupby(["grain_i", "grain_j"]):
+        indexed: list[tuple[int, str, float]] = []
+        for row in frame.itertuples():
+            try:
+                index = int(str(row.entity_id).rsplit(":", 1)[1])
+            except (IndexError, ValueError):
+                continue
+            indexed.append((index, str(row.entity_id), float(row.length)))
+        cursor = 0.0
+        for _, entity_id, length in sorted(indexed):
+            coordinates[entity_id] = ((int(grain_i), int(grain_j)), cursor + 0.5 * length)
+            cursor += length
+    return coordinates
+
+
+def _shares_tj(first: frozenset[int], second: frozenset[int]) -> bool:
+    if len(first) == 2 and len(second) == 2:
+        return len(first & second) == 1 and len(first | second) == 3
+    if len(first) == 2 and len(second) == 3:
+        return first <= second
+    if len(first) == 3 and len(second) == 2:
+        return second <= first
+    if len(first) == 3 and len(second) == 3:
+        return len(first & second) >= 2
+    return False
+
+
+def _spatial_correlations(
+    regime: str, events: pd.DataFrame, boundary: pd.DataFrame, shape: tuple[int, int]
+) -> list[dict[str, Any]]:
     if events.empty or "event_type" not in events:
         return []
     releases = events[events["event_type"].isin(COMPLETIONS)].sort_values("time")
     records = []
+    arclength = _gb_arclength_coordinates(boundary)
     parsed = [(_position(row.position), row) for row in releases.itertuples()]
     max_lag = 1.0
     max_pairs = 200_000
@@ -288,17 +358,52 @@ def _spatial_correlations(regime: str, events: pd.DataFrame, shape: tuple[int, i
             box = np.asarray(shape, dtype=float)
             delta = np.minimum(delta, box - delta)
             distance = float(np.linalg.norm(delta))
-            grains0 = set(str(first.grain_ids).split(";"))
-            grains1 = set(str(second.grain_ids).split(";"))
+            grains0 = _grain_set(first.grain_ids)
+            grains1 = _grain_set(second.grain_ids)
+            first_arc = arclength.get(str(first.entity_id))
+            second_arc = arclength.get(str(second.entity_id))
+            along_gb = np.nan
+            if first_arc is not None and second_arc is not None and first_arc[0] == second_arc[0]:
+                along_gb = abs(first_arc[1] - second_arc[1])
             records.append({
                 "regime": regime, "time_lag": lag, "distance": distance,
                 "same_entity": int(first.entity_id == second.entity_id),
-                "shared_connectivity": int(bool(grains0 & grains1)),
+                "gb_arclength_separation": along_gb,
+                "same_gb": int(first_arc is not None and second_arc is not None and first_arc[0] == second_arc[0]),
+                "shared_tj_connectivity": int(_shares_tj(grains0, grains1)),
                 "first_sink": first.event_type, "second_sink": second.event_type,
             })
             if len(records) >= max_pairs:
                 return records
     return records
+
+
+def _spatial_summary(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    frame = pd.DataFrame(records)
+    if frame.empty:
+        return []
+    rows: list[dict[str, Any]] = []
+    time_bins = pd.cut(frame["time_lag"], [-np.inf, 0.04, 0.16, 0.32, 1.0], include_lowest=True)
+    for metric, bins in (
+        ("distance", [-np.inf, 4.0, 8.0, 16.0, 32.0, 64.0, np.inf]),
+        ("gb_arclength_separation", [-np.inf, 6.0, 12.0, 24.0, 48.0, np.inf]),
+    ):
+        valid = frame[np.isfinite(frame[metric])].copy()
+        if valid.empty:
+            continue
+        valid["metric_bin"] = pd.cut(valid[metric], bins, include_lowest=True).astype(str)
+        valid["time_bin"] = time_bins.loc[valid.index].astype(str)
+        for (regime, metric_bin, time_bin), group in valid.groupby(
+            ["regime", "metric_bin", "time_bin"], observed=True
+        ):
+            rows.append({
+                "regime": regime, "metric": metric, "metric_bin": metric_bin,
+                "time_bin": time_bin, "pairs": len(group),
+                "same_entity_fraction": group["same_entity"].mean(),
+                "same_gb_fraction": group["same_gb"].mean(),
+                "shared_tj_connectivity_fraction": group["shared_tj_connectivity"].mean(),
+            })
+    return rows
 
 
 def main() -> None:
@@ -315,6 +420,7 @@ def main() -> None:
             "run_summary", "stage_residence", "cycle_time_audit", "local_event_response",
             "causal_nulls", "kinetic_resistance_windows", "release_state_selection",
             "direct_occupancy", "sink_partition", "spatial_release_correlations",
+            "spatial_release_summary",
         )
     }
     for run in _runs(root):
@@ -361,8 +467,12 @@ def main() -> None:
                 "max_abs_conservation_residual": final["max_abs_conservation_residual"],
             })
         tables["spatial_release_correlations"].extend(
-            _spatial_correlations(regime, events, tuple(config["pf"]["shape"]))
+            _spatial_correlations(regime, events, boundary, tuple(config["pf"]["shape"]))
         )
+
+    tables["spatial_release_summary"] = _spatial_summary(
+        tables["spatial_release_correlations"]
+    )
 
     for name, rows in tables.items():
         pd.DataFrame(rows).to_csv(output / f"{name}.csv", index=False)
