@@ -633,6 +633,35 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 domain.entity_id = key
                 self.tj_domains[key] = domain
             domain = self.tj_domains[key]
+            adjacent_inventory = {
+                boundary_id: (
+                    self.defect_inventory.active_vacancy.get(boundary_id, 0.0)
+                    + self.defect_inventory.active_interstitial.get(boundary_id, 0.0)
+                )
+                for boundary_id in tj.adjoining_boundaries
+            }
+            preferred_entity = max(
+                adjacent_inventory,
+                key=lambda boundary_id: (adjacent_inventory[boundary_id], boundary_id),
+                default=None,
+            )
+            preferred_amount = (
+                adjacent_inventory.get(preferred_entity, 0.0)
+                if preferred_entity is not None else 0.0
+            )
+            reservoir = (
+                self.defect_inventory.retired_inventory
+                + self.defect_inventory.active_vacancy.get("material-reservoir", 0.0)
+                + self.defect_inventory.active_interstitial.get("material-reservoir", 0.0)
+            )
+            fallback_key = min(self.snapshot.triple_junctions) if self.snapshot.triple_junctions else ""
+            if preferred_amount <= trigger and not (reservoir > trigger and key == fallback_key):
+                domain.area_loss_pending = False
+                domain.blocked = domain.compatibility_pending
+                continue
+            if preferred_amount <= trigger:
+                preferred_entity = "material-reservoir"
+                preferred_amount = reservoir
             try:
                 requested, compatible, residual, compatibility_norm, capillary_force = self._tj_kinematics(tj)
             except ValueError as exc:
@@ -723,7 +752,8 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 "event_time": domain.climb.last_completion_time or self.solver.time,
                 "sink": "tj", "flux_sign": flux_sign, "domain": domain,
                 "tj": tj, "key": key, "burgers_increment": burgers_increment,
-                "common": common,
+                "common": common, "preferred_entity": preferred_entity,
+                "preferred_amount": preferred_amount,
             })
 
     def _resolve_area_loss_sink_completions(self) -> None:
@@ -789,11 +819,31 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 domain.area_loss_pending = local_after > trigger
             else:
                 tj = candidate["tj"]
-                requested = flux_sign * float(self.config.parameters.get(
+                preferred_entity = candidate["preferred_entity"]
+                local_available = (
+                    self.defect_inventory.active_vacancy.get(preferred_entity, 0.0)
+                    + self.defect_inventory.active_interstitial.get(preferred_entity, 0.0)
+                )
+                if preferred_entity == "material-reservoir":
+                    local_available += self.defect_inventory.retired_inventory
+                if local_available <= 0.0:
+                    common = candidate["common"]
+                    self._record_area_loss_row(
+                        **common, event_type="tj_sink_candidate_lost_competition",
+                        event_time=candidate["event_time"], candidate_allowed=False,
+                        candidate_reason="adjacent_gb_flux_consumed_by_competing_sink",
+                    )
+                    domain.area_loss_pending = False
+                    domain.blocked = domain.compatibility_pending
+                    continue
+                requested_amount = min(local_available, float(self.config.parameters.get(
                     "tj_sink_release_quota",
                     self.config.parameters.get("climb_release_quota", 1.0),
-                ))
-                accepted = self.defect_inventory.accommodate(requested, "tj")
+                )))
+                requested = flux_sign * requested_amount
+                accepted = self.defect_inventory.accommodate(
+                    requested, "tj", preferred_entity=preferred_entity
+                )
                 after = self.defect_inventory.stored_total
                 if accepted != 0.0:
                     tj.add_burgers(candidate["burgers_increment"])
