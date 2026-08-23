@@ -72,6 +72,7 @@ base:
     event_trace_pre_steps: 25
     event_trace_post_steps: 50
     event_trace_stride: 1
+    event_trace_format: parquet
     event_ledger_format: parquet
     video_frame_cadence: 50
     candidate_diagnostic_cadence: 50

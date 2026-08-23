@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 from grain_growth_pf.config import ModelConfig, PFConfig
 from grain_growth_pf.migration_closure import MigrationClosureSimulation
@@ -155,13 +156,16 @@ def test_event_trace_on_off_and_window_size_do_not_change_trajectory(tmp_path):
     MigrationClosureSimulation(baseline_config, baseline, code_sha="test-sha").run()
     baseline_arrays, baseline_state = _checkpoint_without_trace(baseline)
 
-    for name, pre_steps, post_steps in (("short", 1, 2), ("long", 5, 7)):
+    for name, pre_steps, post_steps, trace_format in (
+        ("short", 1, 2, "csv"), ("long", 5, 7, "parquet")
+    ):
         traced_config = _config("C_GBTJ", modules, max_steps=8)
         traced_config.parameters.update({
             "event_trace_enabled": True,
             "event_trace_pre_steps": pre_steps,
             "event_trace_post_steps": post_steps,
             "event_trace_stride": 1,
+            "event_trace_format": trace_format,
         })
         traced = tmp_path / name
         MigrationClosureSimulation(traced_config, traced, code_sha="test-sha").run()
@@ -172,6 +176,9 @@ def test_event_trace_on_off_and_window_size_do_not_change_trajectory(tmp_path):
             assert np.array_equal(traced_arrays[key], baseline_arrays[key])
         assert traced_state == baseline_state
         assert _events_without_run_id(traced) == _events_without_run_id(baseline)
-        assert len((traced / "event_trace_events.csv").read_text().splitlines()) > 1
-        trace_lines = (traced / "event_traces.csv").read_text().splitlines()
-        assert len(trace_lines) > 1
+        if trace_format == "csv":
+            assert len((traced / "event_trace_events.csv").read_text().splitlines()) > 1
+            assert len((traced / "event_traces.csv").read_text().splitlines()) > 1
+        else:
+            assert len(pd.read_parquet(traced / "event_trace_events.parquet")) > 0
+            assert len(pd.read_parquet(traced / "event_traces.parquet")) > 0

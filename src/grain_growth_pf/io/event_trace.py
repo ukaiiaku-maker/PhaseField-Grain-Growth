@@ -33,6 +33,18 @@ EVENT_INDEX_FIELDS = (
     "tj_compatibility_residual", "residual_burgers", "tj_sink_admissible",
 )
 
+TRACE_STRING_FIELDS = {
+    "run_id", "event_ids", "entity_type", "entity_id", "grain_ids", "position",
+    "adjoining_tj_ids", "climb_stage", "tj_velocity",
+    "tj_compatibility_residual", "residual_burgers", "tj_sink_admissible",
+}
+EVENT_STRING_FIELDS = {
+    "run_id", "event_id", "event_type", "sink_path", "entity_type", "entity_id",
+    "grain_ids", "position", "adjoining_tj_ids", "neighborhood_entities",
+    "tj_velocity", "tj_compatibility_residual", "residual_burgers",
+    "tj_sink_admissible",
+}
+
 
 def trace_entity_key(entity_type: str, entity_id: str) -> str:
     return f"{entity_type}::{entity_id}"
@@ -54,6 +66,7 @@ class EventTraceRecorder:
         pre_steps: int,
         post_steps: int,
         stride: int,
+        output_format: str = "csv",
         resume: bool = False,
         checkpoint_state: Mapping[str, Any] | None = None,
     ) -> None:
@@ -63,13 +76,19 @@ class EventTraceRecorder:
         self.pre_steps = int(pre_steps)
         self.post_steps = int(post_steps)
         self.stride = int(stride)
+        self.output_format = str(output_format).lower()
+        if self.output_format not in {"csv", "parquet"}:
+            raise ValueError("event trace format must be csv or parquet")
         self.output_dir = Path(output_dir)
-        self.state_path = self.output_dir / "event_traces.csv"
-        self.event_path = self.output_dir / "event_trace_events.csv"
+        suffix = "parquet" if self.output_format == "parquet" else "csv"
+        self.state_path = self.output_dir / f"event_traces.{suffix}"
+        self.event_path = self.output_dir / f"event_trace_events.{suffix}"
         state = dict(checkpoint_state or {})
         if resume and not state:
             raise ValueError("instrumented restart lacks event-trace checkpoint state")
         if resume:
+            if str(state.get("output_format", "csv")) != self.output_format:
+                raise ValueError("event-trace format must match the checkpoint")
             restored_shape = (
                 int(state.get("pre_steps", -1)),
                 int(state.get("post_steps", -1)),
@@ -81,12 +100,26 @@ class EventTraceRecorder:
                     "event-trace window settings must match the checkpoint: "
                     f"checkpoint={restored_shape}, requested={requested_shape}"
                 )
-        self._state_handle, self._state_writer = self._open_stream(
-            self.state_path, TRACE_FIELDS, resume, state.get("state_offset")
-        )
-        self._event_handle, self._event_writer = self._open_stream(
-            self.event_path, EVENT_INDEX_FIELDS, resume, state.get("event_offset")
-        )
+        self._state_handle = self._event_handle = None
+        self._state_writer = self._event_writer = None
+        self._state_rows: list[dict[str, Any]] = []
+        self._event_rows: list[dict[str, Any]] = []
+        self._state_part_count = int(state.get("state_part_count", 0))
+        self._event_part_count = int(state.get("event_part_count", 0))
+        if self.output_format == "parquet":
+            self._restore_parquet_parts(
+                self.state_path, resume, self._state_part_count
+            )
+            self._restore_parquet_parts(
+                self.event_path, resume, self._event_part_count
+            )
+        else:
+            self._state_handle, self._state_writer = self._open_stream(
+                self.state_path, TRACE_FIELDS, resume, state.get("state_offset")
+            )
+            self._event_handle, self._event_writer = self._open_stream(
+                self.event_path, EVENT_INDEX_FIELDS, resume, state.get("event_offset")
+            )
         self._buffer: deque[tuple[int, dict[str, dict[str, Any]]]] = deque(
             (int(item["step"]), dict(item["rows"]))
             for item in state.get("buffer", [])
@@ -101,6 +134,20 @@ class EventTraceRecorder:
         self._recent_written: set[tuple[str, int]] = {
             (str(key), int(step)) for key, step in state.get("recent_written", [])
         }
+
+    @staticmethod
+    def _restore_parquet_parts(path: Path, resume: bool, part_count: int) -> None:
+        if not resume:
+            path.mkdir(parents=True, exist_ok=False)
+            return
+        if not path.is_dir():
+            raise ValueError(f"missing restart-safe event trace dataset {path}")
+        parts = sorted(path.glob("part-*.parquet"))
+        expected = [path / f"part-{index:08d}.parquet" for index in range(len(parts))]
+        if parts != expected or part_count < 0 or part_count > len(parts):
+            raise ValueError(f"invalid event trace Parquet generation under {path}")
+        for orphan in parts[part_count:]:
+            orphan.unlink()
 
     @staticmethod
     def _open_stream(
@@ -161,7 +208,7 @@ class EventTraceRecorder:
         for event in self._pending:
             record = dict(event["record"])
             key_list = list(map(str, event["neighborhood_keys"]))
-            self._event_writer.writerow({
+            self._write_event_index({
                 "run_id": self.run_id,
                 "event_id": event["event_id"],
                 "event_type": record.get("event_type", ""),
@@ -221,6 +268,16 @@ class EventTraceRecorder:
             if recorded_step >= minimum
         }
 
+    def _write_event_index(self, row: Mapping[str, Any]) -> None:
+        output = {name: row.get(name, "") for name in EVENT_INDEX_FIELDS}
+        if self.output_format == "parquet":
+            self._event_rows.append(output)
+            if len(self._event_rows) >= 25_000:
+                self._flush_parquet("event")
+        else:
+            assert self._event_writer is not None
+            self._event_writer.writerow(output)
+
     def _write_state(
         self,
         key: str,
@@ -235,8 +292,60 @@ class EventTraceRecorder:
         output["run_id"] = self.run_id
         output["step"] = int(step)
         output["event_ids"] = ";".join(sorted(set(map(str, event_ids))))
-        self._state_writer.writerow(output)
+        if self.output_format == "parquet":
+            self._state_rows.append(output)
+            if len(self._state_rows) >= 25_000:
+                self._flush_parquet("state")
+        else:
+            assert self._state_writer is not None
+            self._state_writer.writerow(output)
         self._recent_written.add(identity)
+
+    def _flush_parquet(self, kind: str) -> None:
+        import pyarrow as pa
+        import pyarrow.parquet as pq
+
+        is_state = kind == "state"
+        rows = self._state_rows if is_state else self._event_rows
+        if not rows:
+            return
+        fields = TRACE_FIELDS if is_state else EVENT_INDEX_FIELDS
+        strings = TRACE_STRING_FIELDS if is_state else EVENT_STRING_FIELDS
+        integer_fields = {"step", "seed"} if is_state else {
+            "event_step", "trace_start_step", "trace_end_step", "trace_stride"
+        }
+        schema = pa.schema([
+            pa.field(name, pa.string() if name in strings else (
+                pa.int64() if name in integer_fields else pa.float64()
+            ))
+            for name in fields
+        ])
+        normalized = []
+        for row in rows:
+            item: dict[str, Any] = {}
+            for name in fields:
+                value = row.get(name)
+                blank = value is None or (isinstance(value, str) and value == "")
+                if blank:
+                    item[name] = None
+                elif name in strings:
+                    item[name] = str(value)
+                elif name in integer_fields:
+                    item[name] = int(value)
+                else:
+                    item[name] = float(value)
+            normalized.append(item)
+        part_count = self._state_part_count if is_state else self._event_part_count
+        path = (self.state_path if is_state else self.event_path) / f"part-{part_count:08d}.parquet"
+        pq.write_table(
+            pa.Table.from_pylist(normalized, schema=schema), path,
+            compression="zstd", use_dictionary=True,
+        )
+        rows.clear()
+        if is_state:
+            self._state_part_count += 1
+        else:
+            self._event_part_count += 1
 
     @staticmethod
     def _json(value: Any) -> str:
@@ -248,15 +357,19 @@ class EventTraceRecorder:
         return json.dumps(serializable, separators=(",", ":"))
 
     def checkpoint_state(self) -> dict[str, Any]:
-        for handle in (self._state_handle, self._event_handle):
-            handle.flush()
-            os.fsync(handle.fileno())
-        return {
+        if self.output_format == "parquet":
+            self._flush_parquet("state")
+            self._flush_parquet("event")
+        else:
+            for handle in (self._state_handle, self._event_handle):
+                assert handle is not None
+                handle.flush()
+                os.fsync(handle.fileno())
+        state = {
             "pre_steps": self.pre_steps,
             "post_steps": self.post_steps,
             "stride": self.stride,
-            "state_offset": self._state_handle.tell(),
-            "event_offset": self._event_handle.tell(),
+            "output_format": self.output_format,
             "buffer": [
                 {"step": step, "rows": rows} for step, rows in self._buffer
             ],
@@ -264,9 +377,25 @@ class EventTraceRecorder:
             "pending": self._pending,
             "recent_written": sorted([key, step] for key, step in self._recent_written),
         }
+        if self.output_format == "parquet":
+            state.update({
+                "state_part_count": self._state_part_count,
+                "event_part_count": self._event_part_count,
+            })
+        else:
+            assert self._state_handle is not None and self._event_handle is not None
+            state.update({
+                "state_offset": self._state_handle.tell(),
+                "event_offset": self._event_handle.tell(),
+            })
+        return state
 
     def close(self) -> None:
+        if self.output_format == "parquet":
+            self._flush_parquet("state")
+            self._flush_parquet("event")
+            return
         for handle in (self._state_handle, self._event_handle):
-            if not handle.closed:
+            if handle is not None and not handle.closed:
                 handle.flush()
                 handle.close()

@@ -46,6 +46,7 @@ def _config(regime: str, modules: tuple[str, ...], traced: bool) -> ModelConfig:
         "event_trace_pre_steps": 25,
         "event_trace_post_steps": 50,
         "event_trace_stride": 1,
+        "event_trace_format": "parquet",
     }
     return ModelConfig(
         regime=regime,
@@ -149,7 +150,7 @@ def main() -> None:
         "recorder_on_off_checkpoint_arrays_identical": arrays_equal,
         "recorder_on_off_physical_state_identical": state_equal,
         "recorder_on_off_event_trajectory_identical": event_trajectory_equal,
-        "event_trace_nonempty": sum(1 for _ in (on / "event_traces.csv").open()) > 1,
+        "event_trace_nonempty": len(pd.read_parquet(on / "event_traces.parquet")) > 0,
         "exact_defect_conservation": all(
             abs(audit["max_abs_conservation_residual"]) <= 1e-10
             for audit in audits.values()

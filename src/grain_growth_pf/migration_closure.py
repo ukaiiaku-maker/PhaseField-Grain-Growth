@@ -126,6 +126,7 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 pre_steps=int(config.parameters.get("event_trace_pre_steps", 25)),
                 post_steps=int(config.parameters.get("event_trace_post_steps", 50)),
                 stride=int(config.parameters.get("event_trace_stride", 1)),
+                output_format=str(config.parameters.get("event_trace_format", "csv")),
                 resume=resume,
                 checkpoint_state=self._event_trace_checkpoint_state,
             )

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 
+import pandas as pd
 import pytest
 
 from grain_growth_pf.io.event_trace import EventTraceRecorder, trace_entity_key
@@ -119,3 +120,48 @@ def test_event_trace_restart_rejects_changed_window_shape(tmp_path):
             resume=True,
             checkpoint_state=checkpoint,
         )
+
+
+def test_parquet_event_trace_is_compressed_and_restart_safe(tmp_path):
+    key = trace_entity_key("GB", "gb:1-2:0")
+    recorder = EventTraceRecorder(
+        tmp_path,
+        run_id="run",
+        pre_steps=0,
+        post_steps=2,
+        stride=1,
+        output_format="parquet",
+    )
+    recorder.trigger(
+        {
+            "event_id": "event-1",
+            "event_type": "compatibility_release",
+            "entity_id": "gb:1-2:0",
+            "step": 1,
+            "time": 1.0,
+        },
+        [key],
+    )
+    recorder.capture(1, {key: _row("gb:1-2:0", 1.0)})
+    checkpoint = recorder.checkpoint_state()
+    recorder.capture(2, {key: _row("gb:1-2:0", 999.0)})
+    recorder.close()
+
+    resumed = EventTraceRecorder(
+        tmp_path,
+        run_id="run",
+        pre_steps=0,
+        post_steps=2,
+        stride=1,
+        output_format="parquet",
+        resume=True,
+        checkpoint_state=checkpoint,
+    )
+    resumed.capture(2, {key: _row("gb:1-2:0", 2.0)})
+    resumed.capture(3, {key: _row("gb:1-2:0", 3.0)})
+    resumed.close()
+
+    states = pd.read_parquet(tmp_path / "event_traces.parquet")
+    events = pd.read_parquet(tmp_path / "event_trace_events.parquet")
+    assert states["local_normal_velocity"].tolist() == [1.0, 2.0, 3.0]
+    assert events["event_id"].tolist() == ["event-1"]
