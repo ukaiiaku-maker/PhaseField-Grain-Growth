@@ -93,7 +93,11 @@ def summarize(roots: list[Path]) -> pd.DataFrame:
 def markdown(table: pd.DataFrame, document: Path) -> str:
     lines = ["# Area-loss climb execution and movie index", ""]
     for campaign, frame in table.groupby("campaign", sort=True):
-        lines.extend([f"## {campaign}", "", "| Regime | Start | End | Grains | Status | Frames | Movie |", "|---|---:|---:|---:|---|---:|---|"])
+        lines.extend([
+            f"## {campaign}", "",
+            "| Regime | Source SHA | Start | End | Grains | Status | Frames | Movie |",
+            "|---|---|---:|---:|---:|---|---:|---|",
+        ])
         for row in frame.itertuples():
             if row.movie_path == "MISSING":
                 movie = "MISSING"
@@ -101,7 +105,8 @@ def markdown(table: pd.DataFrame, document: Path) -> str:
                 relative = os.path.relpath(Path(row.movie_path), start=document.parent)
                 movie = f"[{Path(row.movie_path).name}]({relative})"
             lines.append(
-                f"| {row.regime} | {row.starting_step} / {row.starting_time:.6g} | "
+                f"| {row.regime} | `{row.source_sha}` | "
+                f"{row.starting_step} / {row.starting_time:.6g} | "
                 f"{row.ending_step} / {row.ending_time:.6g} | "
                 f"{row.starting_grains}→{row.ending_grains} | {row.completion_status} | "
                 f"{row.frame_count} | {movie} |"
@@ -122,7 +127,7 @@ def main() -> None:
     args.csv.parent.mkdir(parents=True, exist_ok=True)
     args.markdown.parent.mkdir(parents=True, exist_ok=True)
     table.to_csv(args.csv, index=False)
-    args.markdown.write_text(markdown(table, args.markdown) + "\n")
+    args.markdown.write_text(markdown(table, args.markdown).rstrip() + "\n")
     print(args.csv)
     print(args.markdown)
 

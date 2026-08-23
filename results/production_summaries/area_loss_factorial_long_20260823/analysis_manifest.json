@@ -1,0 +1,26 @@
+{
+  "campaign": "results/jerky_area_loss_factorial_long_20260822/20260823T012141Z-b907865386",
+  "outputs": {
+    "run_summary": "results/production_summaries/area_loss_factorial_long_20260823/run_summary.csv",
+    "stage_residence": "results/production_summaries/area_loss_factorial_long_20260823/stage_residence.csv",
+    "cycle_time_audit": "results/production_summaries/area_loss_factorial_long_20260823/cycle_time_audit.csv",
+    "local_event_response": "results/production_summaries/area_loss_factorial_long_20260823/local_event_response.csv",
+    "causal_nulls": "results/production_summaries/area_loss_factorial_long_20260823/causal_nulls.csv",
+    "kinetic_resistance_windows": "results/production_summaries/area_loss_factorial_long_20260823/kinetic_resistance_windows.csv",
+    "release_state_selection": "results/production_summaries/area_loss_factorial_long_20260823/release_state_selection.csv",
+    "direct_occupancy": "results/production_summaries/area_loss_factorial_long_20260823/direct_occupancy.csv",
+    "sink_partition": "results/production_summaries/area_loss_factorial_long_20260823/sink_partition.csv",
+    "spatial_release_correlations": "results/production_summaries/area_loss_factorial_long_20260823/spatial_release_correlations.csv",
+    "spatial_release_summary": "results/production_summaries/area_loss_factorial_long_20260823/spatial_release_summary.csv"
+  },
+  "response_windows_frames": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "causal_nulls": [
+    "circular_time_shift",
+    "block_shuffle"
+  ]
+}
