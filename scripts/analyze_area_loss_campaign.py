@@ -250,7 +250,13 @@ def _resistance_windows(regime: str, growth: pd.DataFrame) -> list[dict[str, Any
     return rows
 
 
-def _release_selection(regime: str, boundary: pd.DataFrame, events: pd.DataFrame) -> list[dict[str, Any]]:
+def _release_selection(
+    regime: str,
+    boundary: pd.DataFrame,
+    events: pd.DataFrame,
+    inventory: pd.DataFrame,
+    free_volume_stiffness: float,
+) -> list[dict[str, Any]]:
     rows: list[dict[str, Any]] = []
     if boundary.empty or events.empty:
         return rows
@@ -265,12 +271,24 @@ def _release_selection(regime: str, boundary: pd.DataFrame, events: pd.DataFrame
         control = pinned.iloc[int(rng.integers(len(pinned)))] if len(pinned) else frame.iloc[int(rng.integers(len(frame)))]
         quota = abs(float(event.get("signed_defect_quota", 0.0) or 0.0))
         for sample, state in (("release", release), ("matched_pinned", control)):
+            if sample == "release":
+                chemical_work = float(event.get("work_chemical", np.nan))
+                work_total = float(event.get("work_total", np.nan))
+            elif not inventory.empty:
+                index = int(np.argmin(np.abs(
+                    inventory["step"].to_numpy(float) - float(state["step"])
+                )))
+                stored_signed = float(inventory.iloc[index]["N_stored_signed"])
+                chemical_work = float(free_volume_stiffness * stored_signed * quota)
+                work_total = chemical_work
+            else:
+                chemical_work = work_total = np.nan
             rows.append({
                 "regime": regime, "event_id": event.get("event_id"), "sample": sample,
                 "pVn": float(state["curvature"] * state["normal_velocity"]),
                 "tau_Vtau": float(state["resolved_shear"] * abs(state["normal_velocity"])),
-                "DeltaMu_Nv": float(state["free_volume_deficit"] * quota),
-                "W_total": float(event.get("work_total", np.nan)) if sample == "release" else np.nan,
+                "DeltaMu_Nv": chemical_work,
+                "W_total": work_total,
             })
     return rows
 
@@ -452,7 +470,10 @@ def main() -> None:
         tables["local_event_response"].extend(_local_responses(regime, boundary, events))
         tables["causal_nulls"].extend(_causal_nulls(regime, growth, events))
         tables["kinetic_resistance_windows"].extend(_resistance_windows(regime, growth))
-        tables["release_state_selection"].extend(_release_selection(regime, boundary, events))
+        tables["release_state_selection"].extend(_release_selection(
+            regime, boundary, events, inventory,
+            float(config["parameters"].get("free_volume_stiffness", 0.05)),
+        ))
         tables["direct_occupancy"].extend(_occupancy(regime, state))
         if not inventory.empty:
             final = inventory.iloc[-1]
