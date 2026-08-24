@@ -57,10 +57,11 @@ def main() -> None:
             stiffness = float(
                 data["shear_stiffness"] if "shear_stiffness" in data else np.nan
             )
+            seed = int(data["seed"] if "seed" in data else -1)
         axis.imshow(colors[labels % len(colors)], interpolation="nearest", origin="lower")
         axis.set_title(
             f"{run.name.split('-T', 1)[0]}\n"
-            f"step={step}, N={grain_count}, $K_s$={stiffness:g}",
+            f"seed={seed}, step={step}, N={grain_count}, $K_s$={stiffness:g}",
             fontsize=10,
         )
         axis.set_xticks([])

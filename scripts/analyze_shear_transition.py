@@ -492,6 +492,120 @@ def _target_rows(
     return rows
 
 
+def _stationary_durations(mask: np.ndarray, durations: np.ndarray) -> np.ndarray:
+    mask = np.asarray(mask, dtype=bool)
+    durations = np.asarray(durations, dtype=float)
+    episodes: list[float] = []
+    current = 0.0
+    for stationary, duration in zip(mask, durations, strict=False):
+        if stationary and np.isfinite(duration) and duration > 0.0:
+            current += float(duration)
+        elif current > 0.0:
+            episodes.append(current)
+            current = 0.0
+    if current > 0.0:
+        episodes.append(current)
+    return np.asarray(episodes, dtype=float)
+
+
+def _experimental_observables(
+    regime: str, seed: int, stiffness: float, growth: pd.DataFrame, run: Path,
+) -> list[dict[str, Any]]:
+    grain_path = run / "grain_tracks.csv"
+    grain_tracks = (
+        pd.read_csv(grain_path, usecols=["time", "step", "grain_id", "radius"])
+        if grain_path.exists() else pd.DataFrame()
+    )
+    if not grain_tracks.empty:
+        grain_tracks["topology_window"] = [
+            _topology_label(value) for value in _population_at_steps(
+                growth, grain_tracks["step"].to_numpy(int)
+            )
+        ]
+
+    rows: list[dict[str, Any]] = []
+    for high, low in TOPOLOGY_WINDOWS[:3]:
+        label = f"N{high}_to_{low}"
+        frame = growth[(growth["grain_count"] <= high) & (growth["grain_count"] >= low)]
+        available = bool(
+            len(frame) >= 3
+            and growth["grain_count"].max() >= high
+            and growth["grain_count"].min() <= low
+        )
+        row: dict[str, Any] = {
+            "regime": regime, "family": _family(regime), "seed": seed,
+            "shear_stiffness": stiffness, "topology_window": label,
+            "available": available,
+        }
+        if len(frame) >= 3:
+            time = frame["time"].to_numpy(float)
+            radius = frame["mean_radius"].to_numpy(float)
+            durations = np.diff(time)
+            increments = np.diff(radius)
+            rates = increments / durations
+            valid = np.isfinite(rates) & np.isfinite(durations) & (durations > 0.0)
+            rates, durations, increments = rates[valid], durations[valid], increments[valid]
+            scale = float(np.median(np.abs(rates))) if rates.size else np.nan
+            threshold = max(1e-12, 0.1 * scale) if np.isfinite(scale) else np.nan
+            stationary = np.abs(rates) <= threshold if rates.size else np.asarray([], bool)
+            waits = _stationary_durations(stationary, durations)
+            positive = increments[increments > 0.0]
+            if positive.size:
+                largest_count = max(1, int(np.ceil(0.10 * positive.size)))
+                largest_fraction = float(np.sort(positive)[-largest_count:].sum() / positive.sum())
+            else:
+                largest_fraction = np.nan
+            positive_time = time > 0.0
+            exponent = (
+                float(np.polyfit(np.log(time[positive_time]), np.log(radius[positive_time]), 1)[0])
+                if positive_time.sum() >= 3 else np.nan
+            )
+            row.update({
+                "mean_growth_rate": float(np.polyfit(time, radius, 1)[0]),
+                "effective_growth_exponent": exponent,
+                "stationary_fraction": float(np.mean(stationary)) if stationary.size else np.nan,
+                "fraction_positive_growth_in_largest_10pct_bursts": largest_fraction,
+                "burst_increment_p50": float(np.quantile(positive, 0.50)) if positive.size else np.nan,
+                "burst_increment_p90": float(np.quantile(positive, 0.90)) if positive.size else np.nan,
+                "burst_increment_p95": float(np.quantile(positive, 0.95)) if positive.size else np.nan,
+                "waiting_time_median": float(np.median(waits)) if waits.size else 0.0,
+                "waiting_time_p90": float(np.quantile(waits, 0.90)) if waits.size else 0.0,
+                "waiting_time_max": float(np.max(waits)) if waits.size else 0.0,
+                "waiting_episodes": int(waits.size),
+            })
+
+        selected = (
+            grain_tracks[grain_tracks["topology_window"].eq(label)].copy()
+            if not grain_tracks.empty else pd.DataFrame()
+        )
+        velocities: list[np.ndarray] = []
+        for _, grain in selected.sort_values(["grain_id", "step"]).groupby("grain_id"):
+            delta_time = np.diff(grain["time"].to_numpy(float))
+            delta_radius = np.diff(grain["radius"].to_numpy(float))
+            valid = np.isfinite(delta_time) & np.isfinite(delta_radius) & (delta_time > 0.0)
+            if np.any(valid):
+                velocities.append(delta_radius[valid] / delta_time[valid])
+        grain_velocity = np.concatenate(velocities) if velocities else np.asarray([], float)
+        absolute_velocity = np.abs(grain_velocity)
+        row.update({
+            "grain_velocity_samples": int(grain_velocity.size),
+            "grain_radial_velocity_p50": (
+                float(np.quantile(grain_velocity, 0.50)) if grain_velocity.size else np.nan
+            ),
+            "grain_abs_radial_velocity_p50": (
+                float(np.quantile(absolute_velocity, 0.50)) if absolute_velocity.size else np.nan
+            ),
+            "grain_abs_radial_velocity_p90": (
+                float(np.quantile(absolute_velocity, 0.90)) if absolute_velocity.size else np.nan
+            ),
+            "grain_abs_radial_velocity_p95": (
+                float(np.quantile(absolute_velocity, 0.95)) if absolute_velocity.size else np.nan
+            ),
+        })
+        rows.append(row)
+    return rows
+
+
 def _plot_lines(
     frame: pd.DataFrame, metric: str, output: Path, ylabel: str,
     *, group_extra: str | None = None,
@@ -537,6 +651,7 @@ def main() -> None:
     response_rows: list[dict[str, Any]] = []
     causal_null_rows: list[dict[str, Any]] = []
     event_trajectory_rows: list[dict[str, Any]] = []
+    experimental_rows: list[dict[str, Any]] = []
 
     seen: set[Path] = set()
     for campaign in map(Path, args.campaigns):
@@ -568,6 +683,7 @@ def main() -> None:
                 else pd.DataFrame(columns=minimal_columns)
             )
             run_summary = _run_summary(run, manifest, trace_minimal, events)
+            movies = sorted(run.glob("microstructure.*"))
             run_summary.update({
                 "regime": regime, "family": _family(regime), "seed": seed,
                 "shear_stiffness": stiffness, "path": str(run),
@@ -576,6 +692,17 @@ def main() -> None:
                 "end_step": int(growth.iloc[-1]["step"]),
                 "end_time": float(growth.iloc[-1]["time"]),
                 "end_grains": int(growth.iloc[-1]["grain_count"]),
+                "target_reached": bool(
+                    int(growth.iloc[-1]["grain_count"])
+                    <= int(config["termination_grains"])
+                ),
+                "ceiling_censored": bool(
+                    int(growth.iloc[-1]["step"]) >= int(config["max_steps"])
+                    and int(growth.iloc[-1]["grain_count"])
+                    > int(config["termination_grains"])
+                ),
+                "movie_path": str(movies[0]) if movies else "",
+                "movie_exists": bool(movies),
             })
             run_rows.append(run_summary)
             for row in _window_metrics(regime, growth, events):
@@ -591,6 +718,9 @@ def main() -> None:
             force_rows.extend(rows)
             episode_rows.extend(episodes)
             target_rows.extend(_target_rows(regime, seed, stiffness, growth))
+            experimental_rows.extend(_experimental_observables(
+                regime, seed, stiffness, growth, run,
+            ))
             frame_rows.extend(_frame_windows(
                 regime, seed, stiffness, run,
                 dx=float(config["pf"]["grid_spacing"]),
@@ -627,7 +757,16 @@ def main() -> None:
     responses = pd.DataFrame(response_rows)
     causal_nulls = pd.DataFrame(causal_null_rows)
     event_trajectories = pd.DataFrame(event_trajectory_rows)
+    experimental = pd.DataFrame(experimental_rows)
     runs.to_csv(output / "transition_run_summary.csv", index=False)
+    movie_columns = [
+        "regime", "family", "seed", "shear_stiffness", "status", "source_sha",
+        "end_step", "end_time", "end_grains", "target_reached", "ceiling_censored",
+        "movie_exists", "movie_path", "path",
+    ]
+    runs[[column for column in movie_columns if column in runs]].to_csv(
+        output / "movie_index.csv", index=False
+    )
     kinetics.to_csv(output / "transition_kinetics.csv", index=False)
     forces.to_csv(output / "force_balance_windows.csv", index=False)
     episodes.to_csv(output / "arrest_episodes.csv", index=False)
@@ -636,6 +775,7 @@ def main() -> None:
     responses.to_csv(output / "solver_step_event_responses.csv", index=False)
     causal_nulls.to_csv(output / "solver_step_causal_nulls.csv", index=False)
     event_trajectories.to_csv(output / "event_triggered_vn.csv", index=False)
+    experimental.to_csv(output / "experimental_observables.csv", index=False)
     censoring = targets.groupby(
         ["family", "shear_stiffness", "target_grains"], as_index=False
     ).agg(
@@ -692,6 +832,7 @@ def main() -> None:
     ) & kinetics["available"].eq(True)]
     _plot_lines(early, "Rdot", output / "Rdot_vs_Ks.png", "Rdot", group_extra="topology_window")
     _plot_lines(targets, "time", output / "target_time_vs_Ks.png", "time to target/censor", group_extra="target_grains")
+    _plot_lines(targets, "step", output / "target_steps_vs_Ks.png", "steps to target/censor", group_extra="target_grains")
     if not arrest_summary.empty:
         _plot_lines(arrest_summary, "longest_arrest_steps", output / "longest_arrest_vs_Ks.png", "longest arrest (steps)")
         _plot_lines(arrest_summary, "median_arrest_steps", output / "median_arrest_vs_Ks.png", "median arrest (steps)")

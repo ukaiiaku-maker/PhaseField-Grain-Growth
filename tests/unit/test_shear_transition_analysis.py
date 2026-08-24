@@ -4,6 +4,7 @@ import importlib.util
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 
 
 _SPEC = importlib.util.spec_from_file_location(
@@ -72,3 +73,27 @@ def test_frame_windows_separates_exact_domain_and_length_weighted_force_metrics(
     assert np.isclose(row["fraction_active_gb_length_chi_s_near_one"], 0.625)
     assert np.isclose(row["fraction_active_gb_length_chi_s_gt_one"], 0.25)
     assert np.isclose(row["fraction_active_gb_length_p_net_negative"], 2.0 / 3.0)
+
+
+def test_experimental_observables_reports_bursts_waits_and_grain_velocity(tmp_path):
+    growth = pd.DataFrame({
+        "step": [0, 1, 2, 3], "time": [0.0, 1.0, 2.0, 3.0],
+        "grain_count": [190, 180, 170, 160], "mean_radius": [1.0, 1.0, 2.0, 2.0],
+    })
+    run = tmp_path / "case"
+    run.mkdir()
+    pd.DataFrame({
+        "time": [0.0, 1.0, 2.0, 3.0], "step": [0, 1, 2, 3],
+        "grain_id": [7, 7, 7, 7], "radius": [1.0, 1.5, 2.0, 2.5],
+    }).to_csv(run / "grain_tracks.csv", index=False)
+    rows = _ANALYSIS._experimental_observables(
+        "GTSC_GB_Ks025", 5101, 0.25, growth, run,
+    )
+    row = next(item for item in rows if item["topology_window"] == "N190_to_160")
+    assert row["available"]
+    assert np.isclose(row["stationary_fraction"], 2.0 / 3.0)
+    assert np.isclose(row["fraction_positive_growth_in_largest_10pct_bursts"], 1.0)
+    assert row["waiting_episodes"] == 2
+    assert np.isclose(row["waiting_time_median"], 1.0)
+    assert row["grain_velocity_samples"] == 3
+    assert np.isclose(row["grain_abs_radial_velocity_p95"], 0.5)
