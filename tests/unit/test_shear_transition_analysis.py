@@ -40,3 +40,35 @@ def test_segmented_change_point_localizes_known_hinge():
     fit = _ANALYSIS.segmented_change_point(x, y)
     assert np.isclose(fit["critical_Ks"], 0.30)
     assert fit["sse"] < 1e-20
+
+
+def test_frame_windows_separates_exact_domain_and_length_weighted_force_metrics(tmp_path):
+    run = tmp_path / "case"
+    frames = run / "frames"
+    frames.mkdir(parents=True)
+    np.savez_compressed(
+        frames / "frame-0000000.npz",
+        grain_count=np.asarray(180),
+        boundary_mask=np.asarray([[1, 1], [1, 0]], dtype=np.uint8),
+        shear=np.asarray([[1.0, 1.0], [1.0, 0.0]]),
+        shear_stress=np.asarray([[-0.2, -0.3], [-0.4, 0.0]]),
+        p_shear=np.asarray([[-0.1, -0.2], [-0.3, 0.0]]),
+        chi_s=np.asarray([[0.5, 0.9], [1.1, np.nan]]),
+        p_net=np.asarray([[1.0, -0.2], [-0.4, np.nan]]),
+        active_shear_length=np.asarray(3.0),
+        total_gb_length=np.asarray(3.0),
+        stored_shear_energy=np.asarray(1.5),
+        stored_shear_energy_per_active_gb_length=np.asarray(0.5),
+        mean_abs_tau_int_active_domain=np.asarray(7.0),
+        fraction_active_gb_length_chi_s_near_one=np.asarray(0.625),
+        fraction_active_gb_length_chi_s_gt_one=np.asarray(0.25),
+    )
+    rows = _ANALYSIS._frame_windows("GTSC_GB_Ks025", 5101, 0.25, run, 1.0)
+    row = next(item for item in rows if item["topology_window"] == "N190_to_160")
+    assert row["available"]
+    assert np.isclose(row["mean_abs_tau_int_active_domain"], 7.0)
+    assert np.isclose(row["mean_abs_tau_int_active_length"], 0.3)
+    assert np.isclose(row["chi_s_p50_active_length"], 0.9)
+    assert np.isclose(row["fraction_active_gb_length_chi_s_near_one"], 0.625)
+    assert np.isclose(row["fraction_active_gb_length_chi_s_gt_one"], 0.25)
+    assert np.isclose(row["fraction_active_gb_length_p_net_negative"], 2.0 / 3.0)

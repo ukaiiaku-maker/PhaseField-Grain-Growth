@@ -278,6 +278,24 @@ def _frame_windows(
             boundary = frame["boundary_mask"].astype(bool)
             shear = frame["shear"].astype(float)
             active = boundary & (np.abs(shear) > 1e-12)
+            tau = (
+                np.abs(frame["shear_stress"].astype(float))
+                if "shear_stress" in frame else np.zeros_like(shear)
+            )
+            p_shear = (
+                np.abs(frame["p_shear"].astype(float))
+                if "p_shear" in frame else np.zeros_like(shear)
+            )
+            chi = (
+                frame["chi_s"].astype(float)
+                if "chi_s" in frame else np.full_like(shear, np.nan)
+            )
+            p_net = (
+                frame["p_net"].astype(float)
+                if "p_net" in frame else np.full_like(shear, np.nan)
+            )
+            valid_chi = active & np.isfinite(chi)
+            valid_p_net = active & np.isfinite(p_net)
             active_length = float(frame["active_shear_length"]) if (
                 "active_shear_length" in frame
             ) else float(active.sum() * dx)
@@ -289,6 +307,14 @@ def _frame_windows(
                 "stored_shear_energy_per_active_gb_length" in frame
             ) else (total_energy / active_length if active_length else 0.0)
             local_energy = 0.5 * stiffness * shear[active] ** 2
+
+            def scalar_or(name: str, fallback: float) -> float:
+                return float(frame[name]) if name in frame else fallback
+
+            def pixel_quantile(values: np.ndarray, mask: np.ndarray, q: float) -> float:
+                selected = values[mask]
+                return float(np.quantile(selected, q)) if selected.size else np.nan
+
             detail.append({
                 "topology_window": label,
                 "active_shear_bearing_gb_fraction": (
@@ -324,6 +350,65 @@ def _frame_windows(
                     float(frame["local_shear_energy_p99"])
                     if "local_shear_energy_p99" in frame
                     else (float(np.quantile(local_energy, 0.99)) if local_energy.size else 0.0)
+                ),
+                "mean_abs_tau_int_active_domain": scalar_or(
+                    "mean_abs_tau_int_active_domain",
+                    float(tau[active].mean()) if np.any(active) else np.nan,
+                ),
+                "mean_abs_tau_int_active_length": scalar_or(
+                    "mean_abs_tau_int_active_length",
+                    float(tau[active].mean()) if np.any(active) else np.nan,
+                ),
+                "mean_abs_p_shear_active_domain": scalar_or(
+                    "mean_abs_p_shear_active_domain",
+                    float(p_shear[active].mean()) if np.any(active) else np.nan,
+                ),
+                "mean_abs_p_shear_active_length": scalar_or(
+                    "mean_abs_p_shear_active_length",
+                    float(p_shear[active].mean()) if np.any(active) else np.nan,
+                ),
+                "mean_chi_s_active_domain": scalar_or(
+                    "mean_chi_s_active_domain",
+                    float(chi[valid_chi].mean()) if np.any(valid_chi) else np.nan,
+                ),
+                "mean_chi_s_active_length": scalar_or(
+                    "mean_chi_s_active_length",
+                    float(chi[valid_chi].mean()) if np.any(valid_chi) else np.nan,
+                ),
+                "chi_s_p50_active_domain": scalar_or(
+                    "chi_s_p50_active_domain", pixel_quantile(chi, valid_chi, 0.50)
+                ),
+                "chi_s_p90_active_domain": scalar_or(
+                    "chi_s_p90_active_domain", pixel_quantile(chi, valid_chi, 0.90)
+                ),
+                "chi_s_p95_active_domain": scalar_or(
+                    "chi_s_p95_active_domain", pixel_quantile(chi, valid_chi, 0.95)
+                ),
+                "chi_s_p99_active_domain": scalar_or(
+                    "chi_s_p99_active_domain", pixel_quantile(chi, valid_chi, 0.99)
+                ),
+                "chi_s_p50_active_length": pixel_quantile(chi, valid_chi, 0.50),
+                "chi_s_p90_active_length": pixel_quantile(chi, valid_chi, 0.90),
+                "chi_s_p95_active_length": pixel_quantile(chi, valid_chi, 0.95),
+                "chi_s_p99_active_length": pixel_quantile(chi, valid_chi, 0.99),
+                "fraction_active_gb_length_chi_s_gt_0p8": (
+                    float(np.mean(chi[valid_chi] > 0.8)) if np.any(valid_chi) else np.nan
+                ),
+                "fraction_active_gb_length_chi_s_near_one": scalar_or(
+                    "fraction_active_gb_length_chi_s_near_one",
+                    float(np.mean((chi[valid_chi] > 0.8) & (chi[valid_chi] < 1.2)))
+                    if np.any(valid_chi) else np.nan,
+                ),
+                "fraction_active_gb_length_chi_s_gt_one": scalar_or(
+                    "fraction_active_gb_length_chi_s_gt_one",
+                    float(np.mean(chi[valid_chi] > 1.0)) if np.any(valid_chi) else np.nan,
+                ),
+                "p_net_p05_active_length": pixel_quantile(p_net, valid_p_net, 0.05),
+                "p_net_p50_active_length": pixel_quantile(p_net, valid_p_net, 0.50),
+                "p_net_p95_active_length": pixel_quantile(p_net, valid_p_net, 0.95),
+                "fraction_active_gb_length_p_net_negative": (
+                    float(np.mean(p_net[valid_p_net] < 0.0))
+                    if np.any(valid_p_net) else np.nan
                 ),
             })
     frame = pd.DataFrame(detail)
@@ -585,10 +670,16 @@ def main() -> None:
                 np.log10(np.maximum(frame["Rdot"].to_numpy(float), 1e-12)),
             )
         }
-        force = forces[(forces["family"] == family) & (forces["topology_window"] == "N160_to_140")]
+        force = frame_metrics[
+            (frame_metrics["family"] == family)
+            & (frame_metrics["topology_window"] == "N160_to_140")
+            & frame_metrics["available"].eq(True)
+        ]
         if len(force) >= 4:
             force = force.groupby("shear_stiffness", as_index=False).agg(
-                fraction_length_chi_near_one=("fraction_length_chi_near_one", "mean")
+                fraction_length_chi_near_one=(
+                    "fraction_active_gb_length_chi_s_near_one", "mean"
+                )
             )
             crossover[str(family)]["force_balance"] = segmented_change_point(
                 force["shear_stiffness"].to_numpy(float),
@@ -606,14 +697,14 @@ def main() -> None:
         _plot_lines(arrest_summary, "median_arrest_steps", output / "median_arrest_vs_Ks.png", "median arrest (steps)")
     mandatory_force = forces[forces["topology_window"].eq("N190_to_160") & forces["available"].eq(True)]
     for metric, name, label in (
-        ("chi_p50_length", "chi_p50_vs_Ks.png", "length-weighted p50 chi_s"),
-        ("chi_p90_length", "chi_p90_vs_Ks.png", "length-weighted p90 chi_s"),
-        ("chi_p95_length", "chi_p95_vs_Ks.png", "length-weighted p95 chi_s"),
-        ("fraction_length_chi_gt_0p8", "fraction_chi_gt_0p8_vs_Ks.png", "GB length fraction chi_s > 0.8"),
-        ("fraction_length_chi_gt_one", "fraction_chi_gt_one_vs_Ks.png", "GB length fraction chi_s > 1"),
-        ("mean_abs_tau_length", "mean_abs_tau_vs_Ks.png", "length-weighted mean abs(tau_int)"),
-        ("mean_abs_p_shear_length", "mean_abs_p_shear_vs_Ks.png", "length-weighted mean abs(p_shear)"),
-        ("energy_per_active_length", "energy_per_active_length_vs_Ks.png", "local energy, length weighted"),
+        ("chi_p50_length", "event_trace_chi_p50_vs_Ks.png", "event-conditioned length-weighted p50 chi_s"),
+        ("chi_p90_length", "event_trace_chi_p90_vs_Ks.png", "event-conditioned length-weighted p90 chi_s"),
+        ("chi_p95_length", "event_trace_chi_p95_vs_Ks.png", "event-conditioned length-weighted p95 chi_s"),
+        ("fraction_length_chi_gt_0p8", "event_trace_fraction_chi_gt_0p8_vs_Ks.png", "event-conditioned GB length fraction chi_s > 0.8"),
+        ("fraction_length_chi_gt_one", "event_trace_fraction_chi_gt_one_vs_Ks.png", "event-conditioned GB length fraction chi_s > 1"),
+        ("mean_abs_tau_length", "event_trace_mean_abs_tau_vs_Ks.png", "event-conditioned length-weighted mean abs(tau_int)"),
+        ("mean_abs_p_shear_length", "event_trace_mean_abs_p_shear_vs_Ks.png", "event-conditioned length-weighted mean abs(p_shear)"),
+        ("energy_per_active_length", "event_trace_energy_per_active_length_vs_Ks.png", "event-conditioned local energy, length weighted"),
     ):
         _plot_lines(mandatory_force, metric, output / name, label)
     mandatory_frames = frame_metrics[
@@ -640,6 +731,15 @@ def main() -> None:
         ("local_shear_energy_p90", "local_energy_p90_vs_Ks.png", "local shear energy p90"),
         ("local_shear_energy_p95", "local_energy_p95_vs_Ks.png", "local shear energy p95"),
         ("local_shear_energy_p99", "local_energy_p99_vs_Ks.png", "local shear energy p99"),
+        ("chi_s_p50_active_length", "chi_p50_vs_Ks.png", "ordinary-frame length-weighted p50 chi_s"),
+        ("chi_s_p90_active_length", "chi_p90_vs_Ks.png", "ordinary-frame length-weighted p90 chi_s"),
+        ("chi_s_p95_active_length", "chi_p95_vs_Ks.png", "ordinary-frame length-weighted p95 chi_s"),
+        ("fraction_active_gb_length_chi_s_gt_0p8", "fraction_chi_gt_0p8_vs_Ks.png", "ordinary-frame GB length fraction chi_s > 0.8"),
+        ("fraction_active_gb_length_chi_s_near_one", "fraction_chi_near_one_vs_Ks.png", "ordinary-frame GB length fraction 0.8 < chi_s < 1.2"),
+        ("fraction_active_gb_length_chi_s_gt_one", "fraction_chi_gt_one_vs_Ks.png", "ordinary-frame GB length fraction chi_s > 1"),
+        ("mean_abs_tau_int_active_length", "mean_abs_tau_vs_Ks.png", "ordinary-frame length-weighted mean abs(tau_int)"),
+        ("mean_abs_p_shear_active_length", "mean_abs_p_shear_vs_Ks.png", "ordinary-frame length-weighted mean abs(p_shear)"),
+        ("fraction_active_gb_length_p_net_negative", "fraction_p_net_negative_vs_Ks.png", "ordinary-frame GB length fraction p_net < 0"),
     ):
         if metric in mandatory_frames and mandatory_frames[metric].notna().any():
             _plot_lines(mandatory_frames, metric, output / name, label)
