@@ -35,6 +35,13 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
         boundary_mask = np.zeros(self.config.pf.shape, dtype=np.uint8)
         shear = np.zeros(self.config.pf.shape, dtype=np.float32)
         shear_stress = np.zeros(self.config.pf.shape, dtype=np.float32)
+        p_cap = np.zeros(self.config.pf.shape, dtype=np.float32)
+        p_chem = np.zeros(self.config.pf.shape, dtype=np.float32)
+        p_shear = np.zeros(self.config.pf.shape, dtype=np.float32)
+        p_event = np.zeros(self.config.pf.shape, dtype=np.float32)
+        p_net = np.zeros(self.config.pf.shape, dtype=np.float32)
+        chi_s = np.full(self.config.pf.shape, np.nan, dtype=np.float32)
+        local_shear_energy = np.zeros(self.config.pf.shape, dtype=np.float32)
         free_volume = np.zeros(self.config.pf.shape, dtype=np.float32)
         pending_state = np.zeros(self.config.pf.shape, dtype=np.uint8)
         climb_stage = np.zeros(self.config.pf.shape, dtype=np.uint8)
@@ -59,6 +66,14 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
                 pending_state[yy, xx] |= 4
             shear[yy, xx] = float(domain.shear.state)
             shear_stress[yy, xx] = float(domain.shear.internal_shear_stress)
+            balance = self._boundary_force_balance(domain, segment)
+            p_cap[yy, xx] = balance.p_cap
+            p_chem[yy, xx] = balance.p_chem
+            p_shear[yy, xx] = balance.p_shear
+            p_event[yy, xx] = balance.p_event
+            p_net[yy, xx] = balance.p_net
+            chi_s[yy, xx] = balance.chi_s
+            local_shear_energy[yy, xx] = float(domain.shear.energy)
             local_inventory = (
                 self.defect_inventory.active_vacancy.get(domain.entity_id, 0.0)
                 + self.defect_inventory.active_interstitial.get(domain.entity_id, 0.0)
@@ -91,6 +106,44 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
         stored_shear_energy = float(sum(
             domain.shear.energy for domain in self.domains.values()
         ))
+        domain_rows = [
+            (segment, self.domains[segment.entity_id], self._boundary_force_balance(
+                self.domains[segment.entity_id], segment
+            ))
+            for segment in self.snapshot.boundaries.values()
+            if segment.entity_id in self.domains and segment.length > 0.0
+        ]
+        total_gb_length = float(sum(segment.length for segment, _, _ in domain_rows))
+        active_rows = [
+            row for row in domain_rows if abs(row[1].shear.state) > 1e-12
+        ]
+        active_length = float(sum(segment.length for segment, _, _ in active_rows))
+        active_energies = np.asarray(
+            [domain.shear.energy for _, domain, _ in active_rows], dtype=float
+        )
+        active_weights = np.asarray(
+            [segment.length for segment, _, _ in active_rows], dtype=float
+        )
+        active_tau = np.asarray(
+            [abs(domain.shear.internal_shear_stress) for _, domain, _ in active_rows],
+            dtype=float,
+        )
+        active_p_shear = np.asarray(
+            [abs(balance.p_shear) for _, _, balance in active_rows], dtype=float
+        )
+        active_chi = np.asarray(
+            [balance.chi_s for _, _, balance in active_rows], dtype=float
+        )
+        finite_chi = np.isfinite(active_chi)
+
+        def domain_quantile(values: np.ndarray, q: float) -> float:
+            return float(np.quantile(values, q)) if values.size else float("nan")
+
+        def length_mean(values: np.ndarray, weights: np.ndarray) -> float:
+            return (
+                float(np.average(values, weights=weights))
+                if values.size and float(weights.sum()) > 0.0 else float("nan")
+            )
         inventory = (
             self.defect_inventory.diagnostics()
             if self.area_loss_enabled else {
@@ -108,6 +161,13 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
             boundary_mask=boundary_mask,
             shear=shear,
             shear_stress=shear_stress,
+            p_cap=p_cap,
+            p_chem=p_chem,
+            p_shear=p_shear,
+            p_event=p_event,
+            p_net=p_net,
+            chi_s=chi_s,
+            local_shear_energy=local_shear_energy,
             qiu_shear_stress=qiu_shear_stress,
             free_volume=free_volume,
             pending_state=pending_state,
@@ -136,6 +196,54 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
                 float(np.mean(nonzero_boundary)) if boundary_shear.size else 0.0
             ),
             stored_shear_energy=np.asarray(stored_shear_energy),
+            total_gb_length=np.asarray(total_gb_length),
+            active_shear_domain_count=np.asarray(len(active_rows)),
+            active_shear_length=np.asarray(active_length),
+            active_shear_bearing_gb_fraction=np.asarray(
+                active_length / total_gb_length if total_gb_length else 0.0
+            ),
+            stored_shear_energy_per_active_gb_length=np.asarray(
+                stored_shear_energy / active_length if active_length else 0.0
+            ),
+            stored_shear_energy_per_active_domain=np.asarray(
+                float(active_energies.mean()) if active_energies.size else 0.0
+            ),
+            local_shear_energy_p50=np.asarray(domain_quantile(active_energies, 0.50)),
+            local_shear_energy_p90=np.asarray(domain_quantile(active_energies, 0.90)),
+            local_shear_energy_p95=np.asarray(domain_quantile(active_energies, 0.95)),
+            local_shear_energy_p99=np.asarray(domain_quantile(active_energies, 0.99)),
+            mean_abs_tau_int_active_domain=np.asarray(
+                float(active_tau.mean()) if active_tau.size else 0.0
+            ),
+            mean_abs_tau_int_active_length=np.asarray(
+                length_mean(active_tau, active_weights)
+            ),
+            mean_abs_p_shear_active_domain=np.asarray(
+                float(active_p_shear.mean()) if active_p_shear.size else 0.0
+            ),
+            mean_abs_p_shear_active_length=np.asarray(
+                length_mean(active_p_shear, active_weights)
+            ),
+            chi_s_p50_active_domain=np.asarray(domain_quantile(active_chi[finite_chi], 0.50)),
+            chi_s_p90_active_domain=np.asarray(domain_quantile(active_chi[finite_chi], 0.90)),
+            chi_s_p95_active_domain=np.asarray(domain_quantile(active_chi[finite_chi], 0.95)),
+            chi_s_p99_active_domain=np.asarray(domain_quantile(active_chi[finite_chi], 0.99)),
+            mean_chi_s_active_domain=np.asarray(
+                float(active_chi[finite_chi].mean()) if np.any(finite_chi) else float("nan")
+            ),
+            mean_chi_s_active_length=np.asarray(
+                length_mean(active_chi[finite_chi], active_weights[finite_chi])
+            ),
+            fraction_active_gb_length_chi_s_near_one=np.asarray(
+                float(active_weights[finite_chi & (active_chi > 0.8) & (active_chi < 1.2)].sum()
+                      / active_weights[finite_chi].sum())
+                if np.any(finite_chi) and active_weights[finite_chi].sum() else 0.0
+            ),
+            fraction_active_gb_length_chi_s_gt_one=np.asarray(
+                float(active_weights[finite_chi & (active_chi > 1.0)].sum()
+                      / active_weights[finite_chi].sum())
+                if np.any(finite_chi) and active_weights[finite_chi].sum() else 0.0
+            ),
             shear_stress_max_abs=np.asarray(float(np.max(np.abs(shear_stress)))),
             qiu_shear_stress_max_abs=np.asarray(float(np.max(np.abs(qiu_shear_stress)))),
         )

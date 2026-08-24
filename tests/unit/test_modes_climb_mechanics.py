@@ -10,6 +10,7 @@ from grain_growth_pf.disconnections.mode import DisconnectionMode, ModeDriving
 from grain_growth_pf.disconnections.shear_coupling import event_shear_increment
 from grain_growth_pf.disconnections.spectrum import isotropic_surrogate_library
 from grain_growth_pf.mechanics.local_shear_memory import LocalShearMemory
+from grain_growth_pf.mechanics.force_balance import normal_force_balance
 
 
 def test_mode_attempt_limit_and_direction_selection():
@@ -111,6 +112,36 @@ def test_serial_mean_not_parallel_and_shear_sign():
     relaxing.migrate(beta=1.0, normal_displacement=1.0, dt=0.1)
     assert np.isclose(relaxing.state, 0.8)
     assert relaxing.dissipated_energy > 0
+
+
+def test_normal_force_balance_separates_backstress_and_transition_work():
+    balance = normal_force_balance(
+        capillary_pressure=0.7,
+        chemical_pressure=0.1,
+        beta=0.5,
+        resolved_shear=-1.6,
+        event_pressure=0.0,
+    )
+    assert np.isclose(balance.p_shear, -0.8)
+    assert np.isclose(balance.p_net, 0.0)
+    assert np.isclose(balance.chi_s, 1.0)
+
+    reversed_drive = normal_force_balance(
+        capillary_pressure=-0.4,
+        chemical_pressure=0.0,
+        beta=0.5,
+        resolved_shear=1.0,
+    )
+    assert np.isclose(reversed_drive.chi_s, 1.25)
+    assert reversed_drive.p_net > 0.0
+
+    no_reference = normal_force_balance(
+        capillary_pressure=0.0,
+        chemical_pressure=0.0,
+        beta=0.5,
+        resolved_shear=-1.0,
+    )
+    assert np.isnan(no_reference.chi_s)
 
 
 def test_serial_cycle_uses_distinct_stage_rates_within_one_step():

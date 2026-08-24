@@ -23,6 +23,7 @@ from grain_growth_pf.entities.arclength_tracker import ArclengthEntityTracker
 from grain_growth_pf.entities.gb_segment import GBSegment
 from grain_growth_pf.entities.triple_junction import TripleJunction
 from grain_growth_pf.io.event_trace import EventTraceRecorder, trace_entity_key
+from grain_growth_pf.mechanics.force_balance import NormalForceBalance, normal_force_balance
 from grain_growth_pf.pf.kinematics import interface_kinematics
 from grain_growth_pf.simulation import DomainPhysics, EventResolvedSimulation
 
@@ -71,6 +72,32 @@ class MigrationClosureSimulation(EventResolvedSimulation):
         "compatibility_release", "tj_compatibility_release",
         "gb_sink_completion", "tj_sink_completion", "climb_quota_completion",
     }
+
+    def _boundary_force_balance(
+        self, domain: DomainPhysics, segment: GBSegment,
+    ) -> NormalForceBalance:
+        """Return the executed external force plus sharp-interface diagnostics.
+
+        Capillarity is evolved by the diffuse PF free-energy functional.  The
+        scalar ``gamma*kappa`` is recorded as its sharp-interface estimate but
+        is not added to ``driving_field`` a second time.  Corrected climb
+        chemistry changes activation/pinning and has no continuous pressure,
+        so ``p_chem`` is exactly zero here.  The event-release impulse is
+        retained separately from chemistry.
+        """
+
+        event_pressure = 0.0
+        if domain.normal_release_remaining:
+            event_pressure = np.sign(domain.normal_release_remaining) * float(
+                self.config.parameters.get("event_normal_pressure", 1.0)
+            )
+        return normal_force_balance(
+            capillary_pressure=float(self.config.pf.gb_energy * segment.curvature),
+            chemical_pressure=0.0,
+            beta=float(self.config.parameters.get("easy_beta", 0.35)),
+            resolved_shear=self._boundary_resolved_shear(domain, segment),
+            event_pressure=float(event_pressure),
+        )
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         config = kwargs.get("config", args[0] if args else None)
@@ -383,6 +410,7 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 self.config.pf.gb_energy * segment.curvature * velocity
             )
             resolved_shear = float(self._boundary_resolved_shear(domain, segment))
+            force_balance = self._boundary_force_balance(domain, segment)
             shear_work_rate = float(resolved_shear * abs(velocity))
             chemical_work = float(global_mu * local_signed)
             latest = self._event_trace_records_by_entity.get(entity_id, [{}])[-1]
@@ -407,6 +435,13 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 "shear_state_s": float(domain.shear.state),
                 "tau_int": float(domain.shear.internal_shear_stress),
                 "free_volume_signed_inventory": float(local_signed),
+                "p_cap": force_balance.p_cap,
+                "p_chem": force_balance.p_chem,
+                "p_shear": force_balance.p_shear,
+                "p_event": force_balance.p_event,
+                "p_net": force_balance.p_net,
+                "chi_s": force_balance.chi_s,
+                "local_shear_energy": float(domain.shear.energy),
                 "p_cap_V_n": capillary_work_rate, "tau_V_tau": shear_work_rate,
                 "Delta_mu_v_N_v": chemical_work,
                 "W_total": capillary_work_rate + shear_work_rate + chemical_work,
@@ -454,6 +489,8 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 "free_volume_signed_inventory": (
                     float(self.defect_inventory.stored_signed) if self.area_loss_enabled else 0.0
                 ),
+                "p_cap": "", "p_chem": "", "p_shear": "", "p_event": "",
+                "p_net": "", "chi_s": "", "local_shear_energy": float(domain.shear.energy),
                 "p_cap_V_n": "", "tau_V_tau": "",
                 "Delta_mu_v_N_v": float(global_mu * self.defect_inventory.stored_signed)
                 if self.area_loss_enabled else 0.0,
@@ -1762,13 +1799,11 @@ class MigrationClosureSimulation(EventResolvedSimulation):
             else:
                 self._advance_climb(domain, segment, swept_measure)
 
-            pair_force = float(cfg.parameters.get("easy_beta", 0.35)) * self._boundary_resolved_shear(
-                domain, segment
-            )
-            if domain.normal_release_remaining:
-                pair_force += np.sign(domain.normal_release_remaining) * float(
-                    cfg.parameters.get("event_normal_pressure", 1.0)
-                )
+            force_balance = self._boundary_force_balance(domain, segment)
+            # Capillarity is already in the PF functional and corrected climb
+            # has no continuous chemical pressure.  Only the algebraically
+            # identical external shear and event-release terms are applied.
+            pair_force = force_balance.p_shear + force_balance.p_event
             for yx in segment.points.astype(int):
                 y, x = yx % np.asarray(cfg.pf.shape)
                 if domain.blocked:

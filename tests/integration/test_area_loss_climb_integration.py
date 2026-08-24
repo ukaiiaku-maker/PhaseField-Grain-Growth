@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import csv
+import importlib.util
 import json
 from pathlib import Path
 
@@ -9,6 +10,16 @@ import pandas as pd
 
 from grain_growth_pf.config import ModelConfig, PFConfig
 from grain_growth_pf.migration_closure import MigrationClosureSimulation
+
+
+_FRAME_SPEC = importlib.util.spec_from_file_location(
+    "run_migration_closure_video",
+    Path(__file__).parents[2] / "scripts" / "run_migration_closure_video.py",
+)
+assert _FRAME_SPEC is not None and _FRAME_SPEC.loader is not None
+_FRAME_MODULE = importlib.util.module_from_spec(_FRAME_SPEC)
+_FRAME_SPEC.loader.exec_module(_FRAME_MODULE)
+ClosureFrameSimulation = _FRAME_MODULE.ClosureFrameSimulation
 
 
 def _config(regime: str, modules: tuple[str, ...], max_steps: int = 2) -> ModelConfig:
@@ -179,6 +190,55 @@ def test_event_trace_on_off_and_window_size_do_not_change_trajectory(tmp_path):
         if trace_format == "csv":
             assert len((traced / "event_trace_events.csv").read_text().splitlines()) > 1
             assert len((traced / "event_traces.csv").read_text().splitlines()) > 1
+            trace = pd.read_csv(traced / "event_traces.csv")
         else:
             assert len(pd.read_parquet(traced / "event_trace_events.parquet")) > 0
-            assert len(pd.read_parquet(traced / "event_traces.parquet")) > 0
+            trace = pd.read_parquet(traced / "event_traces.parquet")
+            assert len(trace) > 0
+        assert {
+            "p_cap", "p_chem", "p_shear", "p_event", "p_net", "chi_s",
+            "local_shear_energy",
+        }.issubset(trace.columns)
+        gb_trace = trace[trace["entity_type"] == "GB"].dropna(subset=["p_net"])
+        assert len(gb_trace) > 0
+        assert np.allclose(
+            gb_trace["p_net"],
+            gb_trace["p_cap"] + gb_trace["p_chem"]
+            + gb_trace["p_shear"] + gb_trace["p_event"],
+        )
+
+
+def test_video_frame_records_force_balance_and_normalized_shear_energy(tmp_path):
+    config = _config(
+        "GTSC_GBTJ_Ks030",
+        (
+            "gb_compatibility", "tj_compatibility", "multihit_persistent",
+            "shear_memory", "area_loss_climb", "gb_defect_sink", "tj_defect_sink",
+        ),
+        max_steps=1,
+    )
+    config.parameters.update({
+        "shear_stiffness": 0.30,
+        "easy_beta": 0.35,
+        "video_frame_cadence": 1,
+    })
+    output = tmp_path / "force-frame"
+    ClosureFrameSimulation(config, output, code_sha="test-sha").run()
+    frames = sorted((output / "frames").glob("frame-*.npz"))
+    assert frames
+    with np.load(frames[-1]) as frame:
+        required = {
+            "p_cap", "p_chem", "p_shear", "p_event", "p_net", "chi_s",
+            "local_shear_energy", "active_shear_domain_count",
+            "active_shear_length", "stored_shear_energy_per_active_gb_length",
+            "stored_shear_energy_per_active_domain",
+            "fraction_active_gb_length_chi_s_near_one",
+            "fraction_active_gb_length_chi_s_gt_one",
+        }
+        assert required.issubset(frame.files)
+        boundary = frame["boundary_mask"].astype(bool)
+        assert np.allclose(
+            frame["p_net"][boundary],
+            frame["p_cap"][boundary] + frame["p_chem"][boundary]
+            + frame["p_shear"][boundary] + frame["p_event"][boundary],
+        )

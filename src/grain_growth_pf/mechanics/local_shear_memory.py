@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from .force_balance import normal_force_balance
+
 
 @dataclass
 class LocalShearMemory:
@@ -40,5 +42,10 @@ class LocalShearMemory:
 
     def normal_velocity(self, mobility: float, capillary_pressure: float,
                         beta: float, chemical_pressure: float = 0.0) -> float:
-        return mobility * (capillary_pressure + beta * self.internal_shear_stress + chemical_pressure)
-
+        balance = normal_force_balance(
+            capillary_pressure=capillary_pressure,
+            chemical_pressure=chemical_pressure,
+            beta=beta,
+            resolved_shear=self.internal_shear_stress,
+        )
+        return mobility * balance.p_net
