@@ -10,6 +10,7 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import pyarrow.dataset as pds
 
 from grain_growth_pf.io.event_ledger import event_ledger_path, read_event_ledger
 
@@ -109,10 +110,22 @@ def _family(regime: str) -> str:
 def _read_trace(run: Path) -> pd.DataFrame:
     parquet = run / "event_traces.parquet"
     csv_path = run / "event_traces.csv"
+    requested = [
+        "entity_type", "entity_id", "step", "time", "local_normal_velocity",
+        "curvature", "gb_length", "shear_state_s", "tau_int", "p_cap",
+        "p_chem", "p_shear", "p_event", "p_net", "p_applied_total", "chi_s",
+        "local_shear_energy",
+    ]
     if parquet.exists():
-        frame = pd.read_parquet(parquet)
+        available = set(pds.dataset(parquet, format="parquet").schema.names)
+        frame = pd.read_parquet(
+            parquet, columns=[column for column in requested if column in available]
+        )
     elif csv_path.exists():
-        frame = pd.read_csv(csv_path)
+        available = set(pd.read_csv(csv_path, nrows=0).columns)
+        frame = pd.read_csv(
+            csv_path, usecols=[column for column in requested if column in available]
+        )
     else:
         return pd.DataFrame()
     return frame[frame.get("entity_type", "GB").astype(str).eq("GB")].copy()
@@ -423,6 +436,10 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("campaigns", nargs="+")
     parser.add_argument("--output", required=True)
+    parser.add_argument(
+        "--fast", action="store_true",
+        help="skip event-response/null trajectories for rapid crossover selection",
+    )
     args = parser.parse_args()
     output = Path(args.output)
     output.mkdir(parents=True, exist_ok=True)
@@ -496,7 +513,7 @@ def main() -> None:
             event_index = _trace_table(run, "event_trace_events", [
                 "event_id", "event_type", "sink_path", "event_step", "entity_id",
             ])
-            response, causal = _event_responses(
+            response, causal = ([], []) if args.fast else _event_responses(
                 regime, growth, trace_minimal, event_index
             )
             for row in response:
@@ -511,9 +528,10 @@ def main() -> None:
                 })
             response_rows.extend(response)
             causal_null_rows.extend(causal)
-            event_trajectory_rows.extend(_event_triggered_trajectory(
-                regime, seed, stiffness, trace_minimal, event_index,
-            ))
+            if not args.fast:
+                event_trajectory_rows.extend(_event_triggered_trajectory(
+                    regime, seed, stiffness, trace_minimal, event_index,
+                ))
 
     runs = pd.DataFrame(run_rows)
     kinetics = pd.DataFrame(kinetic_rows)
