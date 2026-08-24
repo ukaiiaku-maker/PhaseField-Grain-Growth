@@ -40,6 +40,7 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
         p_shear = np.zeros(self.config.pf.shape, dtype=np.float32)
         p_event = np.zeros(self.config.pf.shape, dtype=np.float32)
         p_net = np.zeros(self.config.pf.shape, dtype=np.float32)
+        p_applied_total = np.zeros(self.config.pf.shape, dtype=np.float32)
         chi_s = np.full(self.config.pf.shape, np.nan, dtype=np.float32)
         local_shear_energy = np.zeros(self.config.pf.shape, dtype=np.float32)
         free_volume = np.zeros(self.config.pf.shape, dtype=np.float32)
@@ -72,6 +73,7 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
             p_shear[yy, xx] = balance.p_shear
             p_event[yy, xx] = balance.p_event
             p_net[yy, xx] = balance.p_net
+            p_applied_total[yy, xx] = balance.p_applied_total
             chi_s[yy, xx] = balance.chi_s
             local_shear_energy[yy, xx] = float(domain.shear.energy)
             local_inventory = (
@@ -166,6 +168,7 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
             p_shear=p_shear,
             p_event=p_event,
             p_net=p_net,
+            p_applied_total=p_applied_total,
             chi_s=chi_s,
             local_shear_energy=local_shear_energy,
             qiu_shear_stress=qiu_shear_stress,

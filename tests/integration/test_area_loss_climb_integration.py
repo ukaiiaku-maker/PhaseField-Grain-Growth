@@ -196,7 +196,8 @@ def test_event_trace_on_off_and_window_size_do_not_change_trajectory(tmp_path):
             trace = pd.read_parquet(traced / "event_traces.parquet")
             assert len(trace) > 0
         assert {
-            "p_cap", "p_chem", "p_shear", "p_event", "p_net", "chi_s",
+            "p_cap", "p_chem", "p_shear", "p_event", "p_net",
+            "p_applied_total", "chi_s",
             "local_shear_energy",
         }.issubset(trace.columns)
         gb_trace = trace[trace["entity_type"] == "GB"].dropna(subset=["p_net"])
@@ -204,7 +205,10 @@ def test_event_trace_on_off_and_window_size_do_not_change_trajectory(tmp_path):
         assert np.allclose(
             gb_trace["p_net"],
             gb_trace["p_cap"] + gb_trace["p_chem"]
-            + gb_trace["p_shear"] + gb_trace["p_event"],
+            + gb_trace["p_shear"],
+        )
+        assert np.allclose(
+            gb_trace["p_applied_total"], gb_trace["p_net"] + gb_trace["p_event"]
         )
 
 
@@ -228,7 +232,8 @@ def test_video_frame_records_force_balance_and_normalized_shear_energy(tmp_path)
     assert frames
     with np.load(frames[-1]) as frame:
         required = {
-            "p_cap", "p_chem", "p_shear", "p_event", "p_net", "chi_s",
+            "p_cap", "p_chem", "p_shear", "p_event", "p_net",
+            "p_applied_total", "chi_s",
             "local_shear_energy", "active_shear_domain_count",
             "active_shear_length", "stored_shear_energy_per_active_gb_length",
             "stored_shear_energy_per_active_domain",
@@ -240,5 +245,9 @@ def test_video_frame_records_force_balance_and_normalized_shear_energy(tmp_path)
         assert np.allclose(
             frame["p_net"][boundary],
             frame["p_cap"][boundary] + frame["p_chem"][boundary]
-            + frame["p_shear"][boundary] + frame["p_event"][boundary],
+            + frame["p_shear"][boundary],
+        )
+        assert np.allclose(
+            frame["p_applied_total"][boundary],
+            frame["p_net"][boundary] + frame["p_event"][boundary],
         )

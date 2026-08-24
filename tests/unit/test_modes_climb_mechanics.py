@@ -124,6 +124,7 @@ def test_normal_force_balance_separates_backstress_and_transition_work():
     )
     assert np.isclose(balance.p_shear, -0.8)
     assert np.isclose(balance.p_net, 0.0)
+    assert np.isclose(balance.p_applied_total, 0.0)
     assert np.isclose(balance.chi_s, 1.0)
 
     reversed_drive = normal_force_balance(
@@ -134,6 +135,16 @@ def test_normal_force_balance_separates_backstress_and_transition_work():
     )
     assert np.isclose(reversed_drive.chi_s, 1.25)
     assert reversed_drive.p_net > 0.0
+
+    with_impulse = normal_force_balance(
+        capillary_pressure=0.7,
+        chemical_pressure=0.1,
+        beta=0.5,
+        resolved_shear=-1.6,
+        event_pressure=0.25,
+    )
+    assert np.isclose(with_impulse.p_net, 0.0)
+    assert np.isclose(with_impulse.p_applied_total, 0.25)
 
     no_reference = normal_force_balance(
         capillary_pressure=0.0,

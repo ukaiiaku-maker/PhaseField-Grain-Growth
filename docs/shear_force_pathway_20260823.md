@@ -29,10 +29,14 @@ step the following path is executed:
 Thus the sharp-interface diagnostic decomposition is
 
 \[
-p_{net}^{diag}=p_{cap}^{diag}+p_{chem}^{continuous}+p_{shear}+p_{event},
+p_{net}^{diag}=p_{cap}^{diag}+p_{chem}^{continuous}+p_{shear},
 \qquad p_{cap}^{diag}=\gamma\kappa,
 \qquad p_{shear}=\beta\tau_{int}=-\beta K_s s.
 \]
+
+The separately recorded executed-force diagnostic is
+`p_applied_total=p_net+p_event`; the transient release impulse is deliberately
+excluded from `p_net` and from the arrest ratio.
 
 `p_cap` is a sharp-interface estimate of capillarity already evaluated by the
 diffuse PF functional.  In the corrected area-loss closure,

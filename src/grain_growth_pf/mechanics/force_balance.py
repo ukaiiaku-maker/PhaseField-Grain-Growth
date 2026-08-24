@@ -20,6 +20,7 @@ class NormalForceBalance:
     p_shear: float
     p_event: float
     p_net: float
+    p_applied_total: float
     chi_s: float
 
 
@@ -56,6 +57,7 @@ def normal_force_balance(
         p_chem=p_chem,
         p_shear=p_shear,
         p_event=p_event,
-        p_net=non_shear + p_shear + p_event,
+        p_net=non_shear + p_shear,
+        p_applied_total=non_shear + p_shear + p_event,
         chi_s=chi_s,
     )

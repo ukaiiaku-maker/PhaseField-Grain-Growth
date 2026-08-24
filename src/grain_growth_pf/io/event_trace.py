@@ -15,7 +15,7 @@ TRACE_FIELDS = (
     "local_signed_normal_displacement", "gb_length", "domain_length",
     "curvature", "G_pending", "T_pending", "C_pending", "climb_stage",
     "shear_state_s", "tau_int", "free_volume_signed_inventory",
-    "p_cap", "p_chem", "p_shear", "p_event", "p_net", "chi_s",
+    "p_cap", "p_chem", "p_shear", "p_event", "p_net", "p_applied_total", "chi_s",
     "local_shear_energy",
     "p_cap_V_n", "tau_V_tau", "Delta_mu_v_N_v", "W_total", "DeltaG0",
     "DeltaG_eff", "instantaneous_rate", "cumulative_hazard",

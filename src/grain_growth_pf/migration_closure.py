@@ -440,6 +440,7 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 "p_shear": force_balance.p_shear,
                 "p_event": force_balance.p_event,
                 "p_net": force_balance.p_net,
+                "p_applied_total": force_balance.p_applied_total,
                 "chi_s": force_balance.chi_s,
                 "local_shear_energy": float(domain.shear.energy),
                 "p_cap_V_n": capillary_work_rate, "tau_V_tau": shear_work_rate,
@@ -490,7 +491,8 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                     float(self.defect_inventory.stored_signed) if self.area_loss_enabled else 0.0
                 ),
                 "p_cap": "", "p_chem": "", "p_shear": "", "p_event": "",
-                "p_net": "", "chi_s": "", "local_shear_energy": float(domain.shear.energy),
+                "p_net": "", "p_applied_total": "", "chi_s": "",
+                "local_shear_energy": float(domain.shear.energy),
                 "p_cap_V_n": "", "tau_V_tau": "",
                 "Delta_mu_v_N_v": float(global_mu * self.defect_inventory.stored_signed)
                 if self.area_loss_enabled else 0.0,
