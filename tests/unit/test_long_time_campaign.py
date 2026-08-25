@@ -17,11 +17,11 @@ def test_phase1_long_time_matrix_and_scaling_are_frozen():
     ]
     assert {config.seed for config in configs} == {5101}
     assert {config.pf.temperature for config in configs} == {900.0}
-    assert {config.pf.shape for config in configs} == {(432, 432)}
+    assert {config.pf.shape for config in configs} == {(384, 384)}
     assert {config.termination_grains for config in configs} == {100}
     assert {config.max_steps for config in configs} == {100000}
     base_area = 192**2 / 200
-    large_area = 432**2 / 1000
+    large_area = 384**2 / 800
     assert abs(large_area / base_area - 1.0) < 0.02
     initial_controls = {
         (
@@ -31,7 +31,7 @@ def test_phase1_long_time_matrix_and_scaling_are_frozen():
         )
         for config in configs
     }
-    assert initial_controls == {(1335, 1000, 12.0)}
+    assert initial_controls == {(1068, 800, 12.0)}
     assert all(config.parameters["event_trace_sample_fraction"] == 0.10 for config in configs)
     assert all(config.parameters["checkpoint_cadence"] == 500 for config in configs)
 

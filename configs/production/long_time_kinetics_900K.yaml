@@ -5,7 +5,7 @@ base:
   regime: B0
   seed: 5101
   pf:
-    shape: [432, 432]
+    shape: [384, 384]
     grid_spacing: 1.0
     interface_width: 4.0
     time_step: 0.04
@@ -22,9 +22,9 @@ base:
   max_steps: 100000
   termination_grains: 100
   parameters:
-    initial_grains: 1335
+    initial_grains: 1068
     equilibration_steps: 20
-    equilibrate_to_grains: 1000
+    equilibrate_to_grains: 800
     equilibration_max_steps: 2000
     compact_after_equilibration: true
     checkpoint_cadence: 500
