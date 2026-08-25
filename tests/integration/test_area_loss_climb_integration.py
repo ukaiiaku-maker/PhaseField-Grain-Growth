@@ -167,8 +167,10 @@ def test_event_trace_on_off_and_window_size_do_not_change_trajectory(tmp_path):
     MigrationClosureSimulation(baseline_config, baseline, code_sha="test-sha").run()
     baseline_arrays, baseline_state = _checkpoint_without_trace(baseline)
 
-    for name, pre_steps, post_steps, trace_format in (
-        ("short", 1, 2, "csv"), ("long", 5, 7, "parquet")
+    for name, pre_steps, post_steps, trace_format, sample_fraction in (
+        ("short", 1, 2, "csv", 1.0),
+        ("long", 5, 7, "parquet", 1.0),
+        ("sampled-out", 1, 2, "csv", 0.0),
     ):
         traced_config = _config("C_GBTJ", modules, max_steps=8)
         traced_config.parameters.update({
@@ -177,6 +179,7 @@ def test_event_trace_on_off_and_window_size_do_not_change_trajectory(tmp_path):
             "event_trace_post_steps": post_steps,
             "event_trace_stride": 1,
             "event_trace_format": trace_format,
+            "event_trace_sample_fraction": sample_fraction,
         })
         traced = tmp_path / name
         MigrationClosureSimulation(traced_config, traced, code_sha="test-sha").run()
@@ -187,6 +190,10 @@ def test_event_trace_on_off_and_window_size_do_not_change_trajectory(tmp_path):
             assert np.array_equal(traced_arrays[key], baseline_arrays[key])
         assert traced_state == baseline_state
         assert _events_without_run_id(traced) == _events_without_run_id(baseline)
+        if sample_fraction == 0.0:
+            assert len((traced / "event_trace_events.csv").read_text().splitlines()) == 1
+            assert len((traced / "event_traces.csv").read_text().splitlines()) == 1
+            continue
         if trace_format == "csv":
             assert len((traced / "event_trace_events.csv").read_text().splitlines()) > 1
             assert len((traced / "event_traces.csv").read_text().splitlines()) > 1
@@ -238,7 +245,11 @@ def test_video_frame_records_force_balance_and_normalized_shear_energy(tmp_path)
             "active_shear_length", "stored_shear_energy_per_active_gb_length",
             "stored_shear_energy_per_active_domain",
             "fraction_active_gb_length_chi_s_near_one",
+            "fraction_active_gb_length_chi_s_gt_0p8",
             "fraction_active_gb_length_chi_s_gt_one",
+            "G_mean", "G_population", "G_area_weighted", "G_over_G0",
+            "G_occupancy", "T_occupancy", "C_occupancy",
+            "GB_sink_fraction", "TJ_sink_fraction",
         }
         assert required.issubset(frame.files)
         boundary = frame["boundary_mask"].astype(bool)

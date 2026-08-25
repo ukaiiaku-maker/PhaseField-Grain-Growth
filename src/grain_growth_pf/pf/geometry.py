@@ -41,20 +41,23 @@ def voronoi_polycrystal(shape: tuple[int, int], n_grains: int, seed: int,
     seeds = rng.uniform([0, 0], shape, size=(n_grains, 2))
     orientations = rng.uniform(0.0, np.pi, n_grains)
     y, x = np.indices(shape, dtype=float)
-    distances = []
-    for sy, sx in seeds:
+    nearest_distance = np.full(shape, np.inf, dtype=float)
+    labels = np.zeros(shape, dtype=np.int64)
+    for index, (sy, sx) in enumerate(seeds):
         dy, dx = np.abs(y - sy), np.abs(x - sx)
         if periodic:
             dy, dx = np.minimum(dy, shape[0] - dy), np.minimum(dx, shape[1] - dx)
-        distances.append(dx * dx + dy * dy)
-    distance = np.stack(distances)
+        distance = dx * dx + dy * dy
+        closer = distance < nearest_distance
+        labels[closer] = index
+        nearest_distance[closer] = distance[closer]
     # Smooth hard Voronoi cells over a compact band.  The previous global
     # softmax left exponentially small tails for every grain at every pixel;
     # those tails make the local phase count ill-defined in a pairwise MPF.
     from scipy.ndimage import gaussian_filter
 
-    labels = np.argmin(np.stack(distances), axis=0)
-    eta = np.eye(n_grains, dtype=float)[labels].transpose(2, 0, 1)
+    eta = np.zeros((n_grains, *shape), dtype=float)
+    eta[labels, y.astype(int), x.astype(int)] = 1.0
     sigma = max(width / 2.0, 0.25)
     spatial_mode = "wrap" if periodic else "nearest"
     eta = gaussian_filter(

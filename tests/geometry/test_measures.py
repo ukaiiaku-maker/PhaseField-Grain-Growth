@@ -1,5 +1,39 @@
 import numpy as np
 
+from grain_growth_pf.pf.geometry import voronoi_polycrystal
+
+
+def _legacy_voronoi(shape, n_grains, seed, width, periodic):
+    rng = np.random.default_rng(seed)
+    seeds = rng.uniform([0, 0], shape, size=(n_grains, 2))
+    orientations = rng.uniform(0.0, np.pi, n_grains)
+    y, x = np.indices(shape, dtype=float)
+    distances = []
+    for sy, sx in seeds:
+        dy, dx = np.abs(y - sy), np.abs(x - sx)
+        if periodic:
+            dy, dx = np.minimum(dy, shape[0] - dy), np.minimum(dx, shape[1] - dx)
+        distances.append(dx * dx + dy * dy)
+    labels = np.argmin(np.stack(distances), axis=0)
+    eta = np.eye(n_grains, dtype=float)[labels].transpose(2, 0, 1)
+    from scipy.ndimage import gaussian_filter
+    sigma = max(width / 2.0, 0.25)
+    spatial_mode = "wrap" if periodic else "nearest"
+    eta = gaussian_filter(
+        eta, sigma=(0.0, sigma, sigma),
+        mode=("nearest", spatial_mode, spatial_mode), truncate=2.0,
+    )
+    eta[eta < 1e-14] = 0.0
+    eta /= eta.sum(axis=0, keepdims=True)
+    return eta, seeds, orientations
+
+
+def test_streaming_voronoi_matches_legacy_dense_seed_assignment_exactly():
+    expected = _legacy_voronoi((18, 21), 13, 5101, 2.0, True)
+    actual = voronoi_polycrystal((18, 21), 13, 5101, width=2.0, periodic=True)
+    for observed, reference in zip(actual, expected):
+        assert np.array_equal(observed, reference)
+
 from grain_growth_pf.encounters.gb_area import point_defect_requirement
 from grain_growth_pf.encounters.geometric_hazard import GeometricEncounterClock
 from grain_growth_pf.encounters.swept_volume import swept_measure

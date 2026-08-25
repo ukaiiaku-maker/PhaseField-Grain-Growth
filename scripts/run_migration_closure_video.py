@@ -20,15 +20,49 @@ from grain_growth_pf.pf.initial_conditions import initial_condition_identity, pr
 
 
 class ClosureFrameSimulation(MigrationClosureSimulation):
+    def _grain_size_moments(self) -> tuple[float, float, float]:
+        areas = np.asarray(
+            [grain.area for grain in self.snapshot.grains.values()], dtype=float
+        )
+        if not len(areas) or float(areas.sum()) <= 0.0:
+            return float("nan"), float("nan"), float("nan")
+        diameters = 2.0 * np.sqrt(areas / np.pi)
+        mean = float(diameters.mean())
+        population = float(2.0 * np.sqrt(areas.sum() / (np.pi * len(areas))))
+        area_weighted = float(np.average(diameters, weights=areas))
+        return mean, population, area_weighted
+
     def _write_frame(self, force: bool = False) -> None:
         cadence = max(1, int(self.config.parameters.get("video_frame_cadence", 10)))
         step = int(self.solver.step_number)
-        if not force and step % cadence != 0:
-            return
         frame_dir = self.output_dir / "frames"
         frame_dir.mkdir(parents=True, exist_ok=True)
         path = frame_dir / f"frame-{step:07d}.npz"
         if path.exists():
+            return
+        g_mean, g_population, g_area_weighted = self._grain_size_moments()
+        progress_fraction = float(
+            self.config.parameters.get("video_frame_progress_fraction", 0.0)
+        )
+        if not hasattr(self, "_initial_video_characteristic_size"):
+            existing = sorted(frame_dir.glob("frame-*.npz"))
+            if existing:
+                with np.load(existing[0]) as first:
+                    initial = float(first.get("G_population", g_population))
+                with np.load(existing[-1]) as last:
+                    previous = float(last.get("G_population", g_population))
+            else:
+                initial = previous = g_population
+            self._initial_video_characteristic_size = initial
+            self._last_video_characteristic_size = previous
+        step_due = step % cadence == 0
+        progress_due = bool(
+            progress_fraction > 0.0
+            and np.isfinite(g_population)
+            and np.isfinite(self._last_video_characteristic_size)
+            and g_population >= self._last_video_characteristic_size * (1.0 + progress_fraction)
+        )
+        if not force and not step_due and not progress_due:
             return
         labels = self.solver.labels.astype(np.uint16, copy=True)
         blocked = np.zeros(self.config.pf.shape, dtype=np.uint8)
@@ -156,6 +190,18 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
                 "conservation_residual": 0.0,
             }
         )
+        gb_domains = [
+            self.domains[key] for key in self.snapshot.boundaries if key in self.domains
+        ]
+        tj_domains = [
+            self.tj_domains[key]
+            for key in self.snapshot.triple_junctions if key in self.tj_domains
+        ]
+        all_domains = gb_domains + tj_domains
+        g_occupancy = float(np.mean([domain.compatibility_pending for domain in gb_domains])) if gb_domains else 0.0
+        t_occupancy = float(np.mean([domain.blocked and not domain.area_loss_pending for domain in tj_domains])) if tj_domains else 0.0
+        c_occupancy = float(np.mean([domain.area_loss_pending for domain in all_domains])) if all_domains else 0.0
+        sink_total = len(self._last_gb_sink_entities) + len(self._last_tj_sink_entities)
         np.savez_compressed(
             path,
             labels=labels,
@@ -185,6 +231,22 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
                 float(self.config.parameters.get("shear_stiffness", 0.0))
             ),
             grain_count=np.asarray(len(self.snapshot.grains)),
+            G_mean=np.asarray(g_mean),
+            G_population=np.asarray(g_population),
+            G_area_weighted=np.asarray(g_area_weighted),
+            G_over_G0=np.asarray(
+                g_population / self._initial_video_characteristic_size
+                if self._initial_video_characteristic_size > 0.0 else np.nan
+            ),
+            G_occupancy=np.asarray(g_occupancy),
+            T_occupancy=np.asarray(t_occupancy),
+            C_occupancy=np.asarray(c_occupancy),
+            GB_sink_fraction=np.asarray(
+                len(self._last_gb_sink_entities) / sink_total if sink_total else 0.0
+            ),
+            TJ_sink_fraction=np.asarray(
+                len(self._last_tj_sink_entities) / sink_total if sink_total else 0.0
+            ),
             N_required=np.asarray(float(inventory["N_required"])),
             N_accommodated_GB=np.asarray(float(inventory["N_accommodated_GB"])),
             N_accommodated_TJ=np.asarray(float(inventory["N_accommodated_TJ"])),
@@ -242,6 +304,11 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
                       / active_weights[finite_chi].sum())
                 if np.any(finite_chi) and active_weights[finite_chi].sum() else 0.0
             ),
+            fraction_active_gb_length_chi_s_gt_0p8=np.asarray(
+                float(active_weights[finite_chi & (active_chi > 0.8)].sum()
+                      / active_weights[finite_chi].sum())
+                if np.any(finite_chi) and active_weights[finite_chi].sum() else 0.0
+            ),
             fraction_active_gb_length_chi_s_gt_one=np.asarray(
                 float(active_weights[finite_chi & (active_chi > 1.0)].sum()
                       / active_weights[finite_chi].sum())
@@ -250,9 +317,14 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
             shear_stress_max_abs=np.asarray(float(np.max(np.abs(shear_stress)))),
             qiu_shear_stress_max_abs=np.asarray(float(np.max(np.abs(qiu_shear_stress)))),
         )
+        self._last_video_characteristic_size = g_population
 
     def _save_checkpoint(self) -> None:
         super()._save_checkpoint()
+        self._write_frame(force=False)
+
+    def _write_tracks(self) -> None:
+        super()._write_tracks()
         self._write_frame(force=False)
 
     def run(self) -> Path:

@@ -50,7 +50,13 @@ class MultiphaseFieldSolver:
         eta = np.asarray(eta, dtype=float)
         if eta.ndim != 3 or eta.shape[1:] != config.shape:
             raise ValueError("eta must have shape (n_grains, *config.shape)")
-        self.eta = project_simplex(eta)
+        sums = eta.sum(axis=0)
+        already_on_simplex = bool(
+            np.all(np.isfinite(eta))
+            and np.min(eta) >= 0.0
+            and np.max(np.abs(sums - 1.0)) <= 1e-12
+        )
+        self.eta = eta.copy() if already_on_simplex else project_simplex(eta)
         self.active_phases = np.max(self.eta, axis=(1, 2)) >= config.grain_extinction_threshold
         if not np.any(self.active_phases):
             raise ValueError("initial condition contains no active grain")

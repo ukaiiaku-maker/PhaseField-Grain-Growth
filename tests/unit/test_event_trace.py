@@ -5,7 +5,11 @@ import csv
 import pandas as pd
 import pytest
 
-from grain_growth_pf.io.event_trace import EventTraceRecorder, trace_entity_key
+from grain_growth_pf.io.event_trace import (
+    EventTraceRecorder,
+    hash_selected_event,
+    trace_entity_key,
+)
 
 
 def _row(entity_id: str, value: float) -> dict[str, object]:
@@ -21,6 +25,18 @@ def _row(entity_id: str, value: float) -> dict[str, object]:
 def _read(path):
     with path.open(newline="", encoding="utf-8") as handle:
         return list(csv.DictReader(handle))
+
+
+def test_hash_event_sampling_is_deterministic_and_outcome_independent():
+    ids = [f"gb:1-2:0:{index}" for index in range(1000)]
+    first = [hash_selected_event(event_id, 0.1, salt="phase-1") for event_id in ids]
+    second = [hash_selected_event(event_id, 0.1, salt="phase-1") for event_id in reversed(ids)]
+    assert first == list(reversed(second))
+    assert 70 <= sum(first) <= 130
+    assert all(hash_selected_event(event_id, 1.0) for event_id in ids)
+    assert not any(hash_selected_event(event_id, 0.0) for event_id in ids)
+    with pytest.raises(ValueError, match="sample fraction"):
+        hash_selected_event("event", 1.1)
 
 
 def test_event_trace_merges_overlapping_windows_without_duplicate_state_rows(tmp_path):

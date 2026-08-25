@@ -155,7 +155,7 @@ class EventResolvedSimulation:
         used_cached_initial_condition = bool(initial_state_path)
         if initial_state_path:
             with np.load(initial_state_path) as state:
-                eta = state["eta"].copy()
+                eta = state["eta"]
                 seeds = state["seed_positions"].copy()
                 orientations = state["orientations"].copy()
                 active_original_ids = state["active_original_ids"].astype(int).copy()
@@ -1317,6 +1317,11 @@ class EventResolvedSimulation:
 
     def run(self) -> Path:
         failure: str | None = None
+        checkpoint_cadence = max(
+            1, int(self.config.parameters.get(
+                "checkpoint_cadence", self.config.output_cadence
+            ))
+        )
         try:
             entity_every_step = bool(self.config.active_modules) or self.config.compatibility_model != "off"
             for _ in range(max(0, self.config.max_steps - self.solver.step_number)):
@@ -1353,6 +1358,7 @@ class EventResolvedSimulation:
                 })
                 if self.solver.step_number % self.config.output_cadence == 0:
                     self._write_tracks()
+                if self.solver.step_number % checkpoint_cadence == 0:
                     self._save_checkpoint()
                 if update_entities and len(self.snapshot.grains) <= self.config.termination_grains:
                     break
@@ -1360,10 +1366,11 @@ class EventResolvedSimulation:
             failure = f"{type(exc).__name__}: {exc}"
             raise
         finally:
-            if (failure is None and self.solver.step_number > 0
-                    and self.solver.step_number % self.config.output_cadence != 0):
-                self._write_tracks()
-                self._save_checkpoint()
+            if failure is None and self.solver.step_number > 0:
+                if self.solver.step_number % self.config.output_cadence != 0:
+                    self._write_tracks()
+                if self.solver.step_number % checkpoint_cadence != 0:
+                    self._save_checkpoint()
             self.ledger.close()
             self.track_handle.close()
             self.boundary_handle.close()

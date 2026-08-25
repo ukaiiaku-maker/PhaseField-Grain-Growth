@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 from collections import deque
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -50,6 +51,20 @@ EVENT_STRING_FIELDS = {
 
 def trace_entity_key(entity_type: str, entity_id: str) -> str:
     return f"{entity_type}::{entity_id}"
+
+
+def hash_selected_event(event_id: str, fraction: float, *, salt: str = "") -> bool:
+    """Select an immutable event-identity subset without inspecting its outcome."""
+    probability = float(fraction)
+    if not 0.0 <= probability <= 1.0:
+        raise ValueError("event trace sample fraction must lie in [0, 1]")
+    if probability == 0.0:
+        return False
+    if probability == 1.0:
+        return True
+    digest = hashlib.sha256(f"{salt}\0{event_id}".encode("utf-8")).digest()
+    draw = int.from_bytes(digest[:8], "big") / 2**64
+    return draw < probability
 
 
 class EventTraceRecorder:

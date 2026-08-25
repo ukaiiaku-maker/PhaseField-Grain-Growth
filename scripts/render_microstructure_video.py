@@ -8,6 +8,8 @@ import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
 
+from grain_growth_pf.analysis.long_time import profile_growth_window
+
 
 def _color_table(max_label: int) -> np.ndarray:
     rng = np.random.default_rng(12345)
@@ -70,6 +72,39 @@ def _load(frame: Path):
         )
 
 
+def _long_overlay_metrics(frames: list[Path]) -> list[dict[str, float]]:
+    raw = []
+    for frame in frames:
+        with np.load(frame) as data:
+            raw.append({
+                "time": float(data["time"]),
+                "G": float(data["G_population"]) if "G_population" in data else np.nan,
+                "x": float(data["G_over_G0"]) if "G_over_G0" in data else np.nan,
+                "Gocc": float(data["G_occupancy"]) if "G_occupancy" in data else np.nan,
+                "Tocc": float(data["T_occupancy"]) if "T_occupancy" in data else np.nan,
+                "Cocc": float(data["C_occupancy"]) if "C_occupancy" in data else np.nan,
+                "GBsink": float(data["GB_sink_fraction"]) if "GB_sink_fraction" in data else np.nan,
+                "TJsink": float(data["TJ_sink_fraction"]) if "TJ_sink_fraction" in data else np.nan,
+            })
+    for index, item in enumerate(raw):
+        start = index
+        while start > 0 and raw[start]["G"] / raw[index]["G"] > 1.0 / 1.20:
+            start -= 1
+        window = raw[start:index + 1]
+        if (
+            len(window) >= 5 and np.isfinite(item["G"])
+            and window[-1]["G"] / window[0]["G"] >= 1.04
+        ):
+            fit = profile_growth_window(
+                np.asarray([row["time"] for row in window]),
+                np.asarray([row["G"] for row in window]),
+            )
+            item.update({"n": fit.n_best, "K2": fit.k2, "K3": fit.k3})
+        else:
+            item.update({"n": np.nan, "K2": np.nan, "K3": np.nan})
+    return raw
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Render saved PF NPZ frames to a PNG sequence plus MP4/GIF."
@@ -95,6 +130,7 @@ def main() -> None:
     frames = sorted((run_dir / "frames").glob("frame-*.npz"))
     if not frames:
         raise SystemExit(f"no saved frames under {run_dir / 'frames'}")
+    long_metrics = _long_overlay_metrics(frames)
 
     max_label = 0
     for frame in frames:
@@ -184,9 +220,14 @@ def main() -> None:
         ax_sink.set_xticks([])
         ax_sink.set_yticks([])
 
+    initial_long = long_metrics[0]
     title = fig.suptitle(
         f"{run_dir.name}  T={temperature0:g} K  seed={seed0}  Ks={stiffness0:g}  "
         f"step={step0}  t={time0:.3f}  N={grains0}  "
+        f"G={initial_long['G']:.3g} x={initial_long['x']:.3f} "
+        f"n={initial_long['n']:.2f} K2={initial_long['K2']:.3g} K3={initial_long['K3']:.3g}\n"
+        f"G/T/C={initial_long['Gocc']:.2f}/{initial_long['Tocc']:.2f}/{initial_long['Cocc']:.2f} "
+        f"sink GB/TJ={initial_long['GBsink']:.2f}/{initial_long['TJsink']:.2f} "
         f"defects req={required0:.3g} GB={gb0:.3g} TJ={tj0:.3g} eps={residual0:.1e}"
     )
 
@@ -216,6 +257,11 @@ def main() -> None:
         title.set_text(
             f"{run_dir.name}  T={temperature:g} K  seed={seed}  Ks={stiffness:g}  "
             f"step={step}  t={time:.3f}  N={grains}  "
+            f"G={long_metrics[index]['G']:.3g} x={long_metrics[index]['x']:.3f} "
+            f"n={long_metrics[index]['n']:.2f} K2={long_metrics[index]['K2']:.3g} "
+            f"K3={long_metrics[index]['K3']:.3g}\n"
+            f"G/T/C={long_metrics[index]['Gocc']:.2f}/{long_metrics[index]['Tocc']:.2f}/{long_metrics[index]['Cocc']:.2f} "
+            f"sink GB/TJ={long_metrics[index]['GBsink']:.2f}/{long_metrics[index]['TJsink']:.2f} "
             f"defects req={required:.3g} GB={gb_sink:.3g} TJ={tj_sink:.3g} eps={residual:.1e}"
         )
         return artists

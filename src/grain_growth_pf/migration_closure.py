@@ -22,7 +22,11 @@ from grain_growth_pf.disconnections.mode import DisconnectionMode, ModeDriving, 
 from grain_growth_pf.entities.arclength_tracker import ArclengthEntityTracker
 from grain_growth_pf.entities.gb_segment import GBSegment
 from grain_growth_pf.entities.triple_junction import TripleJunction
-from grain_growth_pf.io.event_trace import EventTraceRecorder, trace_entity_key
+from grain_growth_pf.io.event_trace import (
+    EventTraceRecorder,
+    hash_selected_event,
+    trace_entity_key,
+)
 from grain_growth_pf.mechanics.force_balance import NormalForceBalance, normal_force_balance
 from grain_growth_pf.pf.kinematics import interface_kinematics
 from grain_growth_pf.simulation import DomainPhysics, EventResolvedSimulation
@@ -138,6 +142,14 @@ class MigrationClosureSimulation(EventResolvedSimulation):
         self._pending_sink_completions: list[dict[str, Any]] = []
         self.event_trace_enabled = bool(
             config.parameters.get("event_trace_enabled", False)
+        )
+        self.event_trace_sample_fraction = float(
+            config.parameters.get("event_trace_sample_fraction", 1.0)
+        )
+        if not 0.0 <= self.event_trace_sample_fraction <= 1.0:
+            raise ValueError("event_trace_sample_fraction must lie in [0, 1]")
+        self.event_trace_sample_salt = str(
+            config.parameters.get("event_trace_sample_salt", "")
         )
         self.event_trace_recorder: EventTraceRecorder | None = None
         self._event_trace_checkpoint_state: dict[str, Any] | None = None
@@ -330,6 +342,12 @@ class MigrationClosureSimulation(EventResolvedSimulation):
         if (
             self.event_trace_recorder is None
             or str(record.get("event_type", "")) not in self.EVENT_TRACE_RELEASE_TYPES
+        ):
+            return
+        if not hash_selected_event(
+            str(record.get("event_id", "")),
+            self.event_trace_sample_fraction,
+            salt=self.event_trace_sample_salt,
         ):
             return
         entity_id = str(record.get("entity_id", ""))
