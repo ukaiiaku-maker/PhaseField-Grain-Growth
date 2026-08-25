@@ -45,3 +45,16 @@ same diagnostic every 100 steps while leaving the PF update untouched.
 Regression coverage proves bitwise-identical trajectories with dense and
 sparse energy diagnostics.  Common-state equilibration omits the unused
 energy calculation entirely.  The repaired full suite passes 174 tests.
+
+The next 384 by 384 diagnostic reached its first compaction checkpoint at step
+100 with 1038 active grains.  It then exposed that the legacy compiled PF
+kernel still visited every pixel for every phase, despite compact local phase
+support.  Phase 1 now constructs conservative row/column support masks that
+include the exact one-cell cardinal halo and skips only phase rectangles that
+cannot enter the existing stencil.  A regression compares the optimized path
+with the same compiled kernel supplied all-true masks and requires bitwise
+equal output for both periodic and non-periodic boundaries.  A 180-phase,
+128 by 128 local benchmark improved from 0.0706 to 0.0158 seconds per step
+(4.48-fold) with identical filling-constraint residuals.  The large-domain
+preflight is restarted from the resulting clean SHA; no interrupted
+initialization artifact is reused.

@@ -2,7 +2,12 @@ import numpy as np
 import pytest
 
 from grain_growth_pf.pf.free_energy import laplacian
-from grain_growth_pf.pf.kernels import pairwise_free_energy, pairwise_obstacle_step
+from grain_growth_pf.pf.kernels import (
+    _pairwise_obstacle_step_masked,
+    pairwise_free_energy,
+    pairwise_obstacle_step,
+    phase_support_masks,
+)
 
 
 def _vectorized_reference(eta, active, scale, external, dt, periodic):
@@ -62,6 +67,31 @@ def test_compiled_update_matches_vectorized_equation(periodic):
         eta, active, scale, external, True, 0.01, 4.0, 1.0, 4.0, 1.0, periodic
     )
     assert np.allclose(actual, expected, rtol=2e-15, atol=2e-15)
+
+
+@pytest.mark.parametrize("periodic", [False, True])
+def test_support_mask_optimization_is_bitwise_equal_to_dense_scan(periodic):
+    rng = np.random.default_rng(1741)
+    labels = rng.integers(0, 8, size=(31, 27))
+    eta = np.eye(8)[labels].transpose(2, 0, 1).astype(float)
+    eta = 0.8 * eta + 0.2 * np.roll(eta, 1, axis=2)
+    active = np.asarray([True, True, True, False, True, True, False, True])
+    eta[~active] = 0.0
+    eta[0] += np.maximum(1.0 - eta.sum(axis=0), 0.0)
+    scale = rng.uniform(0.2, 1.0, labels.shape)
+    external = rng.normal(0.0, 0.03, eta.shape)
+    rows, columns = phase_support_masks(eta, active, periodic)
+    optimized = _pairwise_obstacle_step_masked(
+        eta, active, rows, columns, scale, external, True,
+        0.01, 4.0, 1.0, 4.0, 1.0, periodic,
+    )
+    dense = _pairwise_obstacle_step_masked(
+        eta, active,
+        np.ones((len(eta), eta.shape[1]), dtype=bool),
+        np.ones((len(eta), eta.shape[2]), dtype=bool),
+        scale, external, True, 0.01, 4.0, 1.0, 4.0, 1.0, periodic,
+    )
+    assert np.array_equal(optimized, dense)
 
 
 @pytest.mark.parametrize("periodic", [False, True])
