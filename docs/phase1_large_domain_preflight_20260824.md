@@ -36,3 +36,12 @@ mobility, time stepping, and every mechanism parameter remain unchanged.
 
 The 384 by 384 B0 and `GTSC_GBTJ_Ks025` 100-200-step benchmark remains the
 mandatory gate before long production.
+
+The first 384 by 384 initialization pass also exposed a read-only scaling
+cost: the solver evaluated full interfacial energy after every equilibration
+step even though initialization does not consume that diagnostic, and the
+long-run loop would retain 100,000 energy records.  Phase 1 now evaluates the
+same diagnostic every 100 steps while leaving the PF update untouched.
+Regression coverage proves bitwise-identical trajectories with dense and
+sparse energy diagnostics.  Common-state equilibration omits the unused
+energy calculation entirely.  The repaired full suite passes 174 tests.

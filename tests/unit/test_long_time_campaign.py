@@ -34,6 +34,7 @@ def test_phase1_long_time_matrix_and_scaling_are_frozen():
     assert initial_controls == {(1068, 800, 12.0)}
     assert all(config.parameters["event_trace_sample_fraction"] == 0.10 for config in configs)
     assert all(config.parameters["checkpoint_cadence"] == 500 for config in configs)
+    assert all(config.parameters["energy_diagnostic_cadence"] == 100 for config in configs)
 
 
 def test_phase1_shear_values_and_minimum_model_are_explicit():

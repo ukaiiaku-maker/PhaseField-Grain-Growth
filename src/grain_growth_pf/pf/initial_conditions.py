@@ -57,13 +57,13 @@ def prepare_initial_condition(pf: PFConfig, seed: int, parameters: dict[str, Any
     solver = MultiphaseFieldSolver(eta, pf)
     steps = int(parameters.get("equilibration_steps", 0))
     for _ in range(steps):
-        solver.step()
+        solver.step(compute_energy=False)
     target_grains = parameters.get("equilibrate_to_grains")
     maximum = int(parameters.get("equilibration_max_steps", 5000))
     if target_grains is not None:
         desired = int(target_grains)
         while np.count_nonzero(solver.active_phases) > desired and steps < maximum:
-            solver.step()
+            solver.step(compute_energy=False)
             steps += 1
             if steps % 100 == 0:
                 metadata_path.write_text(json.dumps({

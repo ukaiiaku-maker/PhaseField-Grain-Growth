@@ -1322,10 +1322,18 @@ class EventResolvedSimulation:
                 "checkpoint_cadence", self.config.output_cadence
             ))
         )
+        energy_cadence = max(
+            1, int(self.config.parameters.get("energy_diagnostic_cadence", 1))
+        )
         try:
             entity_every_step = bool(self.config.active_modules) or self.config.compatibility_model != "off"
             for _ in range(max(0, self.config.max_steps - self.solver.step_number)):
-                diag = self.solver.step()
+                energy_due = (self.solver.step_number + 1) % energy_cadence == 0
+                diag = (
+                    self.solver.step()
+                    if energy_cadence == 1
+                    else self.solver.step(compute_energy=energy_due)
+                )
                 update_entities = entity_every_step or self.solver.step_number % self.config.output_cadence == 0
                 if update_entities:
                     self.snapshot = self.tracker.update(self.solver.labels)
@@ -1346,16 +1354,17 @@ class EventResolvedSimulation:
                 dissipated_free_volume = sum(
                     d.free_volume.dissipated_energy for d in self.domains.values()
                 )
-                self.energy_records.append({
-                    "time": diag.time,
-                    "interfacial": diag.interfacial_energy,
-                    "stored": stored_shear + stored_free_volume + stored_tj,
-                    "stored_shear": stored_shear,
-                    "stored_free_volume": stored_free_volume,
-                    "stored_tj_residual": stored_tj,
-                    "dissipated_shear": dissipated_shear,
-                    "dissipated_free_volume": dissipated_free_volume,
-                })
+                if energy_due:
+                    self.energy_records.append({
+                        "time": diag.time,
+                        "interfacial": diag.interfacial_energy,
+                        "stored": stored_shear + stored_free_volume + stored_tj,
+                        "stored_shear": stored_shear,
+                        "stored_free_volume": stored_free_volume,
+                        "stored_tj_residual": stored_tj,
+                        "dissipated_shear": dissipated_shear,
+                        "dissipated_free_volume": dissipated_free_volume,
+                    })
                 if self.solver.step_number % self.config.output_cadence == 0:
                     self._write_tracks()
                 if self.solver.step_number % checkpoint_cadence == 0:

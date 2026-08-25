@@ -79,7 +79,7 @@ class MultiphaseFieldSolver:
             kinetic * kappa, np.finfo(float).tiny
         )
 
-    def step(self, dt: float | None = None) -> StepDiagnostics:
+    def step(self, dt: float | None = None, *, compute_energy: bool = True) -> StepDiagnostics:
         cfg = self.config
         requested = cfg.time_step if dt is None else dt
         used_dt = min(requested, self.stable_dt()) if cfg.adaptive_stepping else requested
@@ -113,8 +113,13 @@ class MultiphaseFieldSolver:
         self.step_number += 1
         return StepDiagnostics(
             self.time, self.step_number, used_dt,
-            free_energy(self.eta, cfg.gb_energy, cfg.interface_width, cfg.grid_spacing,
-                        boundary=cfg.boundary_conditions),
+            (
+                free_energy(
+                    self.eta, cfg.gb_energy, cfg.interface_width, cfg.grid_spacing,
+                    boundary=cfg.boundary_conditions,
+                )
+                if compute_energy else float("nan")
+            ),
             float(np.max(np.abs(self.eta.sum(axis=0) - 1.0))),
         )
 
