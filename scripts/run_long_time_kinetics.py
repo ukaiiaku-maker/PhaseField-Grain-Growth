@@ -59,6 +59,10 @@ def _worker(payload: tuple[dict[str, Any], str, str, bool]) -> dict[str, Any]:
         elapsed = time.perf_counter() - start
         steps = max(int(simulation.solver.step_number) - start_step, 0)
         size = _directory_bytes(path)
+        checkpoint_archive_size = (path / "checkpoint.npz").stat().st_size
+        checkpoint_metadata_size = (path / "checkpoint.json").stat().st_size
+        fixed_restart_size = checkpoint_archive_size + checkpoint_metadata_size
+        variable_size = max(size - fixed_restart_size, 0)
         frame_sizes = [item.stat().st_size for item in (path / "frames").glob("frame-*.npz")]
         trace_size = _directory_bytes(path / "event_traces.parquet") if (path / "event_traces.parquet").exists() else 0
         trace_index_size = _directory_bytes(path / "event_trace_events.parquet") if (path / "event_trace_events.parquet").exists() else 0
@@ -72,7 +76,9 @@ def _worker(payload: tuple[dict[str, Any], str, str, bool]) -> dict[str, Any]:
             "solver_wall_seconds": solver_elapsed,
             "seconds_per_solver_step": solver_elapsed / steps if steps else None,
             "peak_rss_bytes": _peak_rss_bytes(), "run_size_bytes": size,
-            "checkpoint_size_bytes": (path / "checkpoint.npz").stat().st_size,
+            "checkpoint_size_bytes": checkpoint_archive_size,
+            "checkpoint_metadata_size_bytes": checkpoint_metadata_size,
+            "fixed_rotating_restart_size_bytes": fixed_restart_size,
             "ordinary_frame_mean_size_bytes": float(np.mean(frame_sizes)) if frame_sizes else 0.0,
             "ordinary_frame_count": len(frame_sizes),
             "event_trace_size_bytes": trace_size,
@@ -81,7 +87,7 @@ def _worker(payload: tuple[dict[str, Any], str, str, bool]) -> dict[str, Any]:
             "event_trace_growth_bytes_per_step": (trace_size + trace_index_size) / steps if steps else None,
             "bytes_written_this_execution": max(size - starting_bytes, 0),
             "projected_storage_100k_bytes": (
-                max(size - starting_bytes, 0) * 100000 / steps if steps else None
+                fixed_restart_size + variable_size * 100000 / steps if steps else None
             ),
         }
     except BaseException as exc:

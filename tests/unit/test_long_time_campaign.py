@@ -20,6 +20,7 @@ def test_phase1_long_time_matrix_and_scaling_are_frozen():
     assert {config.pf.shape for config in configs} == {(384, 384)}
     assert {config.termination_grains for config in configs} == {100}
     assert {config.max_steps for config in configs} == {100000}
+    assert {config.output_cadence for config in configs} == {200}
     base_area = 192**2 / 200
     large_area = 384**2 / 800
     assert abs(large_area / base_area - 1.0) < 0.02

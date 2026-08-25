@@ -58,3 +58,33 @@ equal output for both periodic and non-periodic boundaries.  A 180-phase,
 (4.48-fold) with identical filling-constraint residuals.  The large-domain
 preflight is restarted from the resulting clean SHA; no interrupted
 initialization artifact is reused.
+
+## Completed 384 by 384 production gate
+
+The formal two-case preflight used source SHA
+`f75e44c40f59b57174aa988c51f13a4e7b870fcf` and the common equilibrated state
+`results/initial_conditions/seed-5101-5ba2f47025f7d22a.npz`.  Equilibration
+finished at step 506 with exactly 800 active grains.  Both cases then completed
+200 solver steps from that identical state:
+
+| Case | Solver seconds/step | Peak RSS | Run size at 200 steps |
+| --- | ---: | ---: | ---: |
+| B0 | 1.019 | 5.13 GB | 22.7 MB |
+| `GTSC_GBTJ_Ks025` | 7.260 | 8.05 GB | 349.4 MB |
+
+Two concurrent worst-case workers require about 16.1 GB of resident memory,
+comfortably below the 32 GB host capacity.  The coupled case's apparently
+large 200-step directory is dominated by the rotating restart pair:
+127.9 MB for `checkpoint.npz` and 208.2 MB for `checkpoint.json`.  Treating
+that pair correctly as fixed rather than linearly accumulated gives a
+conservative 100,000-step projection near 6.98 GB, not 174.7 GB.  B0 projects
+to roughly 1.17 GB.  The production launcher now records fixed restart and
+accumulating output separately.
+
+The preflight supports two workers.  Ordinary scalar/frame output is reduced
+from every 100 steps to every 200 steps to preserve disk headroom; the complete
+event ledger, deterministic 10% unit-stride event traces, 500-step rotating
+checkpoint, 1000-step movie cadence, and one-percent growth-progress frames
+remain unchanged.  Mobile cases are expected to reach 100 grains before the
+100,000-step safety ceiling, while censored cases will be evaluated from their
+late-time kinetic trends before any extension is considered.
