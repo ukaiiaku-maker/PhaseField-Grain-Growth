@@ -19,6 +19,7 @@ from grain_growth_pf.disconnections.mode import DisconnectionMode, ModeDriving
 from grain_growth_pf.disconnections.mode import K_B_EV
 from grain_growth_pf.disconnections.shear_coupling import event_shear_increment, event_volumetric_increment
 from grain_growth_pf.disconnections.spectrum import isotropic_surrogate_library
+from grain_growth_pf.diagnostics import QiuForensicRecorder
 from grain_growth_pf.encounters.geometric_hazard import GeometricEncounterClock
 from grain_growth_pf.entities.gb_segment import GBSegment
 from grain_growth_pf.entities.tracker import EntityTracker
@@ -30,6 +31,7 @@ from grain_growth_pf.mechanics.local_shear_memory import LocalShearMemory
 from grain_growth_pf.mechanics.qiu_full_field import QiuFullField
 from grain_growth_pf.obstacles.particles import ParticleField
 from grain_growth_pf.pf.geometry import voronoi_polycrystal
+from grain_growth_pf.pf.free_energy import free_energy
 from grain_growth_pf.pf.kinematics import interface_kinematics
 from grain_growth_pf.pf.solver import MultiphaseFieldSolver
 from grain_growth_pf.stochastic.multihit import CompletionEvent, MultiHitProcess
@@ -286,9 +288,26 @@ class EventResolvedSimulation:
         self.accumulated_volumetric_strain = 0.0
         self.previous_entity_eta = self.solver.eta.copy()
         self.previous_entity_time = self.solver.time
+        diagnostics_enabled = bool(config.parameters.get("qiu_diagnostics_enabled", False))
+        if diagnostics_enabled and self.full_field is None:
+            raise ValueError("qiu_diagnostics_enabled requires a full-field mechanics backend")
+        self.qiu_diagnostics = (
+            QiuForensicRecorder(self.output_dir, config.parameters, resume=resume)
+            if diagnostics_enabled else None
+        )
+        self.solver.capture_step_diagnostics = diagnostics_enabled
         if resume:
             self._load_checkpoint()
         else:
+            if self.qiu_diagnostics is not None:
+                self.qiu_diagnostics.initialize(
+                    self,
+                    free_energy(
+                        self.solver.eta, config.pf.gb_energy,
+                        config.pf.interface_width, config.pf.grid_spacing,
+                        boundary=config.pf.boundary_conditions,
+                    ),
+                )
             self._update_physics()
             write_manifest(self.output_dir / "manifest.json", config.to_dict(), "running", {
                 "initial_seed_positions": seeds.tolist(), "orientations": self.orientations.tolist(),
@@ -959,6 +978,12 @@ class EventResolvedSimulation:
 
     def _update_physics(self) -> None:
         cfg, modules = self.config, set(self.config.active_modules)
+        if self.full_field is not None:
+            self.full_field.begin_source_step()
+            if self.qiu_diagnostics is not None:
+                self.qiu_diagnostics.begin_coupling(
+                    self.full_field, cfg.pf.grid_spacing
+                )
         self._boundary_to_tjs = self._index_boundary_tjs()
         mobility = np.ones(cfg.pf.shape)
         self.driving_field.fill(0.0)
@@ -1042,6 +1067,17 @@ class EventResolvedSimulation:
                 displacement = beta * normal_displacement * tangent
                 strain = 0.5 * (np.outer(displacement, normal) + np.outer(normal, displacement))
                 position = tuple(segment.points[len(segment.points) // 2].astype(int))
+                if self.qiu_diagnostics is not None:
+                    self.qiu_diagnostics.record_boundary(
+                        step=self.solver.step_number, time=self.solver.time,
+                        entity_id=segment.entity_id, grain_i=segment.grain_i,
+                        grain_j=segment.grain_j, length=segment.length,
+                        normal_displacement=normal_displacement, beta=beta,
+                        resolved_shear=self.full_field.resolved_shear(
+                            position, tangent, normal
+                        ),
+                        source_tensor=strain,
+                    )
                 self.full_field.add_event(position, strain)
             if modules.intersection({"free_volume", "serial_climb", "nucleation_limited", "multihit_nucleation", "exchange_limited", "transport_limited", "mixed_shear_climb_event", "independent_and"}):
                 domain.free_volume.require_for_area_change(delta_length)
@@ -1183,10 +1219,30 @@ class EventResolvedSimulation:
         The legacy model returns an empty mapping, so its numerical state and
         evolution are unchanged.
         """
-        return {}
+        state: dict[str, Any] = {}
+        if self.qiu_diagnostics is not None:
+            state["qiu_forensics"] = self.qiu_diagnostics.checkpoint_state()
+        return state
 
     def _load_extra_checkpoint_state(self, state: dict[str, Any]) -> None:
         """Restore extension state written by :meth:`_extra_checkpoint_state`."""
+        if self.qiu_diagnostics is not None:
+            diagnostics = state.get("qiu_forensics")
+            if diagnostics is None:
+                # A read-only recorder may be enabled at a complete legacy
+                # checkpoint; seed its differencing history from that accepted
+                # state without changing any solver or mechanics arrays.
+                self.qiu_diagnostics.initialize(
+                    self,
+                    free_energy(
+                        self.solver.eta, self.config.pf.gb_energy,
+                        self.config.pf.interface_width,
+                        self.config.pf.grid_spacing,
+                        boundary=self.config.pf.boundary_conditions,
+                    ),
+                )
+            else:
+                self.qiu_diagnostics.restore(dict(diagnostics))
 
     def _save_checkpoint(self) -> None:
         event_ledger_offset = self.ledger.checkpoint()
@@ -1317,6 +1373,7 @@ class EventResolvedSimulation:
 
     def run(self) -> Path:
         failure: str | None = None
+        diagnostic_capture: str | None = None
         checkpoint_cadence = max(
             1, int(self.config.parameters.get(
                 "checkpoint_cadence", self.config.output_cadence
@@ -1338,6 +1395,8 @@ class EventResolvedSimulation:
                 if update_entities:
                     self.snapshot = self.tracker.update(self.solver.labels)
                     self._update_physics()
+                if self.qiu_diagnostics is not None:
+                    diagnostic_capture = self.qiu_diagnostics.record_step(self, diag)
                 stored_shear = sum(d.shear.energy for d in self.domains.values())
                 stored_free_volume = sum(d.free_volume.energy for d in self.domains.values())
                 tj_stiffness = float(
@@ -1369,6 +1428,9 @@ class EventResolvedSimulation:
                     self._write_tracks()
                 if self.solver.step_number % checkpoint_cadence == 0:
                     self._save_checkpoint()
+                if diagnostic_capture is not None:
+                    self._save_checkpoint()
+                    break
                 if update_entities and len(self.snapshot.grains) <= self.config.termination_grains:
                     break
         except BaseException as exc:
@@ -1383,6 +1445,8 @@ class EventResolvedSimulation:
             self.ledger.close()
             self.track_handle.close()
             self.boundary_handle.close()
+            if self.qiu_diagnostics is not None:
+                self.qiu_diagnostics.close()
             (self.output_dir / "energy.json").write_text(json.dumps(self.energy_records, indent=2) + "\n")
             restart_artifacts = []
             for name in ("checkpoint.npz", "checkpoint.json"):
@@ -1394,8 +1458,9 @@ class EventResolvedSimulation:
                         "size_bytes": artifact.stat().st_size,
                     })
             write_manifest(self.output_dir / "manifest.json", self.config.to_dict(),
-                           "failed" if failure else "completed", {
+                           "failed" if failure else "diagnostic_capture" if diagnostic_capture else "completed", {
                                "failure": failure, "steps_completed": self.solver.step_number,
+                               "diagnostic_capture_reason": diagnostic_capture,
                                "final_grains": len(self.snapshot.grains),
                                "accumulated_shear_strain": self.accumulated_shear_strain,
                                "accumulated_volumetric_strain": self.accumulated_volumetric_strain,

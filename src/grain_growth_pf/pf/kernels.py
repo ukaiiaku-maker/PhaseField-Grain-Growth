@@ -192,6 +192,169 @@ def pairwise_obstacle_step(
 
 
 @njit(cache=True)
+def _pairwise_obstacle_trial_statistics_masked(
+    eta: Array,
+    active: NDArray[np.bool_],
+    row_support: NDArray[np.bool_],
+    column_support: NDArray[np.bool_],
+    mobility_scale: Array,
+    external: Array,
+    use_external: bool,
+    dt: float,
+    mobility: float,
+    gamma: float,
+    width: float,
+    dx: float,
+    periodic: bool,
+) -> NDArray[np.float64]:
+    """Replay only the raw trial arithmetic for read-only diagnostics.
+
+    The accepted state is always produced by the unchanged production kernel.
+    This separate pass therefore cannot perturb a trajectory; its cost is
+    deliberately paid only when forensic diagnostics are enabled.
+    """
+    phases, height, width_pixels = eta.shape
+    phase_sum = np.zeros((height, width_pixels), dtype=np.float64)
+    lap_sum = np.zeros((height, width_pixels), dtype=np.float64)
+    external_sum = np.zeros((height, width_pixels), dtype=np.float64)
+    count = np.zeros((height, width_pixels), dtype=np.int32)
+    inverse_lap_scale = 1.0 / (6.0 * dx * dx)
+    for phase in range(phases):
+        if not active[phase]:
+            continue
+        for y in range(height):
+            if not row_support[phase, y]:
+                continue
+            ym = (y - 1) % height if periodic else max(y - 1, 0)
+            yp = (y + 1) % height if periodic else min(y + 1, height - 1)
+            for x in range(width_pixels):
+                if not column_support[phase, x]:
+                    continue
+                xm = (x - 1) % width_pixels if periodic else max(x - 1, 0)
+                xp = (x + 1) % width_pixels if periodic else min(x + 1, width_pixels - 1)
+                if not (
+                    eta[phase, y, x] > 1e-14
+                    or eta[phase, ym, x] > 1e-14
+                    or eta[phase, yp, x] > 1e-14
+                    or eta[phase, y, xm] > 1e-14
+                    or eta[phase, y, xp] > 1e-14
+                ):
+                    continue
+                value = eta[phase, y, x]
+                lap = (
+                    4.0 * (eta[phase, ym, x] + eta[phase, yp, x]
+                           + eta[phase, y, xm] + eta[phase, y, xp])
+                    + eta[phase, ym, xm] + eta[phase, ym, xp]
+                    + eta[phase, yp, xm] + eta[phase, yp, xp]
+                    - 20.0 * value
+                ) * inverse_lap_scale
+                phase_sum[y, x] += value
+                lap_sum[y, x] += lap
+                if use_external:
+                    external_sum[y, x] += external[phase, y, x]
+                count[y, x] += 1
+
+    obstacle = 2.0 * np.sin(np.pi * dx / (2.0 * width)) ** 2 / (dx * dx)
+    trial_sum = np.zeros((height, width_pixels), dtype=np.float64)
+    clipped_low = 0
+    clipped_high = 0
+    trial_count = 0
+    max_raw_increment = 0.0
+    max_external_pair_difference = 0.0
+    for phase in range(phases):
+        if not active[phase]:
+            continue
+        for y in range(height):
+            if not row_support[phase, y]:
+                continue
+            ym = (y - 1) % height if periodic else max(y - 1, 0)
+            yp = (y + 1) % height if periodic else min(y + 1, height - 1)
+            for x in range(width_pixels):
+                if not column_support[phase, x]:
+                    continue
+                xm = (x - 1) % width_pixels if periodic else max(x - 1, 0)
+                xp = (x + 1) % width_pixels if periodic else min(x + 1, width_pixels - 1)
+                if not (
+                    eta[phase, y, x] > 1e-14
+                    or eta[phase, ym, x] > 1e-14
+                    or eta[phase, yp, x] > 1e-14
+                    or eta[phase, y, xm] > 1e-14
+                    or eta[phase, y, xp] > 1e-14
+                ):
+                    continue
+                value = eta[phase, y, x]
+                lap = (
+                    4.0 * (eta[phase, ym, x] + eta[phase, yp, x]
+                           + eta[phase, y, xm] + eta[phase, y, xp])
+                    + eta[phase, ym, xm] + eta[phase, ym, xp]
+                    + eta[phase, yp, xm] + eta[phase, yp, xp]
+                    - 20.0 * value
+                ) * inverse_lap_scale
+                rate = mobility * gamma * (
+                    lap * phase_sum[y, x] - value * lap_sum[y, x]
+                    + obstacle * (count[y, x] * value - phase_sum[y, x])
+                )
+                if use_external:
+                    centered = external[phase, y, x] - external_sum[y, x] / count[y, x]
+                    rate += mobility * centered
+                    pair_difference = abs(centered)
+                    if pair_difference > max_external_pair_difference:
+                        max_external_pair_difference = pair_difference
+                raw_trial = value + dt * rate * mobility_scale[y, x]
+                increment = abs(raw_trial - value)
+                if increment > max_raw_increment:
+                    max_raw_increment = increment
+                trial_count += 1
+                if raw_trial < 0.0:
+                    clipped_low += 1
+                    trial = 0.0
+                elif raw_trial > 1.0:
+                    clipped_high += 1
+                    trial = 1.0
+                else:
+                    trial = raw_trial
+                trial_sum[y, x] += trial
+    renormalization_l1 = 0.0
+    for y in range(height):
+        for x in range(width_pixels):
+            if count[y, x] > 0 and trial_sum[y, x] > 0.0:
+                renormalization_l1 += abs(1.0 - trial_sum[y, x])
+    return np.asarray((
+        clipped_low, clipped_high, trial_count, max_raw_increment,
+        renormalization_l1, max_external_pair_difference,
+    ), dtype=np.float64)
+
+
+def pairwise_obstacle_trial_statistics(
+    eta: Array,
+    active: NDArray[np.bool_],
+    mobility_scale: Array,
+    external: Array,
+    use_external: bool,
+    dt: float,
+    mobility: float,
+    gamma: float,
+    width: float,
+    dx: float,
+    periodic: bool,
+) -> dict[str, float]:
+    """Return clipping and raw-trial metrics without accepting a second state."""
+    rows, columns = phase_support_masks(eta, active, periodic)
+    values = _pairwise_obstacle_trial_statistics_masked(
+        eta, active, rows, columns, mobility_scale, external, use_external,
+        dt, mobility, gamma, width, dx, periodic,
+    )
+    return {
+        "clipped_low": int(values[0]),
+        "clipped_high": int(values[1]),
+        "trial_count": int(values[2]),
+        "max_raw_increment": float(values[3]),
+        "renormalization_l1": float(values[4]),
+        "max_external_pair_difference": float(values[5]),
+    }
+
+
+@njit(cache=True)
 def pairwise_free_energy(
     eta: Array,
     gamma: float,

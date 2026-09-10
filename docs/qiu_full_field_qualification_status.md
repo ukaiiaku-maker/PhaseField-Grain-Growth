@@ -1,11 +1,12 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-10, Phase 0 complete.
+Last update: 2026-09-10, Phase 1 instrumentation complete; legacy replay pending.
 
 ## Current source state
 
 - Branch: `codex/qiu-full-field-qualification-v1`
-- Base/current commit before Phase-0 commit: `9f66c8d7a5a266687284d8da35aefbc6062808f7`
+- Audited base: `9f66c8d7a5a266687284d8da35aefbc6062808f7`
+- Phase-0 commit: `66dce379ad6d9a0391ad76f4b653626891867d8a`
 - Worktree: `/private/tmp/qiu-full-field-qualification-v1`
 - Historical production source: `4761ef957715ba2faa84f015a0e4f4c4cd21c7aa`
 - Historical QIU run: canonical, read-only, all integration-manifest hashes verified
@@ -19,6 +20,11 @@ Last update: 2026-09-10, Phase 0 complete.
 - Ran `scripts/qiu_phase0_baseline.py` against the immutable historical QIU run.
 - Inspected the archived `functions_2ref.py` pathways for `beta`, line-source construction, stress kernels, field extension, and PF feedback.
 - Visually inspected the historical transition maps and terminal contact sheet.
+- Added opt-in, per-step PF/mechanics/coupling/morphology diagnostics, partitioned
+  Parquet streams, dense-field capture, guard capture, and restart state.
+- Ran focused diagnostic invariance and restart tests, then the complete suite:
+  `PYTHONPATH=src:scripts /opt/anaconda3/bin/python -m pytest -vv
+  --junitxml=results/validation/qiu_fix_phase1_tests.xml`.
 
 ## Evidence obtained
 
@@ -29,6 +35,13 @@ Last update: 2026-09-10, Phase 0 complete.
 - Disconnected-grain fraction changes from 0 to 0.827 over the same saved-frame interval.
 - No complete pre-avalanche restart exists; the final checkpoint cannot recover the onset.
 - The archived reference is a current-geometry, orientation-derived line-source model. The historical production backend is an accumulated point-eigenstrain FFT surrogate with constant beta and is not presently entitled to an unqualified QIU-reference label.
+- Diagnostics enabled versus disabled produced bitwise-identical `eta`,
+  eigenstrain, active-phase mask, time, step, and final grain count.
+- Diagnostic restart produces one record per accepted step without duplicates;
+  the recorder can also be enabled at an uninstrumented legacy checkpoint.
+- Post-instrumentation complete suite: 181 passed, 0 failed/errors/skipped in
+  101.42 s; JUnit SHA-256
+  `ca826ef620a1babf67f74473b64276066a3559ac1206cbd670bdc3d6626d14da`.
 
 ## Decisions recorded
 
@@ -41,4 +54,6 @@ Last update: 2026-09-10, Phase 0 complete.
 
 ## Next automatic action
 
-Implement read-only per-step diagnostics and the capture guard, prove diagnostic on/off trajectory invariance on a short run, and execute a deterministic legacy replay through the first guard trigger. Then independently derive and test the periodic elastic equilibrium operator.
+Commit the read-only instrumentation, launch the deterministic legacy replay to
+a step-9000 checkpoint, and independently derive and test the periodic elastic
+equilibrium operator while that replay runs.

@@ -8,7 +8,7 @@ from numpy.typing import NDArray
 
 from grain_growth_pf.config import PFConfig
 from .free_energy import free_energy
-from .kernels import pairwise_obstacle_step
+from .kernels import pairwise_obstacle_step, pairwise_obstacle_trial_statistics
 
 Array = NDArray[np.float64]
 DrivingCallback = Callable[[Array, float], Array]
@@ -35,6 +35,17 @@ class StepDiagnostics:
     dt: float
     interfacial_energy: float
     max_constraint_error: float
+    requested_dt: float = float("nan")
+    max_abs_order_parameter_increment: float = float("nan")
+    max_raw_order_parameter_increment: float = float("nan")
+    clipped_low_count: int = 0
+    clipped_high_count: int = 0
+    trial_value_count: int = 0
+    clipped_fraction: float = 0.0
+    total_renormalization_correction: float = 0.0
+    newly_extinct_phases: int = 0
+    minimum_pre_extinction_maximum: float = float("nan")
+    max_external_pair_driving_difference: float = 0.0
 
 
 class MultiphaseFieldSolver:
@@ -65,6 +76,7 @@ class MultiphaseFieldSolver:
         self.mobility_scale = np.ones(config.shape, dtype=float)
         self.time = 0.0
         self.step_number = 0
+        self.capture_step_diagnostics = False
 
     @property
     def labels(self) -> NDArray[np.int64]:
@@ -89,8 +101,10 @@ class MultiphaseFieldSolver:
             external = np.asarray(self.driving(self.eta, self.time), dtype=float)
             if external.shape != self.eta.shape:
                 raise ValueError("driving callback returned the wrong shape")
+        before_eta = self.eta
+        before_active = self.active_phases.copy() if self.capture_step_diagnostics else self.active_phases
         self.eta = pairwise_obstacle_step(
-            self.eta,
+            before_eta,
             self.active_phases,
             self.mobility_scale,
             external,
@@ -102,8 +116,20 @@ class MultiphaseFieldSolver:
             cfg.grid_spacing,
             cfg.boundary_conditions == "periodic",
         )
+        raw = None
+        if self.capture_step_diagnostics:
+            raw = pairwise_obstacle_trial_statistics(
+                before_eta, before_active, self.mobility_scale, external,
+                use_external, used_dt, cfg.intrinsic_mobility, cfg.gb_energy,
+                cfg.interface_width, cfg.grid_spacing,
+                cfg.boundary_conditions == "periodic",
+            )
         extinct = self.active_phases & (
             np.max(self.eta, axis=(1, 2)) < cfg.grain_extinction_threshold
+        )
+        pre_extinction_maximum = (
+            float(np.min(np.max(before_eta[extinct], axis=(1, 2))))
+            if self.capture_step_diagnostics and np.any(extinct) else float("nan")
         )
         if np.any(extinct) and np.count_nonzero(self.active_phases) > np.count_nonzero(extinct):
             self.active_phases[extinct] = False
@@ -121,6 +147,29 @@ class MultiphaseFieldSolver:
                 if compute_energy else float("nan")
             ),
             float(np.max(np.abs(self.eta.sum(axis=0) - 1.0))),
+            requested_dt=float(requested),
+            max_abs_order_parameter_increment=(
+                float(np.max(np.abs(self.eta - before_eta)))
+                if self.capture_step_diagnostics else float("nan")
+            ),
+            max_raw_order_parameter_increment=(
+                float(raw["max_raw_increment"]) if raw is not None else float("nan")
+            ),
+            clipped_low_count=int(raw["clipped_low"]) if raw is not None else 0,
+            clipped_high_count=int(raw["clipped_high"]) if raw is not None else 0,
+            trial_value_count=int(raw["trial_count"]) if raw is not None else 0,
+            clipped_fraction=(
+                float((raw["clipped_low"] + raw["clipped_high"]) / raw["trial_count"])
+                if raw is not None and raw["trial_count"] else 0.0
+            ),
+            total_renormalization_correction=(
+                float(raw["renormalization_l1"]) if raw is not None else 0.0
+            ),
+            newly_extinct_phases=int(np.count_nonzero(extinct)),
+            minimum_pre_extinction_maximum=pre_extinction_maximum,
+            max_external_pair_driving_difference=(
+                float(raw["max_external_pair_difference"]) if raw is not None else 0.0
+            ),
         )
 
     def run(self, steps: int, callback: Callable[["MultiphaseFieldSolver", StepDiagnostics], None] | None = None) -> list[StepDiagnostics]:
