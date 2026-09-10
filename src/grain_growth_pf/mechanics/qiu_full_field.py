@@ -158,6 +158,14 @@ class FFTEigenstrainV2:
         self.eigenstrain[:, :, y, x] += symmetric
         self.source_increment[:, :, y, x] += symmetric
 
+    def add_field(self, strain_increment: NDArray[np.float64]) -> None:
+        increment = np.asarray(strain_increment, dtype=float)
+        if increment.shape != self.eigenstrain.shape or not np.all(np.isfinite(increment)):
+            raise ValueError("strain increment field has the wrong shape or nonfinite values")
+        symmetric = 0.5 * (increment + np.swapaxes(increment, 0, 1))
+        self.eigenstrain += symmetric
+        self.source_increment += symmetric
+
     def set_eigenstrain(self, eigenstrain: NDArray[np.float64]) -> None:
         value = np.asarray(eigenstrain, dtype=float)
         if value.shape != self.eigenstrain.shape or not np.all(np.isfinite(value)):

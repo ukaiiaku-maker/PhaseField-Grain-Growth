@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-10, Phase 2 elastic operator complete; legacy replay running.
+Last update: 2026-09-10, Phase 4 source/work correction implemented; legacy replay running.
 
 ## Current source state
 
@@ -8,6 +8,8 @@ Last update: 2026-09-10, Phase 2 elastic operator complete; legacy replay runnin
 - Audited base: `9f66c8d7a5a266687284d8da35aefbc6062808f7`
 - Phase-0 commit: `66dce379ad6d9a0391ad76f4b653626891867d8a`
 - Phase-1 instrumentation commit: `147141b54227e7c80c457e9d80c1a2ca3475bf61`
+- Elastic-operator commit: `471412c`.
+- Reference-identity commit: `13b43a6`.
 - Worktree: `/private/tmp/qiu-full-field-qualification-v1`
 - Historical production source: `4761ef957715ba2faa84f015a0e4f4c4cd21c7aa`
 - Historical QIU run: canonical, read-only, all integration-manifest hashes verified
@@ -52,6 +54,18 @@ Last update: 2026-09-10, Phase 2 elastic operator complete; legacy replay runnin
   constitutive choices. Ten corrected-kernel gates and one explicit
   legacy-failure regression pass, including a dense global displacement
   oracle and three energy directional derivatives.
+- Archived two-reference coupling factors match the directly extracted
+  pristine `functions_2ref.py` function for eight synthetic orientation pairs.
+- The unique local donor/receiver sweep passes planar translation, shrinking
+  circle, multiple-neighbor, disconnected-pair, cancellation, rigid-
+  translation, sign-reversal, topology-persistence, and three-grid refinement
+  tests. Exact discrete swept-area relative error is zero in the manufactured
+  refinement cases; finite-difference work-conjugacy error is below `1e-4`.
+- Focused operator/source/reference/integration suite: 64 passed.
+- Historical tracking data show the source-gain mechanism directly: mean/max
+  tracked domains per physical grain pair increased from 1.376/3 at step 9800
+  to 4.341/34 at step 10246. The old unweighted one-source-per-domain map is
+  therefore partition dependent and self-amplifies after fragmentation.
 
 ## Decisions recorded
 
@@ -70,7 +84,7 @@ Last update: 2026-09-10, Phase 2 elastic operator complete; legacy replay runnin
 
 ## Next automatic action
 
-Commit the verified elastic operator separately, then audit the archived Qiu
-orientation/reference decomposition and replace whole-grain midpoint source
-mapping with a unique local interface-sweep map and its exact work-conjugate
-feedback while the legacy replay runs.
+Commit the local-sweep/work-conjugacy correction separately, then add a
+full-field-only external-drive timestep limit and coupled acceptance/rejection
+tests. Use reduced one-change-at-a-time simulations to prune the root-cause
+matrix before launching any corrected full-scale trajectory.

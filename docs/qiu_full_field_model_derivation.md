@@ -122,3 +122,58 @@ functions name their first grid index `x`. The conversion is explicit in
 (`stress[1,1]`) and `sigma22` to repository `yy` (`stress[0,0]`). Tests compare
 the new factor function directly with the archived function extracted from its
 AST, avoiding imports from the archive's unavailable legacy `sparse` stack.
+
+## Unique local interface sweep for `FFT_EIGENSTRAIN_V2`
+
+At each pixel let `Delta eta_p=eta_p^{n+1}-eta_p^n`. Negative increments are
+donors and positive increments are receivers. The unique local transfer from
+donor `i` to receiver `j` is
+
+\[
+ q_{i\to j}=\frac{(-\Delta\eta_i)_+(\Delta\eta_j)_+}
+                   {\sum_k(\Delta\eta_k)_+}.
+\]
+
+It follows exactly that each donor and receiver marginal is counted once and
+that the absolute swept area is
+`sum_x sum_j (Delta eta_j)_+ dx^2`. The construction does not iterate over
+tracked boundary domains, so adding neighbors, splitting one pair into several
+disconnected segments, or changing the tracking-domain length cannot multiply
+the source.
+
+For the canonical ordered pair `i<j`, the normal points from `i` to `j` and is
+computed from the centered gradient of `eta_j-eta_i`; `t=(-n_x,n_y)` in stored
+`(y,x)` order. With the orientation-derived directed coupling `beta_ij`,
+
+\[
+ B_{ij}(x)=\beta_{ij}\,\operatorname{sym}(t\otimes n),\qquad
+ \Delta\epsilon^*(x)=\sum_{i<j}q_{ij}^{signed}(x)B_{ij}(x).
+\]
+
+The same tensor gives the feedback. Since
+
+\[
+ \frac{dE_{el}}{dq_{ij}}=-\sigma:B_{ij},
+\]
+
+the phase potentials are assigned symmetrically so that
+`f_j-f_i=sigma:B_ij`, with `f=-delta E/delta eta`. This eliminates the old
+midpoint-sample/whole-segment broadcast gain. A central finite-difference
+energy perturbation agrees with this predicted work below `1e-4` relative
+error. Reversing transfer reverses the source exactly; stationary fields add
+none. Exact periodic rigid translations within the configured search radius
+are detected and add no plastic source. Accumulated eigenstrain persists when
+a phase or boundary disappears; topology changes never delete mechanical
+history.
+
+### Historical overcount evidence
+
+The legacy implementation computes one whole-grain area/perimeter displacement
+inside every tracked GB domain, then deposits one unweighted point source for
+each domain. It therefore changes if the same physical boundary is partitioned
+differently. In the immutable historical run the mean/max domains per grain
+pair were 1.374/3 at step 9000 and 1.376/3 at step 9800, but rose to 2.228/13
+at step 10000, 3.619/33 at step 10200, and 4.341/34 at step 10246. Fragmentation
+therefore multiplies further source deposition and supplies a concrete positive
+feedback channel. The local-transfer map removes that dependency by
+construction; it does not assume this channel is the sole avalanche cause.

@@ -49,7 +49,9 @@ class ModelConfig:
     parameters: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        if self.mechanics_backend not in {"none", "local_memory", "qiu_full_field"}:
+        if self.mechanics_backend not in {
+            "none", "local_memory", "qiu_full_field", "fft_eigenstrain_v2"
+        }:
             raise ValueError("unknown mechanics backend")
         if self.compatibility_model not in {"off", "explicit_modes", "geometric_surrogate"}:
             raise ValueError("unknown compatibility model")

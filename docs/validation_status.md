@@ -10,7 +10,8 @@ This file is generated/updated by the validation campaign. A production label is
 | Stochastic engine | quantitative validation passed | `results/validation/stochastic_validation.json` |
 | Mode selection/TJ | fast validation passed | isotropy, discrete minimum Burgers, feasible-combination and TJ persistence tests |
 | Shear/climb | fast validation passed | sign, balance, exchange, transport and serial-time tests |
-| Qiu mechanics | quantitative regression passed | `results/validation/qiu_regression_benchmarks.json` |
+| Historical Qiu-labeled surrogate | regression reproduced; physical qualification rejected | legacy benchmark plus `docs/qiu_full_field_model_derivation.md`; Fourier equilibrium residual about 0.69 |
+| FFT eigenstrain V2 kernel | mathematical and source/work gates passed; production qualification pending | equilibrium/energy dense-oracle tests and manufactured local-sweep tests |
 | Curvature-only production scaling | quantitative validation passed | `results/production_summaries/baseline_qiu_extended_20_summary.csv` |
 | Larger-grid convergence | fixed-parabolic coefficient passed | `results/validation/baseline_convergence_256_pass.json` |
 | Mechanism production scaling | exact 165-run, 33-regime matched composite passed and plotted | `results/validation/mechanism_composite_165_completion_20260817.json` |

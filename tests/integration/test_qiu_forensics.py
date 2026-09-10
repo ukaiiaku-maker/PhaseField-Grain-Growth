@@ -109,3 +109,44 @@ def test_qiu_guard_saves_full_state_and_terminates_as_diagnostic_capture(tmp_pat
     assert capture["scientific_status"] == "diagnostic_capture_not_completed"
     assert (output / "checkpoint.npz").exists()
     assert (output / "diagnostic_fields" / "step-0000001-guard.npz").exists()
+
+
+def _fft_v2_config(max_steps=4):
+    return ModelConfig(
+        regime="FFT_EIGENSTRAIN_V2", seed=97,
+        pf=PFConfig(
+            shape=(24, 24), interface_width=3.0, time_step=0.01,
+            intrinsic_mobility=0.1, adaptive_stepping=True,
+        ),
+        mechanics_backend="fft_eigenstrain_v2", compatibility_model="off",
+        active_modules=("fft_eigenstrain_shear",), output_cadence=2,
+        max_steps=max_steps, termination_grains=1,
+        parameters={
+            "initial_grains": 7, "equilibration_steps": 0,
+            "checkpoint_cadence": 2, "elastic_constitutive_state": "plane_strain",
+        },
+    )
+
+
+def test_fft_v2_simulation_uses_distributed_source_and_work_conjugate_force(tmp_path):
+    simulation = EventResolvedSimulation(_fft_v2_config(), tmp_path / "fft-v2")
+    simulation.run()
+    assert simulation.fft_coupling is not None
+    assert np.count_nonzero(simulation.full_field.eigenstrain) > 4
+    assert np.any(simulation.driving_field != 0.0)
+    assert simulation.full_field.last_equilibrium_residual < 1e-10
+
+
+def test_fft_v2_checkpoint_restart_is_exact(tmp_path):
+    continuous = tmp_path / "continuous"
+    resumed = tmp_path / "resumed"
+    EventResolvedSimulation(_fft_v2_config(4), continuous, code_sha="same").run()
+    EventResolvedSimulation(_fft_v2_config(2), resumed, code_sha="same").run()
+    EventResolvedSimulation(_fft_v2_config(4), resumed, resume=True, code_sha="same").run()
+    left, left_state = _checkpoint(continuous)
+    right, right_state = _checkpoint(resumed)
+    for name in left:
+        assert np.array_equal(left[name], right[name])
+    with np.load(continuous / "checkpoint.npz") as a, np.load(resumed / "checkpoint.npz") as b:
+        assert np.array_equal(a["driving_field"], b["driving_field"])
+    assert left_state["time"] == right_state["time"]

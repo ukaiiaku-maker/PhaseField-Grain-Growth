@@ -199,6 +199,14 @@ class QiuForensicRecorder:
             "source_tensor_norm": source_integral, "predicted_elastic_work": work,
         })
 
+    def record_global_sweep(
+        self, *, swept_area: float, integrated_source: np.ndarray,
+        predicted_source_work: float,
+    ) -> None:
+        self.boundary_sweep = float(swept_area)
+        self.source_measure = float(np.linalg.norm(integrated_source))
+        self.predicted_source_work = float(predicted_source_work)
+
     def record_step(self, simulation: Any, diag: Any) -> str | None:
         full_field = simulation.full_field
         labels = simulation.solver.labels

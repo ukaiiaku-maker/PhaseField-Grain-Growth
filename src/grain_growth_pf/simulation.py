@@ -28,7 +28,8 @@ from grain_growth_pf.io.event_ledger import EventLedger
 from grain_growth_pf.io.checkpoints import atomic_savez_compressed, atomic_write_text
 from grain_growth_pf.io.provenance import file_sha256, git_sha, write_manifest
 from grain_growth_pf.mechanics.local_shear_memory import LocalShearMemory
-from grain_growth_pf.mechanics.qiu_full_field import QiuFullField
+from grain_growth_pf.mechanics.fft_eigenstrain_coupling import LocalInterfaceSweepCoupling
+from grain_growth_pf.mechanics.qiu_full_field import FFTEigenstrainV2, QiuFullField
 from grain_growth_pf.obstacles.particles import ParticleField
 from grain_growth_pf.pf.geometry import voronoi_polycrystal
 from grain_growth_pf.pf.free_energy import free_energy
@@ -249,7 +250,26 @@ class EventResolvedSimulation:
                 float(config.parameters.get("barrier_std_ev", 0.1)),
                 bounds,
             )
-        self.full_field = QiuFullField(config.pf.shape) if config.mechanics_backend == "qiu_full_field" else None
+        self.fft_coupling: LocalInterfaceSweepCoupling | None = None
+        if config.mechanics_backend == "qiu_full_field":
+            self.full_field = QiuFullField(config.pf.shape)
+        elif config.mechanics_backend == "fft_eigenstrain_v2":
+            self.full_field = FFTEigenstrainV2(
+                config.pf.shape,
+                shear_modulus=float(config.parameters.get("elastic_shear_modulus", 1.0)),
+                poisson_ratio=float(config.parameters.get("elastic_poisson_ratio", 0.3)),
+                grid_spacing=config.pf.grid_spacing,
+                constitutive_state=str(config.parameters.get(
+                    "elastic_constitutive_state", "plane_strain"
+                )),
+                zero_mode="traction_free_mean_strain",
+            )
+            self.fft_coupling = LocalInterfaceSweepCoupling(
+                config.pf.grid_spacing,
+                rigid_shift_search=int(config.parameters.get("rigid_shift_search", 2)),
+            )
+        else:
+            self.full_field = None
         particle_modules = {"random_spatial_pinning", "particle_zener"}.intersection(config.active_modules)
         self.particles = ParticleField.random(
             int(config.parameters.get("particle_count", 20)),
@@ -987,6 +1007,23 @@ class EventResolvedSimulation:
         self._boundary_to_tjs = self._index_boundary_tjs()
         mobility = np.ones(cfg.pf.shape)
         self.driving_field.fill(0.0)
+        if self.fft_coupling is not None:
+            source_increment = self.fft_coupling.source_increment(
+                self.previous_entity_eta, self.solver.eta, self.orientations
+            )
+            if self.qiu_diagnostics is not None:
+                predicted_work = -float(
+                    np.sum(self.full_field.stress * source_increment)
+                    * cfg.pf.grid_spacing**2
+                )
+                self.qiu_diagnostics.record_global_sweep(
+                    swept_area=self.fft_coupling.last_diagnostics.absolute_swept_area,
+                    integrated_source=np.asarray(
+                        self.fft_coupling.last_diagnostics.integrated_source
+                    ),
+                    predicted_source_work=predicted_work,
+                )
+            self.full_field.add_field(source_increment)
         entity_elapsed = self.solver.time - self.previous_entity_time
         current_ids = set(self.snapshot.boundaries)
         self.domains = {key: state for key, state in self.domains.items() if key in current_ids}
@@ -1166,7 +1203,11 @@ class EventResolvedSimulation:
 
             self._advance_climb(domain, segment, delta_length)
 
-            pair_force = float(cfg.parameters.get("easy_beta", 0.35)) * self._boundary_resolved_shear(domain, segment)
+            pair_force = (
+                float(cfg.parameters.get("easy_beta", 0.35))
+                * self._boundary_resolved_shear(domain, segment)
+                if self.fft_coupling is None else 0.0
+            )
             if domain.normal_release_remaining:
                 pair_force += np.sign(domain.normal_release_remaining) * float(
                     cfg.parameters.get("event_normal_pressure", 1.0)
@@ -1188,6 +1229,10 @@ class EventResolvedSimulation:
         self.solver.set_mobility_scale(mobility)
         if self.full_field is not None:
             self.full_field.solve()
+        if self.fft_coupling is not None:
+            self.driving_field += self.fft_coupling.driving_field(
+                self.solver.eta, self.orientations, self.full_field.stress
+            )
         self.previous_entity_eta = self.solver.eta.copy()
         self.previous_entity_time = self.solver.time
 
@@ -1331,6 +1376,8 @@ class EventResolvedSimulation:
             )
             if self.full_field is not None and "eigenstrain" in arrays:
                 self.full_field.eigenstrain = arrays["eigenstrain"].copy()
+                if self.fft_coupling is not None:
+                    self.full_field.solve()
         self.solver.time = float(state["time"])
         self.solver.step_number = int(state["step_number"])
         self.previous_entity_time = float(state.get("previous_entity_time", self.solver.time))

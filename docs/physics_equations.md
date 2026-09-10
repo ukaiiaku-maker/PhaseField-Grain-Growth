@@ -110,7 +110,43 @@ ds=\beta\,dx_n-s\,dt/\tau_s-\sum_k\Delta s_k,
 v_n=M[\Gamma\kappa+\beta\tau_{\rm int}+\psi].
 \]
 
-The sign therefore follows the energy gradient. Reverse-curvature motion is possible only when the internal term opposes and exceeds capillarity. The `qiu_full_field` backend instead accumulates symmetric event eigenstrain, applies a periodic isotropic Fourier incompatibility projector, and computes the physical self-stress as the negative energy derivative, \(\sigma=-[2\mu\epsilon^{inc}+\lambda\operatorname{tr}(\epsilon^{inc})I]\), with the zero wavevector removed. Consequently \(\int\sigma:\epsilon^*\,dV<0\) for a nonzero isolated source and \(-\tfrac12\int\sigma:\epsilon^*\,dV>0\) is stored elastic energy. This sign also matches the explicit minus sign on Qiu's elastic PF driving term. The backend is a nonlocal independently implemented surrogate, not a bitwise port of Qiu's line kernel.
+The sign therefore follows the energy gradient. Reverse-curvature motion is possible only when the internal term opposes and exceeds capillarity.
+
+The historical `qiu_full_field` backend is preserved as
+`QiuFullFieldLegacy`. It accumulates symmetric point eigenstrain and applies a
+non-equilibrated Fourier projection. Its stored stress has the sign of the
+negative eigenstrain derivative, but the projection fails the mechanical-
+equilibrium gate and the model is not equivalent to Qiu's current-geometry
+line construction. Historical regression and Phase-1 results retain their old
+meaning; this backend is not qualified for new physical inference.
+
+The distinct `fft_eigenstrain_v2` backend solves periodic isotropic equilibrium
+
+\[
+k_jC_{ijkl}(\epsilon^c_{kl}-\epsilon^*_{kl})=0,
+\qquad \sigma=C:(\epsilon^c-\epsilon^*),
+\]
+
+with traction-free mean strain at `k=0`. It stores physical stress and the
+nonnegative energy
+
+\[
+E_{el}=\tfrac12\int(\epsilon^c-\epsilon^*):C:
+                         (\epsilon^c-\epsilon^*)\,dA,
+\quad \delta E_{el}=-\int\sigma:\delta\epsilon^*\,dA.
+\]
+
+Its local source uses the unique donor/receiver phase transfer
+
+\[
+q_{i\to j}=\frac{(-\Delta\eta_i)_+(\Delta\eta_j)_+}
+                   {\sum_k(\Delta\eta_k)_+},\qquad
+B_{ij}=\beta_{ij}\operatorname{sym}(t\otimes n),
+\]
+
+so `Delta epsilon*=sum q B`. The exact same `B` gives the elastic phase
+potential difference `f_j-f_i=sigma:B`. This is the discrete work-conjugate
+pair and contains neither midpoint sampling nor whole-grain area reuse.
 
 At a TJ, event Burgers increments are conserved in a persistent residual \(\mathbf B_{TJ}\), with
 
