@@ -19,7 +19,8 @@ The scientific gate is mixed:
   while `K2`, `K3`, and normalized growth rate fall.  This is not merely a
   smaller constant coefficient.
 - `QIU` undergoes a late, non-self-similar avalanche from 494 grains at step
-  9,800 to 99 grains at step 10,246.  Its terminal mean compactness is 4.37,
+  9,800 to 99 grains at step 10,246, an interval of 446 solver steps.  Its
+  terminal mean compactness is 4.37,
   versus about 1.34--1.36 for the other eight cases.  It is a transient/
   morphology diagnostic, not a converged growth-law result.
 
