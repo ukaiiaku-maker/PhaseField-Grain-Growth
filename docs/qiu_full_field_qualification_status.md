@@ -1,12 +1,13 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-10, Phase 1 instrumentation complete; legacy replay pending.
+Last update: 2026-09-10, Phase 2 elastic operator complete; legacy replay running.
 
 ## Current source state
 
 - Branch: `codex/qiu-full-field-qualification-v1`
 - Audited base: `9f66c8d7a5a266687284d8da35aefbc6062808f7`
 - Phase-0 commit: `66dce379ad6d9a0391ad76f4b653626891867d8a`
+- Phase-1 instrumentation commit: `147141b54227e7c80c457e9d80c1a2ca3475bf61`
 - Worktree: `/private/tmp/qiu-full-field-qualification-v1`
 - Historical production source: `4761ef957715ba2faa84f015a0e4f4c4cd21c7aa`
 - Historical QIU run: canonical, read-only, all integration-manifest hashes verified
@@ -42,6 +43,15 @@ Last update: 2026-09-10, Phase 1 instrumentation complete; legacy replay pending
 - Post-instrumentation complete suite: 181 passed, 0 failed/errors/skipped in
   101.42 s; JUnit SHA-256
   `ca826ef620a1babf67f74473b64276066a3559ac1206cbd670bdc3d6626d14da`.
+- Immutable HPC3 legacy replay plan
+  `20260910T232437Z-nogit-f4803a` was submitted as Slurm job `55930486`.
+- The historical Fourier projection fails the required equilibrium gate: a
+  fixed random 17x19 field gives normalized residual about `0.69`.
+- `FFTEigenstrainV2` independently solves displacement equilibrium with an
+  explicit traction-free zero mode and explicit plane-stress/plane-strain
+  constitutive choices. Ten corrected-kernel gates and one explicit
+  legacy-failure regression pass, including a dense global displacement
+  oracle and three energy directional derivatives.
 
 ## Decisions recorded
 
@@ -51,9 +61,16 @@ Last update: 2026-09-10, Phase 1 instrumentation complete; legacy replay pending
 - Keep superseded diagnostic analyses with explicit exclusion manifests.
 - Test the whole-grain-area/per-boundary source-overcount hypothesis rather than assuming it is the sole cause.
 - If mathematical equivalence to the archived reference is not established, qualify the corrected backend as `FFT_EIGENSTRAIN_V2`, not `QIU_REFERENCE_V2`.
+- Treat the non-equilibrated legacy Green projection as a demonstrated defect,
+  but do not yet assign sole causal responsibility for the historical
+  avalanche; source overcounting and explicit lag remain live hypotheses.
+- Select `plane_strain` for the corrected FFT surrogate to preserve the old
+  surrogate's constitutive choice. This is not a claim that the archived Qiu
+  line kernel is a plane-strain eigenstrain model.
 
 ## Next automatic action
 
-Commit the read-only instrumentation, launch the deterministic legacy replay to
-a step-9000 checkpoint, and independently derive and test the periodic elastic
-equilibrium operator while that replay runs.
+Commit the verified elastic operator separately, then audit the archived Qiu
+orientation/reference decomposition and replace whole-grain midpoint source
+mapping with a unique local interface-sweep map and its exact work-conjugate
+feedback while the legacy replay runs.
