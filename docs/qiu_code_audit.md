@@ -2,6 +2,17 @@
 
 Audited artifact: Zenodo 15120372 `PF_Codes.zip`, exact local MD5 `6cd49ca72eba89210abb96e700342f12`. Pristine files are under ignored `.external/qiu/PF_Codes/`.
 
+> **2026-09-10 qualification correction.** The archived implementation below
+> is a current-geometry line-disconnection construction. The repository's
+> historical `qiu_full_field` backend is instead an accumulated point-
+> eigenstrain FFT surrogate. The earlier statement in item 6 that its stored
+> array was the physical self-stress conflated stress with the negative
+> eigenstrain-energy derivative. A formal equilibrium audit now rejects that
+> legacy FFT projection (modewise residual about 0.69 in the fixed regression).
+> Its old regression results remain historical evidence only. The separately
+> named `FFTEigenstrainV2` uses physical stress, for which
+> `delta E/delta epsilon* = -sigma`, and is not called a Qiu reference port.
+
 1. **PF terms.** `update_PF` in each `functions_*ref.py` implements a Steinbach-style pairwise multiphase evolution. The interfacial driving combines a sinusoidal double-obstacle-like term with finite-difference Laplacians. The interface inclination is decomposed between neighboring crystallographic reference directions.
 2. **Mobility.** Pair mobility is initialized uniformly (`pmobi`), with zero diagonal; the scripts scale it as a function of interface thickness and pass it into the explicit update.
 3. **Shear coupling.** `beta(ORR1, ORR2)` returns two reference coupling factors from grain orientation/misorientation. `cal_inc` resolves a local inclination between adjacent references.
@@ -23,6 +34,14 @@ Audited artifact: Zenodo 15120372 `PF_Codes.zip`, exact local MD5 `6cd49ca72eba8
 ## Regression policy
 
 The original drivers depend on seed data not included in `PF_Codes.zip` and on legacy `numba`/`sparse` combinations. Immutable regression inputs are therefore the published scripts plus recorded hashes. Reproductions use independently specified small geometries with the audited equations. Curvature-only, idealized shear, and polycrystal shear cases are written to `results/validation/qiu_*`; they are not considered passed until their manifests contain quantitative observables and `validation_passed=true`.
+
+The 2026-09-10 identity tests extract the undecorated `beta` function directly
+from the pristine archived abstract syntax tree and compare eight synthetic
+orientation pairs, including both piecewise breakpoints and periodic endpoints,
+against `two_reference_coupling_factors`. Separate tests cover reference-sector
+selection, tensor-axis conversion, stress sign reversal, and grain-order
+reversal. These tests validate the audited scalar/reference formulas; they do
+not turn the FFT eigenstrain surrogate into the archived line-source model.
 
 The independently implemented regression at commit
 `e6b0d8ea52a3d025d49c876fc60359f542c29024` passes. Its matched geometries

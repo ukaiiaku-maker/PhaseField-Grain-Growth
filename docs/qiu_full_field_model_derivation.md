@@ -106,3 +106,19 @@ All tests use the acceptance tolerances in the qualification directive. The
 dense oracle constructs a global spectral strain-displacement matrix and solves
 the displacement minimization by dense least squares; it does not reuse the
 closed-form Green operator.
+
+## Archived two-reference identity gate
+
+For the polycrystal code, the directed misorientation is `theta=OR1-OR2` and
+the archived `beta` returns two ordered coupling factors. Its three branches
+are split at 70 and 150 degrees and are both scaled by 0.0333. The second factor
+uses the complementary directed angle `sign(theta) pi-theta`. The local
+inclination is rotated by the mean grain orientation and determines which of
+the two orthogonal reference angles receives which ordered factor.
+
+The production repository stores tensor axes as `(y,x)`, whereas the archived
+functions name their first grid index `x`. The conversion is explicit in
+`qiu_reference_geometry.py`; resolved shear maps `sigma11` to repository `xx`
+(`stress[1,1]`) and `sigma22` to repository `yy` (`stress[0,0]`). Tests compare
+the new factor function directly with the archived function extracted from its
+AST, avoiding imports from the archive's unavailable legacy `sparse` stack.
