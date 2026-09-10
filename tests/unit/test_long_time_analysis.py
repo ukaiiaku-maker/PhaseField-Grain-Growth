@@ -41,3 +41,11 @@ def test_differential_effective_exponent_is_cubic_away_from_edges():
     rate, exponent = differential_effective_exponent(time, size, window_length=21)
     assert np.all(rate[20:-20] > 0.0)
     np.testing.assert_allclose(np.nanmedian(exponent[20:-20]), 3.0, atol=0.08)
+
+
+def test_differential_effective_exponent_handles_size_plateaus_without_infinities():
+    time = np.arange(9.0)
+    size = np.asarray([1.0, 1.1, 1.1, 1.2, 1.3, 1.3, 1.4, 1.5, 1.6])
+    rate, exponent = differential_effective_exponent(time, size, window_length=5)
+    assert np.all(np.isfinite(rate))
+    assert not np.any(np.isinf(exponent))

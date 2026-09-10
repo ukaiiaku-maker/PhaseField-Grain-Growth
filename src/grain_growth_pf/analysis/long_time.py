@@ -117,7 +117,14 @@ def differential_effective_exponent(
     exponent = np.full(len(rate), np.nan)
     if np.count_nonzero(positive) >= 3:
         indices = np.flatnonzero(positive)
-        exponent[indices] = 1.0 - np.gradient(
-            np.log(rate[indices]), np.log(smooth[indices])
-        )
+        # Digitized grain populations can give identical consecutive G values.
+        # A derivative with respect to log(G) is undefined on such plateaus, so
+        # retain one sample per strictly distinct smoothed size and leave the
+        # other locations explicitly unavailable instead of emitting infinities.
+        _, unique_offsets = np.unique(smooth[indices], return_index=True)
+        distinct = indices[np.sort(unique_offsets)]
+        if len(distinct) >= 3:
+            exponent[distinct] = 1.0 - np.gradient(
+                np.log(rate[distinct]), np.log(smooth[distinct])
+            )
     return rate, exponent

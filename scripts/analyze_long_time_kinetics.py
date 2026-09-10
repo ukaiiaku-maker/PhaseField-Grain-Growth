@@ -351,9 +351,21 @@ def _event_triggered_rows(run: Path, trajectory: pd.DataFrame) -> tuple[list[dic
     trace_parts = sorted(trace_path.glob("part-*.parquet")) if trace_path.is_dir() else []
     if not event_parts or not trace_parts:
         return [], []
-    events = pd.read_parquet(event_path, columns=["event_id", "event_step", "event_type"])
-    event_steps = dict(zip(events["event_id"].astype(str), events["event_step"].astype(int)))
-    event_types = dict(zip(events["event_id"].astype(str), events["event_type"].astype(str)))
+    events = pd.read_parquet(
+        event_path,
+        columns=[
+            "event_id", "event_step", "event_type", "trace_start_step",
+            "trace_end_step",
+        ],
+    )
+    event_records: dict[str, list[tuple[int, int, int, str]]] = defaultdict(list)
+    for event in events.itertuples(index=False):
+        event_records[str(event.event_id)].append(
+            (
+                int(event.event_step), int(event.trace_start_step),
+                int(event.trace_end_step), str(event.event_type),
+            )
+        )
     known_steps = trajectory["step"].to_numpy(int)
     known_x = trajectory["G_population_over_G0"].to_numpy(float)
     sums: dict[tuple[float, float, int, str], list[float]] = defaultdict(lambda: [0.0, 0.0, 0.0])
@@ -372,9 +384,18 @@ def _event_triggered_rows(run: Path, trajectory: pd.DataFrame) -> tuple[list[dic
                 if not np.isfinite(velocity):
                     continue
                 for event_id in row.event_ids.split(";"):
-                    event_step = event_steps.get(event_id)
-                    if event_step is None:
+                    candidates = [
+                        item for item in event_records.get(event_id, [])
+                        if item[1] <= int(row.step) <= item[2]
+                    ]
+                    if not candidates:
                         continue
+                    # Event IDs are domain-local and can recur after topology
+                    # retirement/recreation.  The trace interval disambiguates
+                    # them; nearest-event tie breaking is deterministic.
+                    event_step, _, _, _ = min(
+                        candidates, key=lambda item: (abs(int(row.step) - item[0]), item[0])
+                    )
                     event_x = float(np.interp(event_step, known_steps, known_x))
                     window = next(
                         ((lo, hi) for lo, hi in PROGRESS_WINDOWS if lo <= event_x <= hi),
@@ -413,9 +434,10 @@ def _event_triggered_rows(run: Path, trajectory: pd.DataFrame) -> tuple[list[dic
                 "post_mean_abs_velocity": weighted_mean(post),
                 "post_minus_pre": weighted_mean(post) - weighted_mean(pre),
                 "sampled_events": sum(
-                    1 for event_id, step in event_steps.items()
+                    1 for event in events.itertuples(index=False)
+                    for step in (int(event.event_step),)
                     if lo <= float(np.interp(step, known_steps, known_x)) <= hi
-                    and event_types.get(event_id) is not None
+                    and pd.notna(event.event_type)
                 ),
             })
     return rows, summary
