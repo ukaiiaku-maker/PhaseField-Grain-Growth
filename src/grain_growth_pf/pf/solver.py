@@ -8,7 +8,11 @@ from numpy.typing import NDArray
 
 from grain_growth_pf.config import PFConfig
 from .free_energy import free_energy
-from .kernels import pairwise_obstacle_step, pairwise_obstacle_trial_statistics
+from .kernels import (
+    maximum_external_rate,
+    pairwise_obstacle_step,
+    pairwise_obstacle_trial_statistics,
+)
 
 Array = NDArray[np.float64]
 DrivingCallback = Callable[[Array, float], Array]
@@ -46,6 +50,8 @@ class StepDiagnostics:
     newly_extinct_phases: int = 0
     minimum_pre_extinction_maximum: float = float("nan")
     max_external_pair_driving_difference: float = 0.0
+    external_dt_limit: float = float("inf")
+    rejection_count: int = 0
 
 
 class MultiphaseFieldSolver:
@@ -90,6 +96,20 @@ class MultiphaseFieldSolver:
         return 0.18 * self.config.grid_spacing**2 / max(
             kinetic * kappa, np.finfo(float).tiny
         )
+
+    def external_drive_dt(self, external: Array, delta_eta_target: float) -> float:
+        """Accuracy limit for an explicitly applied phase-driving field."""
+        if not np.isfinite(delta_eta_target) or delta_eta_target <= 0.0:
+            raise ValueError("delta_eta_target must be finite and positive")
+        value = np.asarray(external, dtype=float)
+        if value.shape != self.eta.shape or not np.all(np.isfinite(value)):
+            raise ValueError("external driving field has the wrong shape or is nonfinite")
+        rate = maximum_external_rate(
+            self.eta, self.active_phases, self.mobility_scale, value,
+            self.config.intrinsic_mobility,
+            self.config.boundary_conditions == "periodic",
+        )
+        return float("inf") if rate == 0.0 else float(delta_eta_target / rate)
 
     def step(self, dt: float | None = None, *, compute_energy: bool = True) -> StepDiagnostics:
         cfg = self.config

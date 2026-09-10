@@ -249,6 +249,8 @@ class QiuForensicRecorder:
             "schema_version": self.schema_version,
             "step": diag.step, "time": diag.time,
             "requested_dt": diag.requested_dt, "used_dt": diag.dt,
+            "external_dt_limit": diag.external_dt_limit,
+            "coupled_rejection_count": diag.rejection_count,
             "max_abs_order_parameter_increment": diag.max_abs_order_parameter_increment,
             "max_raw_order_parameter_increment": diag.max_raw_order_parameter_increment,
             "clipped_low_count": diag.clipped_low_count,

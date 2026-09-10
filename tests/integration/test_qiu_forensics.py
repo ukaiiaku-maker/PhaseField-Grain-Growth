@@ -138,11 +138,16 @@ def test_fft_v2_simulation_uses_distributed_source_and_work_conjugate_force(tmp_
 
 
 def test_fft_v2_checkpoint_restart_is_exact(tmp_path):
+    parameters = {
+        **_fft_v2_config().parameters, "external_delta_eta_target": 1e-12,
+    }
+    continuous_config = replace(_fft_v2_config(4), parameters=parameters)
+    first_config = replace(_fft_v2_config(2), parameters=parameters)
     continuous = tmp_path / "continuous"
     resumed = tmp_path / "resumed"
-    EventResolvedSimulation(_fft_v2_config(4), continuous, code_sha="same").run()
-    EventResolvedSimulation(_fft_v2_config(2), resumed, code_sha="same").run()
-    EventResolvedSimulation(_fft_v2_config(4), resumed, resume=True, code_sha="same").run()
+    EventResolvedSimulation(continuous_config, continuous, code_sha="same").run()
+    EventResolvedSimulation(first_config, resumed, code_sha="same").run()
+    EventResolvedSimulation(continuous_config, resumed, resume=True, code_sha="same").run()
     left, left_state = _checkpoint(continuous)
     right, right_state = _checkpoint(resumed)
     for name in left:
@@ -150,3 +155,82 @@ def test_fft_v2_checkpoint_restart_is_exact(tmp_path):
     with np.load(continuous / "checkpoint.npz") as a, np.load(resumed / "checkpoint.npz") as b:
         assert np.array_equal(a["driving_field"], b["driving_field"])
     assert left_state["time"] == right_state["time"]
+    assert left_state["time"] < 4 * continuous_config.pf.time_step
+
+
+def test_fft_v2_diagnostics_and_output_cadence_are_trajectory_invariant(tmp_path):
+    base = _fft_v2_config(5)
+    diagnostic = replace(base, parameters={
+        **base.parameters,
+        "qiu_diagnostics_enabled": True,
+        "qiu_diagnostic_field_start_step": 100,
+        "qiu_guard_clip_fraction": 1.0,
+        "qiu_guard_extinction_count": 1000,
+    })
+    sparse_output = replace(base, output_cadence=3)
+    paths = [tmp_path / name for name in ("base", "diagnostic", "sparse-output")]
+    for config, path in zip((base, diagnostic, sparse_output), paths):
+        EventResolvedSimulation(config, path, code_sha="same").run()
+    checkpoints = [_checkpoint(path)[0] for path in paths]
+    for candidate in checkpoints[1:]:
+        for name in checkpoints[0]:
+            assert np.array_equal(checkpoints[0][name], candidate[name])
+    with np.load(paths[0] / "checkpoint.npz") as left:
+        for path in paths[1:]:
+            with np.load(path / "checkpoint.npz") as right:
+                assert np.array_equal(left["driving_field"], right["driving_field"])
+
+
+def test_fft_v2_external_limit_reduces_dt_and_complete_energy_never_increases(tmp_path):
+    base = _fft_v2_config(6)
+    config = replace(base, parameters={
+        **base.parameters,
+        "external_delta_eta_target": 1e-12,
+        "qiu_diagnostics_enabled": True,
+        "qiu_diagnostic_field_start_step": 100,
+        "qiu_guard_clip_fraction": 1.0,
+        "qiu_guard_extinction_count": 1000,
+    })
+    output = tmp_path / "limited"
+    EventResolvedSimulation(config, output, code_sha="same").run()
+    scalar = ds.dataset(output / "per_step_diagnostics.parquet", format="parquet").to_table().to_pandas()
+    assert np.any(scalar["used_dt"].to_numpy()[1:] < config.pf.time_step)
+    assert np.all(scalar["max_raw_order_parameter_increment"] < 0.03)
+    energy = json.loads((output / "energy.json").read_text())
+    total = np.asarray([row["total_complete"] for row in energy])
+    assert np.all(np.diff(total) <= 2e-10 * np.maximum(total[:-1], 1.0))
+
+
+def test_fft_v2_converges_as_external_increment_target_is_tightened(tmp_path):
+    def evolve(target, name):
+        base = _fft_v2_config(10000)
+        config = replace(
+            base,
+            pf=replace(base.pf, shape=(16, 16), intrinsic_mobility=0.2),
+            parameters={
+                **base.parameters, "initial_grains": 4,
+                "external_delta_eta_target": target,
+                "elastic_shear_modulus": 1e4,
+            },
+        )
+        simulation = EventResolvedSimulation(config, tmp_path / name, code_sha="same")
+        steps = 0
+        while simulation.solver.time < 0.05 - 1e-14:
+            simulation._advance_fft_v2_step(
+                maximum_dt=0.05 - simulation.solver.time
+            )
+            simulation.snapshot = simulation.tracker.update(simulation.solver.labels)
+            simulation._update_physics(fft_source_applied=True)
+            steps += 1
+        eta = simulation.solver.eta.copy()
+        simulation.ledger.close()
+        simulation.track_handle.close()
+        simulation.boundary_handle.close()
+        return eta, steps
+
+    targets = (1e-5, 5e-6, 2.5e-6, 1.25e-6)
+    results = [evolve(target, f"target-{index}") for index, target in enumerate(targets)]
+    reference = results[-1][0]
+    errors = [np.linalg.norm(result[0] - reference) for result in results[:-1]]
+    assert errors[0] > errors[1] > errors[2]
+    assert results[0][1] < results[1][1] < results[2][1] < results[3][1]

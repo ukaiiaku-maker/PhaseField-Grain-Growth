@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-10, Phase 4 source/work correction implemented; legacy replay running.
+Last update: 2026-09-10, Phase 5 coupled timestep control implemented; legacy replay running.
 
 ## Current source state
 
@@ -66,6 +66,12 @@ Last update: 2026-09-10, Phase 4 source/work correction implemented; legacy repl
   tracked domains per physical grain pair increased from 1.376/3 at step 9800
   to 4.341/34 at step 10246. The old unweighted one-source-per-domain map is
   therefore partition dependent and self-amplifies after fragmentation.
+- `fft_eigenstrain_v2` now limits explicit external forcing by a configured
+  maximum phase increment and rejects/halves any coupled trial that increases
+  complete interfacial-plus-elastic energy. Variable-dt restart is exact.
+- Forced-limit tests verify timestep reduction, raw-increment bounds, complete-
+  energy monotonicity, diagnostic/output-cadence invariance, and a monotonically
+  decreasing matched-time solution error across four tightened targets.
 
 ## Decisions recorded
 
@@ -84,7 +90,6 @@ Last update: 2026-09-10, Phase 4 source/work correction implemented; legacy repl
 
 ## Next automatic action
 
-Commit the local-sweep/work-conjugacy correction separately, then add a
-full-field-only external-drive timestep limit and coupled acceptance/rejection
-tests. Use reduced one-change-at-a-time simulations to prune the root-cause
-matrix before launching any corrected full-scale trajectory.
+Commit the full-field-only integration control separately. Then execute and
+analyze a reduced one-change-at-a-time root-cause matrix before launching any
+corrected full-scale trajectory.

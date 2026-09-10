@@ -241,6 +241,20 @@ and external driving against the vectorized equation at floating-point
 precision. The pairwise energy has an independently checked compiled
 evaluation with the same discrete forward gradients.
 
+For `fft_eigenstrain_v2` only, explicit external forcing adds the accuracy
+bound
+
+\[
+\Delta t_{ext}=\Delta\eta_{target}/
+\max|M_0m(x)(f_i-\bar f_{\mathcal A})|.
+\]
+
+The coupled trial is accepted only if interfacial plus full-field elastic
+energy does not increase above absolute/relative floating-point tolerance.
+Rejected trials restore the complete PF/mechanical state and halve `dt` before
+retrying. Other mechanics backends retain their prior timesteps and numerical
+trajectories.
+
 ## Analysis
 
 In 2-D \(R_i=\sqrt{A_i/\pi}\), \(R_A=\sqrt{\langle A\rangle/\pi}\). Scaling fits scan/optimize \(n\) in

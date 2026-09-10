@@ -996,9 +996,9 @@ class EventResolvedSimulation:
                     for ox in range(-radius, radius + 1):
                         mobility[(y + oy) % mobility.shape[0], (x + ox) % mobility.shape[1]] = 0.0
 
-    def _update_physics(self) -> None:
+    def _update_physics(self, *, fft_source_applied: bool = False) -> None:
         cfg, modules = self.config, set(self.config.active_modules)
-        if self.full_field is not None:
+        if self.full_field is not None and not fft_source_applied:
             self.full_field.begin_source_step()
             if self.qiu_diagnostics is not None:
                 self.qiu_diagnostics.begin_coupling(
@@ -1007,7 +1007,7 @@ class EventResolvedSimulation:
         self._boundary_to_tjs = self._index_boundary_tjs()
         mobility = np.ones(cfg.pf.shape)
         self.driving_field.fill(0.0)
-        if self.fft_coupling is not None:
+        if self.fft_coupling is not None and not fft_source_applied:
             source_increment = self.fft_coupling.source_increment(
                 self.previous_entity_eta, self.solver.eta, self.orientations
             )
@@ -1236,6 +1236,89 @@ class EventResolvedSimulation:
         self.previous_entity_eta = self.solver.eta.copy()
         self.previous_entity_time = self.solver.time
 
+    def _advance_fft_v2_step(self, maximum_dt: float | None = None) -> Any:
+        """Advance one accepted, energy-checked coupled FFT-v2 step."""
+        cfg = self.config
+        target = float(cfg.parameters.get("external_delta_eta_target", 0.02))
+        external_limit = self.solver.external_drive_dt(self.driving_field, target)
+        candidate_dt = min(
+            cfg.pf.time_step, self.solver.stable_dt(), external_limit,
+            float("inf") if maximum_dt is None else maximum_dt,
+        )
+        minimum_dt = float(cfg.parameters.get("coupled_minimum_dt", 1e-8))
+        maximum_rejections = int(cfg.parameters.get("coupled_max_rejections", 20))
+        relative_tolerance = float(cfg.parameters.get("coupled_energy_relative_tolerance", 1e-10))
+        absolute_tolerance = float(cfg.parameters.get("coupled_energy_absolute_tolerance", 1e-10))
+        if minimum_dt <= 0.0 or maximum_rejections < 0:
+            raise ValueError("invalid FFT-v2 coupled-step control")
+
+        eta_before = self.solver.eta.copy()
+        active_before = self.solver.active_phases.copy()
+        time_before = self.solver.time
+        step_before = self.solver.step_number
+        eigenstrain_before = self.full_field.eigenstrain.copy()
+        stress_before = self.full_field.stress.copy()
+        interfacial_before = free_energy(
+            eta_before, cfg.pf.gb_energy, cfg.pf.interface_width,
+            cfg.pf.grid_spacing, boundary=cfg.pf.boundary_conditions,
+        )
+        elastic_before = self.full_field.elastic_energy(cfg.pf.grid_spacing)
+        total_before = interfacial_before + elastic_before
+        tolerance = absolute_tolerance + relative_tolerance * max(abs(total_before), 1.0)
+        if self.qiu_diagnostics is not None:
+            self.full_field.begin_source_step()
+            self.qiu_diagnostics.begin_coupling(
+                self.full_field, cfg.pf.grid_spacing
+            )
+
+        for rejection in range(maximum_rejections + 1):
+            self.solver.eta = eta_before.copy()
+            self.solver.active_phases = active_before.copy()
+            self.solver.time = time_before
+            self.solver.step_number = step_before
+            self.full_field.eigenstrain = eigenstrain_before.copy()
+            self.full_field.begin_source_step()
+            diag = self.solver.step(dt=candidate_dt, compute_energy=True)
+            source_increment = self.fft_coupling.source_increment(
+                eta_before, self.solver.eta, self.orientations
+            )
+            self.full_field.add_field(source_increment)
+            self.full_field.solve()
+            total_after = diag.interfacial_energy + self.full_field.elastic_energy(
+                cfg.pf.grid_spacing
+            )
+            if np.isfinite(total_after) and total_after <= total_before + tolerance:
+                diag.requested_dt = cfg.pf.time_step
+                diag.external_dt_limit = external_limit
+                diag.rejection_count = rejection
+                if self.qiu_diagnostics is not None:
+                    predicted_work = -float(
+                        0.5 * np.sum(
+                            (stress_before + self.full_field.stress) * source_increment
+                        )
+                        * cfg.pf.grid_spacing**2
+                    )
+                    self.qiu_diagnostics.record_global_sweep(
+                        swept_area=self.fft_coupling.last_diagnostics.absolute_swept_area,
+                        integrated_source=np.asarray(
+                            self.fft_coupling.last_diagnostics.integrated_source
+                        ),
+                        predicted_source_work=predicted_work,
+                    )
+                return diag
+            candidate_dt *= 0.5
+            if candidate_dt < minimum_dt or rejection == maximum_rejections:
+                self.solver.eta = eta_before
+                self.solver.active_phases = active_before
+                self.solver.time = time_before
+                self.solver.step_number = step_before
+                self.full_field.eigenstrain = eigenstrain_before
+                self.full_field.solve()
+                raise RuntimeError(
+                    "FFT-v2 coupled step could not satisfy the complete-energy acceptance gate"
+                )
+        raise AssertionError("unreachable coupled-step loop")
+
     def _write_tracks(self) -> None:
         for grain in self.snapshot.grains.values():
             self.track_writer.writerow({
@@ -1433,15 +1516,20 @@ class EventResolvedSimulation:
             entity_every_step = bool(self.config.active_modules) or self.config.compatibility_model != "off"
             for _ in range(max(0, self.config.max_steps - self.solver.step_number)):
                 energy_due = (self.solver.step_number + 1) % energy_cadence == 0
-                diag = (
-                    self.solver.step()
-                    if energy_cadence == 1
-                    else self.solver.step(compute_energy=energy_due)
-                )
+                if self.fft_coupling is not None:
+                    diag = self._advance_fft_v2_step()
+                else:
+                    diag = (
+                        self.solver.step()
+                        if energy_cadence == 1
+                        else self.solver.step(compute_energy=energy_due)
+                    )
                 update_entities = entity_every_step or self.solver.step_number % self.config.output_cadence == 0
                 if update_entities:
                     self.snapshot = self.tracker.update(self.solver.labels)
-                    self._update_physics()
+                    self._update_physics(
+                        fft_source_applied=self.fft_coupling is not None
+                    )
                 if self.qiu_diagnostics is not None:
                     diagnostic_capture = self.qiu_diagnostics.record_step(self, diag)
                 stored_shear = sum(d.shear.energy for d in self.domains.values())
@@ -1461,7 +1549,7 @@ class EventResolvedSimulation:
                     d.free_volume.dissipated_energy for d in self.domains.values()
                 )
                 if energy_due:
-                    self.energy_records.append({
+                    energy_record = {
                         "time": diag.time,
                         "interfacial": diag.interfacial_energy,
                         "stored": stored_shear + stored_free_volume + stored_tj,
@@ -1470,7 +1558,19 @@ class EventResolvedSimulation:
                         "stored_tj_residual": stored_tj,
                         "dissipated_shear": dissipated_shear,
                         "dissipated_free_volume": dissipated_free_volume,
-                    })
+                    }
+                    if self.fft_coupling is not None:
+                        elastic_full_field = self.full_field.elastic_energy(
+                            self.config.pf.grid_spacing
+                        )
+                        energy_record.update({
+                            "elastic_full_field": elastic_full_field,
+                            "total_complete": diag.interfacial_energy + elastic_full_field,
+                            "used_dt": diag.dt,
+                            "external_dt_limit": diag.external_dt_limit,
+                            "coupled_rejection_count": diag.rejection_count,
+                        })
+                    self.energy_records.append(energy_record)
                 if self.solver.step_number % self.config.output_cadence == 0:
                     self._write_tracks()
                 if self.solver.step_number % checkpoint_cadence == 0:

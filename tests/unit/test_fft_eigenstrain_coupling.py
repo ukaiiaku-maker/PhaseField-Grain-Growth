@@ -5,6 +5,8 @@ from grain_growth_pf.mechanics.fft_eigenstrain_coupling import (
     LocalInterfaceSweepCoupling,
 )
 from grain_growth_pf.mechanics.qiu_full_field import FFTEigenstrainV2
+from grain_growth_pf.config import PFConfig
+from grain_growth_pf.pf.solver import MultiphaseFieldSolver
 
 
 def _one_hot(labels, phases):
@@ -166,3 +168,15 @@ def test_accumulated_source_persists_across_topology_loss():
     # No mapper operation silently edits already accumulated mechanical state.
     coupling.source_increment(after, _circle(radius=0), np.asarray([0.2, 1.0]))
     assert np.array_equal(elasticity.eigenstrain, stored)
+
+
+def test_external_drive_limit_matches_centered_phase_rate_and_scales():
+    eta = np.full((2, 8, 10), 0.5)
+    config = PFConfig(
+        shape=(8, 10), interface_width=3.0, intrinsic_mobility=0.4,
+        time_step=0.1,
+    )
+    solver = MultiphaseFieldSolver(eta, config)
+    driving = np.empty_like(eta); driving[0] = 3.0; driving[1] = -3.0
+    assert np.isclose(solver.external_drive_dt(driving, 0.012), 0.01)
+    assert np.isclose(solver.external_drive_dt(2.0 * driving, 0.012), 0.005)

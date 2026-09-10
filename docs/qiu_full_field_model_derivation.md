@@ -166,6 +166,34 @@ are detected and add no plastic source. Accumulated eigenstrain persists when
 a phase or boundary disappears; topology changes never delete mechanical
 history.
 
+## Coupled time integration
+
+Only `fft_eigenstrain_v2` changes timestep behavior. Before every trial, the
+maximum centered external phase rate is evaluated on exactly the same local
+phase support as the production obstacle kernel:
+
+\[
+r_{ext,max}=\max_{p,x}|M_0m(x)(f_p-\bar f_{\mathcal A})|,
+\qquad
+\Delta t_{ext}=\frac{\Delta\eta_{target}}{r_{ext,max}}.
+\]
+
+The first trial uses the minimum of the configured timestep, intrinsic
+capillary bound, external bound, and any requested terminal-time bound. After
+the PF trial, the unique sweep is mapped, eigenstrain is updated, and elastic
+equilibrium is resolved. The complete interfacial-plus-elastic energy is then
+compared with its pre-step value. An increasing trial is rejected, all PF and
+mechanical arrays and clocks are restored, and the timestep is halved. Only an
+accepted state updates entity bookkeeping and output. The configured default
+`external_delta_eta_target=0.02` is an accuracy bound, not a stress cap; stress
+and source remain uncapped.
+
+Tests force the external limit active, prove exact checkpoint/restart with
+variable timesteps, verify complete-energy monotonicity, bound raw pre-clipping
+increments, and show monotonically decreasing matched-time solution error as
+the target is tightened through four levels. Output cadence and read-only
+diagnostics remain trajectory invariant.
+
 ### Historical overcount evidence
 
 The legacy implementation computes one whole-grain area/perimeter displacement

@@ -355,6 +355,68 @@ def pairwise_obstacle_trial_statistics(
 
 
 @njit(cache=True)
+def _maximum_external_rate_masked(
+    eta: Array, active: NDArray[np.bool_],
+    row_support: NDArray[np.bool_], column_support: NDArray[np.bool_],
+    mobility_scale: Array, external: Array, mobility: float,
+    periodic: bool,
+) -> float:
+    phases, height, width_pixels = eta.shape
+    external_sum = np.zeros((height, width_pixels), dtype=np.float64)
+    count = np.zeros((height, width_pixels), dtype=np.int32)
+    for phase in range(phases):
+        if not active[phase]:
+            continue
+        for y in range(height):
+            if not row_support[phase, y]:
+                continue
+            ym = (y - 1) % height if periodic else max(y - 1, 0)
+            yp = (y + 1) % height if periodic else min(y + 1, height - 1)
+            for x in range(width_pixels):
+                if not column_support[phase, x]:
+                    continue
+                xm = (x - 1) % width_pixels if periodic else max(x - 1, 0)
+                xp = (x + 1) % width_pixels if periodic else min(x + 1, width_pixels - 1)
+                if (
+                    eta[phase, y, x] > 1e-14
+                    or eta[phase, ym, x] > 1e-14
+                    or eta[phase, yp, x] > 1e-14
+                    or eta[phase, y, xm] > 1e-14
+                    or eta[phase, y, xp] > 1e-14
+                ):
+                    external_sum[y, x] += external[phase, y, x]
+                    count[y, x] += 1
+    maximum = 0.0
+    for phase in range(phases):
+        if not active[phase]:
+            continue
+        for y in range(height):
+            if not row_support[phase, y]:
+                continue
+            for x in range(width_pixels):
+                if not column_support[phase, x] or count[y, x] == 0:
+                    continue
+                rate = abs(
+                    mobility * mobility_scale[y, x]
+                    * (external[phase, y, x] - external_sum[y, x] / count[y, x])
+                )
+                if rate > maximum:
+                    maximum = rate
+    return maximum
+
+
+def maximum_external_rate(
+    eta: Array, active: NDArray[np.bool_], mobility_scale: Array,
+    external: Array, mobility: float, periodic: bool,
+) -> float:
+    """Maximum local phase rate from external driving alone."""
+    rows, columns = phase_support_masks(eta, active, periodic)
+    return float(_maximum_external_rate_masked(
+        eta, active, rows, columns, mobility_scale, external, mobility, periodic
+    ))
+
+
+@njit(cache=True)
 def pairwise_free_energy(
     eta: Array,
     gamma: float,
