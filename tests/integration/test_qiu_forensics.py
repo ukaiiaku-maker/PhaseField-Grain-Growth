@@ -5,6 +5,7 @@ import numpy as np
 import pyarrow.dataset as ds
 
 from grain_growth_pf.config import ModelConfig, PFConfig
+from grain_growth_pf.migration_closure import MigrationClosureSimulation
 from grain_growth_pf.simulation import EventResolvedSimulation
 from run_qiu_fft_v2_qualification import FFTEigenstrainFrameSimulation
 
@@ -93,6 +94,35 @@ def test_qiu_forensics_can_start_from_an_uninstrumented_legacy_checkpoint(tmp_pa
     EventResolvedSimulation(_config(diagnostics=True), output, resume=True, code_sha="same").run()
     table = ds.dataset(output / "per_step_diagnostics.parquet", format="parquet").to_table()
     assert table.column("step").to_pylist() == [3, 4]
+
+
+def test_migration_closure_qiu_diagnostics_are_trajectory_invariant_and_finite(tmp_path):
+    plain_path = tmp_path / "closure-plain"
+    forensic_path = tmp_path / "closure-forensic"
+    MigrationClosureSimulation(_config(diagnostics=False), plain_path, code_sha="same").run()
+    MigrationClosureSimulation(
+        _config(diagnostics=True), forensic_path, code_sha="same"
+    ).run()
+
+    plain, plain_state = _checkpoint(plain_path)
+    forensic, forensic_state = _checkpoint(forensic_path)
+    for name in plain:
+        assert np.array_equal(plain[name], forensic[name])
+    assert plain_state["time"] == forensic_state["time"]
+    assert plain_state["step_number"] == forensic_state["step_number"]
+
+    scalar = ds.dataset(
+        forensic_path / "per_step_diagnostics.parquet", format="parquet"
+    ).to_table().to_pandas()
+    assert scalar["step"].tolist() == [1, 2, 3, 4]
+    assert np.all(np.isfinite(scalar["source_elastic_energy_change"]))
+    assert np.all(np.isfinite(scalar["source_work_error"]))
+    assert np.all(np.isfinite(scalar["source_increment_l2"]))
+    boundary = ds.dataset(
+        forensic_path / "per_boundary_diagnostics.parquet", format="parquet"
+    ).to_table().to_pandas()
+    assert len(boundary) > 0
+    assert np.all(np.isfinite(boundary["predicted_elastic_work"]))
 
 
 def test_qiu_guard_saves_full_state_and_terminates_as_diagnostic_capture(tmp_path):

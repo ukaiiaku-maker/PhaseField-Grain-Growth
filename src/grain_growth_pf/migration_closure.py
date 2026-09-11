@@ -1580,6 +1580,16 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 "MigrationClosureSimulation does not implement the FFT-v2 coupled update"
             )
         cfg, modules = self.config, set(self.config.active_modules)
+        if self.full_field is not None:
+            # This subclass owns the legacy QIU source update rather than
+            # delegating to EventResolvedSimulation._update_physics. Reset only
+            # the read-only per-step source accumulator and seed the energy
+            # difference before depositing the unchanged legacy events.
+            self.full_field.begin_source_step()
+            if self.qiu_diagnostics is not None:
+                self.qiu_diagnostics.begin_coupling(
+                    self.full_field, cfg.pf.grid_spacing
+                )
         self._event_trace_local_displacement.clear()
         self._event_trace_records_by_entity.clear()
         self._last_gb_sink_entities.clear()
@@ -1689,6 +1699,21 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 )
                 position = tuple(segment.points[len(segment.points) // 2].astype(int))
                 self.full_field.add_event(position, strain)
+                if self.qiu_diagnostics is not None:
+                    self.qiu_diagnostics.record_boundary(
+                        step=self.solver.step_number,
+                        time=self.solver.time,
+                        entity_id=segment.entity_id,
+                        grain_i=segment.grain_i,
+                        grain_j=segment.grain_j,
+                        length=segment.length,
+                        normal_displacement=local_normal_displacement,
+                        beta=beta,
+                        resolved_shear=self.full_field.resolved_shear(
+                            position, tangent, normal
+                        ),
+                        source_tensor=strain,
+                    )
 
             if not self.area_loss_enabled and modules.intersection({
                 "free_volume", "serial_climb", "nucleation_limited",
