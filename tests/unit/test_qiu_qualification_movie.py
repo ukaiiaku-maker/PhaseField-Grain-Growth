@@ -20,3 +20,22 @@ def test_qiu_movie_discovers_compact_frames_and_loads_required_fields(tmp_path):
     assert record["grain_count"] == 2
     assert np.array_equal(record["stress_xy"], np.full((2, 2), 2.0))
     assert np.array_equal(record["eigenstrain_xy"], np.full((2, 2), -0.5))
+
+
+def test_qiu_movie_merges_dense_fields_and_prefers_them_at_duplicate_steps(tmp_path):
+    frames = tmp_path / "frames"
+    fields = tmp_path / "diagnostic_fields"
+    frames.mkdir(); fields.mkdir()
+    for path in (
+        frames / "frame-0000000.npz",
+        frames / "frame-0000010.npz",
+        fields / "step-0000010-cadence.npz",
+        fields / "step-0000011-guard.npz",
+    ):
+        np.savez_compressed(path, labels=np.zeros((1, 1)))
+
+    assert discover(tmp_path) == [
+        frames / "frame-0000000.npz",
+        fields / "step-0000010-cadence.npz",
+        fields / "step-0000011-guard.npz",
+    ]
