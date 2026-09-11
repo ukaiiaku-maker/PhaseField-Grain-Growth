@@ -1,6 +1,8 @@
+import json
+
 import numpy as np
 
-from render_qiu_qualification_movie import discover, load
+from render_qiu_qualification_movie import discover, load, select_contact_panels
 
 
 def test_qiu_movie_discovers_compact_frames_and_loads_required_fields(tmp_path):
@@ -39,3 +41,33 @@ def test_qiu_movie_merges_dense_fields_and_prefers_them_at_duplicate_steps(tmp_p
         fields / "step-0000010-cadence.npz",
         fields / "step-0000011-guard.npz",
     ]
+
+
+def test_contact_sheet_does_not_infer_transition_from_sparse_population_loss(tmp_path):
+    records = [
+        {"step": 0, "grain_count": 800},
+        {"step": 200, "grain_count": 700},
+        {"step": 400, "grain_count": 610},
+        {"step": 500, "grain_count": 580},
+    ]
+    selected, roles, evidence = select_contact_panels(tmp_path, records)
+    assert selected == [0, 2, 3]
+    assert roles == ["initial", "midpoint", "terminal"]
+    assert evidence == {"selection_basis": "trajectory_without_diagnostic_capture"}
+
+
+def test_contact_sheet_centers_on_recorded_diagnostic_capture(tmp_path):
+    capture = tmp_path / "diagnostic_capture.json"
+    capture.write_text(json.dumps({"step": 115, "reasons": ["morphology_guard"]}))
+    records = [
+        {"step": 0, "grain_count": 800},
+        {"step": 100, "grain_count": 790},
+        {"step": 110, "grain_count": 780},
+        {"step": 120, "grain_count": 700},
+    ]
+    selected, roles, evidence = select_contact_panels(tmp_path, records)
+    assert selected == [1, 2, 3]
+    assert roles == ["pre-transition", "transition", "post-transition"]
+    assert evidence["selection_basis"] == "diagnostic_capture"
+    assert evidence["diagnostic_capture_step"] == 115
+    assert evidence["diagnostic_capture_reasons"] == ["morphology_guard"]

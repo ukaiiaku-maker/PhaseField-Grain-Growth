@@ -110,3 +110,8 @@ contact sheets. This is required for the legacy step-9000--10246 onset rather
 than rendering only the coarse cadence frames. FFmpeg is not installed on the
 workstation, so the verified fallback product is an animated GIF with the same
 CSV frame/hash index and JSON metadata.
+
+The later contact-sheet correction selects pre/transition/post panels from the
+recorded `diagnostic_capture.json` step. In runs without a capture it uses
+initial/midpoint/terminal roles, avoiding false event labels from ordinary
+population loss between sparse frames.

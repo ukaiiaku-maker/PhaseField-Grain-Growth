@@ -225,6 +225,12 @@ Last update: 2026-09-10 21:50 PDT; legacy and corrected seed-5101 full-size jobs
   pre/transition/post contact-sheet panel metadata. Two focused tests and a
   two-frame 384x384 GIF/contact-sheet smoke render pass; FFmpeg is unavailable,
   so GIF is the retained animation format unless it is installed later.
+- A step-500 live render exposed that sparse-cadence ordinary coarsening could
+  be mislabeled as a transition by the contact-sheet selector. The selector now
+  centers pre/transition/post panels only on the recorded diagnostic-capture
+  step; a run without a capture uses neutral initial/midpoint/terminal roles.
+  The corrected four-frame full-size smoke render and 10 focused movie,
+  analyzer, and runner tests pass.
 - Commit `92fcfc9` adds a reproducible HPC3 source-attestation command. It
   independently rehashes each input archive and source bundle, verifies the
   asserted commit is in the Git bundle, and has generated attestations for both

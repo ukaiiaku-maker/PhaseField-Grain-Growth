@@ -65,6 +65,33 @@ def color_table(max_label: int) -> np.ndarray:
     return colors
 
 
+def select_contact_panels(
+    run: Path, metadata_records: list[dict[str, object]],
+) -> tuple[list[int], list[str], dict[str, object]]:
+    """Select capture-centered panels, or neutral trajectory panels if none fired."""
+    capture_path = run / "diagnostic_capture.json"
+    if capture_path.exists():
+        capture = json.loads(capture_path.read_text())
+        capture_step = int(capture["step"])
+        steps = np.asarray([int(record["step"]) for record in metadata_records])
+        transition = int(np.argmin(np.abs(steps - capture_step)))
+        return (
+            [max(0, transition - 1), transition, min(len(metadata_records) - 1, transition + 1)],
+            ["pre-transition", "transition", "post-transition"],
+            {
+                "selection_basis": "diagnostic_capture",
+                "diagnostic_capture": str(capture_path.resolve()),
+                "diagnostic_capture_step": capture_step,
+                "diagnostic_capture_reasons": capture.get("reasons", []),
+            },
+        )
+    return (
+        [0, len(metadata_records) // 2, len(metadata_records) - 1],
+        ["initial", "midpoint", "terminal"],
+        {"selection_basis": "trajectory_without_diagnostic_capture"},
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("run", type=Path)
@@ -164,18 +191,7 @@ def main() -> None:
         destination = destination.with_suffix(".gif")
         movie.save(destination, writer=animation.PillowWriter(fps=args.fps), dpi=args.dpi)
 
-    losses = np.asarray([
-        int(metadata_records[index - 1]["grain_count"]) - int(metadata_records[index]["grain_count"])
-        for index in range(1, len(metadata_records))
-    ])
-    initial_grains = int(metadata_records[0]["grain_count"])
-    if len(losses) and int(np.max(losses)) >= max(10, int(np.ceil(0.05 * initial_grains))):
-        transition = int(np.argmax(losses)) + 1
-        selected = [max(0, transition - 1), transition, min(len(paths) - 1, transition + 1)]
-        roles = ["pre-transition", "transition", "post-transition"]
-    else:
-        selected = [0, len(paths) // 2, len(paths) - 1]
-        roles = ["initial", "midpoint", "terminal"]
+    selected, roles, contact_selection = select_contact_panels(args.run, metadata_records)
     contact_figure, contact_axes = plt.subplots(3, 3, figsize=(12, 11), constrained_layout=True)
     contact_stress = None
     contact_eigenstrain = None
@@ -204,7 +220,11 @@ def main() -> None:
     contact_figure.colorbar(contact_stress, ax=contact_axes[1, :], fraction=0.02)
     contact_figure.colorbar(contact_eigenstrain, ax=contact_axes[2, :], fraction=0.02)
     contact = destination.with_suffix(".contact_sheet.png")
-    contact_figure.suptitle(f"{args.run.name}: transition-resolved fields")
+    contact_figure.suptitle(
+        f"{args.run.name}: "
+        + ("capture-resolved fields" if contact_selection["selection_basis"] == "diagnostic_capture"
+           else "initial/midpoint/terminal fields")
+    )
     contact_figure.savefig(contact, dpi=args.dpi)
     plt.close(contact_figure)
     plt.close(figure)
@@ -212,6 +232,7 @@ def main() -> None:
         "schema_version": 1, "run": str(args.run.resolve()),
         "movie": str(destination.resolve()), "frame_index": str(index_path.resolve()),
         "contact_sheet": str(contact.resolve()), "contact_sheet_panels": contact_panels,
+        "contact_sheet_selection": contact_selection,
         "frame_count": len(paths),
         "compact_frame_count": sum(path.parent.name == "frames" for path in paths),
         "dense_field_count": sum(path.parent.name == "diagnostic_fields" for path in paths),
