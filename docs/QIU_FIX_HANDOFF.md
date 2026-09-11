@@ -12,8 +12,9 @@ pool live snapshots or superseded preflights as terminal evidence.
 - Selected backend/config:
   `FFT_EIGENSTRAIN_V2` / `configs/production/fft_eigenstrain_v2_qualification_900K.yaml`
 - Production physics source: `8bb7837677e6ca36fc9a952daf6aef601190b550`
-- Later commits contain analysis/status tooling; they do not change the active
-  production trajectory.
+- Later commits contain analysis/status/provenance tooling; they do not change
+  the active production trajectory. Commit `a236192` fixes repository-root Git
+  discovery for future staged jobs.
 
 ## Active HPC3 ownership
 
@@ -49,6 +50,19 @@ Live snapshots contain only atomically closed Parquet parts and are marked
 `pooling_allowed=false`. The active jobs retain checkpoint cadence <=500 and
 compact movie frames sufficient to reconstruct label, stress, and eigenstrain
 evolution.
+
+The active wrappers verified their exact detached commits and bundle hashes,
+but their internal application manifests report `UNCOMMITTED` because the
+pre-fix scripts queried Git from the parent staging directory. Independent
+machine-readable attestations are retained at
+`active_hpc_provenance_attestations.json` under the durable result root. The
+legacy step-1500 recovery archive, including checkpoint and evolution frames,
+is at `hpc_live/20260911T013800Z-legacy` with SHA-256
+`b8ae0b4205a1074dacef9cef7633442ea7b6a6ba743145662952bdb34a5e182a`.
+
+The refinement and seed-5102/5103 job directories are staged but unplanned and
+unsubmitted. All three now contain the verified `a236192` bundle with SHA-256
+`836b36f8f0077d4d9daa00b6645522316b116ae4b78c3bfc5d9267e39739e84a`.
 
 ## Next execution order
 

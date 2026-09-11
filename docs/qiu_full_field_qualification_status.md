@@ -21,6 +21,8 @@ Last update: 2026-09-10 18:30 PDT; legacy and corrected seed-5101 full-size jobs
 - Live report and handoff commit: `3b06bd5`.
 - Paired-seed preparation commit: `4ef9390`.
 - Three-grid spatial-convergence commit: `ae99d34`.
+- Staged-source provenance fix: `a236192`.
+- Matched-time/progress qualification analysis: `78da5ea`.
 - Historical production source: `4761ef957715ba2faa84f015a0e4f4c4cd21c7aa`
 - Historical QIU run: canonical, read-only, all integration-manifest hashes verified
 - Current scientific decision: the historical QIU remains an unresolved non-self-similar transient and its backend is conclusively a legacy FFT eigenstrain surrogate, not the archived current-geometry Qiu reference formulation. The selected qualification backend is therefore honestly named `FFT_EIGENSTRAIN_V2`; production behavior remains pending.
@@ -143,6 +145,22 @@ Last update: 2026-09-10 18:30 PDT; legacy and corrected seed-5101 full-size jobs
   is `8.65e-14`, source-work error is `-3.49e-8`, and external dt limit is
   11.10 versus used dt 0.04. The live outputs continue to grow on node-local
   Slurm scratch and neither job has a terminal marker yet.
+- The legacy step-1500 checkpoint plus all then-available movie frames were
+  copied without pausing the solver to local recovery archive
+  `hpc_live/20260911T013800Z-legacy`, SHA-256
+  `b8ae0b4205a1074dacef9cef7633442ea7b6a6ba743145662952bdb34a5e182a`.
+- The active HPC application manifests say `UNCOMMITTED` because their scripts
+  queried Git from the parent stage directory. This does not make their source
+  ambiguous: both immutable wrappers assert the detached commit and verify the
+  source-bundle hash. `active_hpc_provenance_attestations.json` records those
+  independent identities. Commit `a236192` corrects the lookup for all queued
+  runs, whose shared verified bundle SHA-256 is
+  `836b36f8f0077d4d9daa00b6645522316b116ae4b78c3bfc5d9267e39739e84a`.
+- The production analyzer now reports timestep agreement at matched physical
+  time and matched grain-size progress, evaluates interpolated energy-history
+  norms, checks avalanche-class consistency, honors explicit source
+  attestations, and creates dedicated timestep, legacy/corrected, and seed
+  comparison plots. Its three focused tests pass.
 - The accepted fixed-physical-domain reduced spatial study is
   `20260911T013000Z-spatial-convergence-r2` at dx=1, 0.5, and 0.25. At matched
   t=4 every grid gives N=17 and the same physical population grain size. From
