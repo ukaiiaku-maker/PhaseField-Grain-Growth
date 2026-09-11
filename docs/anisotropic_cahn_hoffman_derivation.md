@@ -15,6 +15,7 @@ are confirmed by [Cahn's NIST publication list](https://www.ctcms.nist.gov/~cahn
 Publisher full text was not accessible during this session. The following
 discrete derivation is independent and is checked directly by finite variation;
 it is not represented as a full-text literature review.
+Direct publisher abstract-page retrieval also returned HTTP 403 for both papers.
 
 ## Constitutive derivatives
 
@@ -35,6 +36,10 @@ normalizations, returned as an immutable new law. Normalizations from an
 unqualified polygonal reconstruction remain provisional; they must not silently
 become the production constants. Inverse energy–mobility correlation is a
 synthetic constitutive hypothesis, not an empirical universal law.
+Reported distribution percentiles use cumulative edge-length midpoint weights.
+The rank statistic is length-weighted Pearson correlation of average tied
+sample ranks; this convention is recorded rather than presented as a unique
+definition of weighted Spearman correlation.
 
 ## Exact discrete variation
 
@@ -80,6 +85,31 @@ before this reconstruction can supply production forces. No history transfer
 is implemented or claimed by this geometry module.
 
 ## PF coupling remains an explicit release gate
+
+### Work-conjugate triangular pullback
+
+An additional independent module now differentiates the resolved triangular
+network energy with respect to the phase values at its mesh vertices. At a
+side crossing, let d=eta_i-eta_j and let u be the mesh-side direction. The
+linearized constraint gives
+
+    delta x = -u [sum_a bary_a delta d_a] / (grad d dot u).
+
+For a TJ inside a triangle, use the two constraints eta_i-eta_j=0 and
+eta_i-eta_k=0. If their spatial gradients form the rows of A, then
+
+    delta x = -inverse(A) [sum_a bary_a delta(eta_i-eta_j)_a,
+                           sum_a bary_a delta(eta_i-eta_k)_a].
+
+Contracting each endpoint variation with its negative energy gradient gives
+the phase derivative. The implementation accumulates these pair differences
+antisymmetrically, so the sum over phases is zero at every mesh vertex.
+Three small finite-variation tests pass, including resolved TJs and exact
+isotropic reference subtraction. Mesh-vertex crossings and singular junction
+constraints are explicitly rejected because their fixed-topology derivative
+is unresolved. This pullback does not yet constitute a qualified PF update.
+
+### Legacy update and remaining contract
 
 The historical rate at phase i is
 
