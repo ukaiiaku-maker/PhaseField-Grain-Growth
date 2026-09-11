@@ -154,6 +154,16 @@ Last update: 2026-09-10 18:30 PDT; legacy and corrected seed-5101 full-size jobs
   100-step loss is 52 (about 7% of its preceding population, below the 10%
   guard), while clipping stays in the narrow 0.263--0.273 running baseline.
   Durable nonterminal audit: `hpc_live/20260911T024100Z-corrected-step208-audit.json`.
+- The later corrected recovery snapshot contains 25 closed Parquet parts
+  through step 400/t=16/N=617 and compact movie frames at steps 0, 200, and
+  400. It retains zero complete-energy increases and coupled rejections, finite
+  guard-critical fields, maximum equilibrium residual `3.42e-12`, maximum
+  absolute source-work error `1.33e-7`, maximum compactness 1.795, and zero
+  disconnected grains. The minimum external limit is 6.25 versus used dt 0.04;
+  clipping stays within 0.254--0.273. Archive and audit are durable under
+  `hpc_live/20260911T040500Z-corrected`, SHA-256
+  `a06753ec606e29860b655624cc62195a572733c3c3e3648daa54ce7f82876bbd`,
+  and remain explicitly nonterminal/nonpoolable.
 - The legacy step-1500 checkpoint plus all then-available movie frames were
   copied without pausing the solver to local recovery archive
   `hpc_live/20260911T013800Z-legacy`, SHA-256
