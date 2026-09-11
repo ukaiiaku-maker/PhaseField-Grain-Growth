@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-10, Phase 5 coupled timestep control implemented; legacy replay running.
+Last update: 2026-09-10, Phase 6 reduced causal matrix complete; legacy replay running.
 
 ## Current source state
 
@@ -72,6 +72,27 @@ Last update: 2026-09-10, Phase 5 coupled timestep control implemented; legacy re
 - Forced-limit tests verify timestep reduction, raw-increment bounds, complete-
   energy monotonicity, diagnostic/output-cadence invariance, and a monotonically
   decreasing matched-time solution error across four tightened targets.
+- The accepted 48x48, 18-grain, 400-step causal matrix is under
+  `results/qiu_full_field_qualification_20260910/20260910T171500Z-reduced-matrix-r2`.
+  Seven trajectories (`L0,L1,K,S,T,KS,KST`) completed; `F` is the nonduplicated
+  alias of `KST`, and the distinct unimplemented reference-line `R` is recorded
+  as excluded rather than impersonated.
+- At matched physical time 8, all controls retain 16 grains. L0 has max stress
+  0.1297, equilibrium residual 0.7062, and source-work error -0.00405; corrected
+  `KS/KST` has max stress 0.02376, residual about `1e-14`, and source-work error
+  about `-9.5e-9`. The timestep-only `T` is identical to L0 because its external
+  limit correctly remains inactive in this resolved interval.
+- Halving legacy dt changes its matched-time stress from 0.1297 to 0.1940 even
+  though total energy agrees within 0.001%; this rejects timestep convergence
+  of the accumulated legacy source. Operator-only and source-only controls each
+  reduce stress, while only the source correction closes the work residual.
+- No reduced trajectory crosses a morphology guard. Population-only guards in
+  the 18-grain cell reflect ordinary loss of more than two grains per 100 steps
+  and are not classified as avalanches. Maximum compactness remains 1.741.
+- A first matrix attempt at `20260910T164900Z-reduced-matrix` is preserved and
+  excluded: its absolute clipping threshold confused normal double-obstacle
+  halo projection with a clipping spike. The corrected guard uses a 20-step
+  running baseline plus multiplicative and additive spike margins.
 
 ## Decisions recorded
 
@@ -90,6 +111,8 @@ Last update: 2026-09-10, Phase 5 coupled timestep control implemented; legacy re
 
 ## Next automatic action
 
-Commit the full-field-only integration control separately. Then execute and
-analyze a reduced one-change-at-a-time root-cause matrix before launching any
-corrected full-scale trajectory.
+Commit the reduced-control machinery and results. Launch seed-5101 corrected
+production and a factor-two tighter target only after a 384x384 short preflight
+passes memory, checkpoint, diagnostic, and performance checks. Continue
+monitoring the immutable legacy replay without consuming a second full worker
+until that preflight is accepted.

@@ -51,6 +51,15 @@ class QiuFullFieldLegacy:
         self.eigenstrain[:, :, y, x] += symmetric
         self.source_increment[:, :, y, x] += symmetric
 
+    def add_field(self, strain_increment: NDArray[np.float64]) -> None:
+        """Diagnostic-control hook; not used by historical replay."""
+        increment = np.asarray(strain_increment, dtype=float)
+        if increment.shape != self.eigenstrain.shape or not np.all(np.isfinite(increment)):
+            raise ValueError("strain increment field has the wrong shape or nonfinite values")
+        symmetric = 0.5 * (increment + np.swapaxes(increment, 0, 1))
+        self.eigenstrain += symmetric
+        self.source_increment += symmetric
+
     def solve(self) -> NDArray[np.float64]:
         ny, nx = self.shape
         ky = 2 * np.pi * np.fft.fftfreq(ny)

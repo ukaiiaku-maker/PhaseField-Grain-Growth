@@ -146,6 +146,9 @@ class QiuForensicRecorder:
         self.field_start = int(parameters.get("qiu_diagnostic_field_start_step", 9000))
         self.field_cadence = max(1, int(parameters.get("qiu_diagnostic_field_cadence", 10)))
         self.clip_spike_fraction = float(parameters.get("qiu_guard_clip_fraction", 0.02))
+        self.clip_spike_factor = float(parameters.get("qiu_guard_clip_factor", 1.5))
+        self.clip_spike_additive = float(parameters.get("qiu_guard_clip_additive", 0.05))
+        self.clip_warmup = int(parameters.get("qiu_guard_clip_warmup_steps", 20))
         self.extinction_spike = int(parameters.get("qiu_guard_extinction_count", 10))
         self.terminate_on_guard = bool(parameters.get("qiu_guard_terminate", True))
         self.scalar_rows: list[dict[str, Any]] = []
@@ -153,6 +156,7 @@ class QiuForensicRecorder:
         self.scalar_part = self._next_part(self.scalar_dir) if resume else 0
         self.boundary_part = self._next_part(self.boundary_dir) if resume else 0
         self.population_history: deque[tuple[int, int]] = deque()
+        self.clipping_history: deque[float] = deque(maxlen=100)
         self.previous_ids: set[int] = set()
         self.previous_centroids: dict[int, tuple[float, float, float]] = {}
         self.previous_interfacial = float("nan")
@@ -297,6 +301,7 @@ class QiuForensicRecorder:
         self.previous_centroids = centroids
         self.previous_interfacial = interfacial
         self._evaluate_guard(row, simulation)
+        self.clipping_history.append(float(row["clipped_fraction"]))
         if diag.step >= self.field_start and diag.step % self.field_cadence == 0:
             self.save_fields(simulation, "cadence")
         if self.guard_reason is not None:
@@ -316,8 +321,18 @@ class QiuForensicRecorder:
             reasons.append("mean_compactness_gt_2.5")
         if row["compactness_max"] > 6.0:
             reasons.append("max_compactness_gt_6")
-        if row["clipped_fraction"] > self.clip_spike_fraction:
-            reasons.append("clipping_spike")
+        if len(self.clipping_history) >= self.clip_warmup:
+            baseline = (
+                float(np.median(np.asarray(self.clipping_history)))
+                if self.clipping_history else 0.0
+            )
+            clip_threshold = max(
+                self.clip_spike_fraction,
+                self.clip_spike_factor * baseline,
+                baseline + self.clip_spike_additive,
+            )
+            if row["clipped_fraction"] > clip_threshold:
+                reasons.append("clipping_spike_relative_to_running_baseline")
         if row["newly_extinct_phases"] >= self.extinction_spike:
             reasons.append("extinction_spike")
         for key in ("total_energy", "stress_linf", "eigenstrain_linf"):
@@ -366,6 +381,7 @@ class QiuForensicRecorder:
             "schema_version": self.schema_version,
             "scalar_part": self.scalar_part, "boundary_part": self.boundary_part,
             "population_history": list(self.population_history),
+            "clipping_history": list(self.clipping_history),
             "previous_ids": sorted(self.previous_ids),
             "previous_centroids": {str(key): value for key, value in self.previous_centroids.items()},
             "previous_interfacial": self.previous_interfacial,
@@ -378,6 +394,9 @@ class QiuForensicRecorder:
         self.scalar_part = int(state["scalar_part"])
         self.boundary_part = int(state["boundary_part"])
         self.population_history = deque((int(a), int(b)) for a, b in state["population_history"])
+        self.clipping_history = deque(
+            (float(value) for value in state.get("clipping_history", [])), maxlen=100
+        )
         self.previous_ids = {int(value) for value in state["previous_ids"]}
         self.previous_centroids = {
             int(key): tuple(map(float, value)) for key, value in state["previous_centroids"].items()

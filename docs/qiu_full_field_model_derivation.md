@@ -194,6 +194,25 @@ increments, and show monotonically decreasing matched-time solution error as
 the target is tightened through four levels. Output cadence and read-only
 diagnostics remain trajectory invariant.
 
+## Reduced causal controls
+
+The accepted one-change matrix uses one hashed 48x48, 18-grain state for 400
+steps. `K` replaces only the operator, `S` only the source/feedback mapping,
+`T` only the external timestep limiter, `KS` combines operator and source, and
+`KST/F` is the selected fully corrected surrogate. Diagnostic-only component
+switches are explicit config parameters; production defaults remain legacy for
+`qiu_full_field` and fully corrected for `fft_eigenstrain_v2`.
+
+At matched time 8, `L0` and refined `L1` have the same grain count and nearly
+the same total energy, but stress differs by about 50%, rejecting timestep
+convergence of the legacy accumulated source. Correcting only the operator
+closes equilibrium but not work consistency. Correcting only the source closes
+the source-work residual but not equilibrium. `KS/KST` closes both, reduces
+maximum stress by about 82% relative to L0 at matched time, and retains compact
+morphology. The `T` limiter is inactive and bitwise follows L0 in this resolved
+interval, as it should; forced-drive and matched-time target-refinement tests
+separately demonstrate its activation and convergence.
+
 ### Historical overcount evidence
 
 The legacy implementation computes one whole-grain area/perimeter displacement

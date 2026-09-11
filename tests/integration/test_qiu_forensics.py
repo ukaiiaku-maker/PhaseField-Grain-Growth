@@ -98,6 +98,7 @@ def test_qiu_guard_saves_full_state_and_terminates_as_diagnostic_capture(tmp_pat
     config = _config(diagnostics=True)
     config = replace(config, max_steps=4, parameters={
         **config.parameters, "qiu_guard_clip_fraction": -1.0,
+        "qiu_guard_clip_warmup_steps": 0,
     })
     output = tmp_path / "guard"
     simulation = EventResolvedSimulation(config, output, code_sha="same")

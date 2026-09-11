@@ -264,12 +264,34 @@ class EventResolvedSimulation:
                 )),
                 zero_mode="traction_free_mean_strain",
             )
+        else:
+            self.full_field = None
+        default_source_mapping = (
+            "local_sweep" if config.mechanics_backend == "fft_eigenstrain_v2"
+            else "legacy_midpoint"
+        )
+        self.full_field_source_mapping = str(config.parameters.get(
+            "full_field_source_mapping", default_source_mapping
+        ))
+        if self.full_field_source_mapping not in {"legacy_midpoint", "local_sweep"}:
+            raise ValueError("unknown full_field_source_mapping")
+        if self.full_field is not None and self.full_field_source_mapping == "local_sweep":
             self.fft_coupling = LocalInterfaceSweepCoupling(
                 config.pf.grid_spacing,
                 rigid_shift_search=int(config.parameters.get("rigid_shift_search", 2)),
             )
-        else:
-            self.full_field = None
+        self.coupled_integration_enabled = bool(config.parameters.get(
+            "coupled_integration_enabled",
+            config.mechanics_backend == "fft_eigenstrain_v2"
+            and self.full_field_source_mapping == "local_sweep",
+        ))
+        if self.coupled_integration_enabled and (
+            config.mechanics_backend != "fft_eigenstrain_v2"
+            or self.full_field_source_mapping != "local_sweep"
+        ):
+            raise ValueError(
+                "energy-checked coupled integration requires FFT-v2 and local-sweep source"
+            )
         particle_modules = {"random_spatial_pinning", "particle_zener"}.intersection(config.active_modules)
         self.particles = ParticleField.random(
             int(config.parameters.get("particle_count", 20)),
@@ -1007,22 +1029,14 @@ class EventResolvedSimulation:
         self._boundary_to_tjs = self._index_boundary_tjs()
         mobility = np.ones(cfg.pf.shape)
         self.driving_field.fill(0.0)
+        local_source_increment: np.ndarray | None = None
+        local_source_stress_before: np.ndarray | None = None
         if self.fft_coupling is not None and not fft_source_applied:
             source_increment = self.fft_coupling.source_increment(
                 self.previous_entity_eta, self.solver.eta, self.orientations
             )
-            if self.qiu_diagnostics is not None:
-                predicted_work = -float(
-                    np.sum(self.full_field.stress * source_increment)
-                    * cfg.pf.grid_spacing**2
-                )
-                self.qiu_diagnostics.record_global_sweep(
-                    swept_area=self.fft_coupling.last_diagnostics.absolute_swept_area,
-                    integrated_source=np.asarray(
-                        self.fft_coupling.last_diagnostics.integrated_source
-                    ),
-                    predicted_source_work=predicted_work,
-                )
+            local_source_increment = source_increment
+            local_source_stress_before = self.full_field.stress.copy()
             self.full_field.add_field(source_increment)
         entity_elapsed = self.solver.time - self.previous_entity_time
         current_ids = set(self.snapshot.boundaries)
@@ -1229,6 +1243,24 @@ class EventResolvedSimulation:
         self.solver.set_mobility_scale(mobility)
         if self.full_field is not None:
             self.full_field.solve()
+        if (
+            self.qiu_diagnostics is not None
+            and local_source_increment is not None
+            and local_source_stress_before is not None
+        ):
+            predicted_work = -float(
+                0.5 * np.sum(
+                    (local_source_stress_before + self.full_field.stress)
+                    * local_source_increment
+                ) * cfg.pf.grid_spacing**2
+            )
+            self.qiu_diagnostics.record_global_sweep(
+                swept_area=self.fft_coupling.last_diagnostics.absolute_swept_area,
+                integrated_source=np.asarray(
+                    self.fft_coupling.last_diagnostics.integrated_source
+                ),
+                predicted_source_work=predicted_work,
+            )
         if self.fft_coupling is not None:
             self.driving_field += self.fft_coupling.driving_field(
                 self.solver.eta, self.orientations, self.full_field.stress
@@ -1516,19 +1548,38 @@ class EventResolvedSimulation:
             entity_every_step = bool(self.config.active_modules) or self.config.compatibility_model != "off"
             for _ in range(max(0, self.config.max_steps - self.solver.step_number)):
                 energy_due = (self.solver.step_number + 1) % energy_cadence == 0
-                if self.fft_coupling is not None:
+                if self.fft_coupling is not None and self.coupled_integration_enabled:
                     diag = self._advance_fft_v2_step()
                 else:
-                    diag = (
-                        self.solver.step()
-                        if energy_cadence == 1
-                        else self.solver.step(compute_energy=energy_due)
-                    )
+                    if bool(self.config.parameters.get(
+                        "full_field_external_timestep_control", False
+                    )):
+                        target = float(self.config.parameters.get(
+                            "external_delta_eta_target", 0.02
+                        ))
+                        external_limit = self.solver.external_drive_dt(
+                            self.driving_field, target
+                        )
+                        diag = self.solver.step(
+                            dt=min(self.config.pf.time_step, external_limit),
+                            compute_energy=energy_due,
+                        )
+                        diag.requested_dt = self.config.pf.time_step
+                        diag.external_dt_limit = external_limit
+                    else:
+                        diag = (
+                            self.solver.step()
+                            if energy_cadence == 1
+                            else self.solver.step(compute_energy=energy_due)
+                        )
                 update_entities = entity_every_step or self.solver.step_number % self.config.output_cadence == 0
                 if update_entities:
                     self.snapshot = self.tracker.update(self.solver.labels)
                     self._update_physics(
-                        fft_source_applied=self.fft_coupling is not None
+                        fft_source_applied=(
+                            self.fft_coupling is not None
+                            and self.coupled_integration_enabled
+                        )
                     )
                 if self.qiu_diagnostics is not None:
                     diagnostic_capture = self.qiu_diagnostics.record_step(self, diag)
