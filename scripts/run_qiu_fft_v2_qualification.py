@@ -76,6 +76,32 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def apply_run_overrides(
+    config: ModelConfig, initial_state: Path, *, seed: int | None = None,
+    max_steps: int | None = None, target: float | None = None,
+    time_step: float | None = None, field_cadence: int | None = None,
+) -> ModelConfig:
+    parameters = {
+        **config.parameters, "initial_state_file": str(initial_state.resolve())
+    }
+    if target is not None:
+        if target <= 0.0:
+            raise ValueError("target must be positive")
+        parameters["external_delta_eta_target"] = target
+    if field_cadence is not None:
+        if field_cadence <= 0:
+            raise ValueError("field cadence must be positive")
+        parameters["qiu_diagnostic_field_cadence"] = field_cadence
+    if time_step is not None and time_step <= 0.0:
+        raise ValueError("time step must be positive")
+    pf = config.pf if time_step is None else replace(config.pf, time_step=time_step)
+    return replace(
+        config, pf=pf, parameters=parameters,
+        seed=config.seed if seed is None else seed,
+        max_steps=config.max_steps if max_steps is None else max_steps,
+    )
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("config", type=Path)
@@ -84,6 +110,7 @@ def main() -> None:
     parser.add_argument("--max-steps", type=int)
     parser.add_argument("--seed", type=int)
     parser.add_argument("--target", type=float)
+    parser.add_argument("--time-step", type=float)
     parser.add_argument("--field-cadence", type=int)
     parser.add_argument("--expected-initial-sha256")
     args = parser.parse_args()
@@ -93,18 +120,15 @@ def main() -> None:
     initial_hash = sha256(args.initial_state)
     if args.expected_initial_sha256 and initial_hash != args.expected_initial_sha256:
         raise SystemExit("initial-state SHA-256 mismatch")
-    parameters = {
-        **config.parameters, "initial_state_file": str(args.initial_state.resolve())
-    }
-    if args.target is not None:
-        parameters["external_delta_eta_target"] = args.target
-    if args.field_cadence is not None:
-        parameters["qiu_diagnostic_field_cadence"] = args.field_cadence
-    config = replace(
-        config, parameters=parameters,
-        seed=config.seed if args.seed is None else args.seed,
-        max_steps=config.max_steps if args.max_steps is None else args.max_steps,
-    )
+    try:
+        config = apply_run_overrides(
+            config, args.initial_state, seed=args.seed, max_steps=args.max_steps,
+            target=args.target, time_step=args.time_step,
+            field_cadence=args.field_cadence,
+        )
+    except ValueError as exc:
+        raise SystemExit(str(exc)) from exc
+    parameters = config.parameters
     resume = (args.output / "checkpoint.npz").exists()
     # HPC3 stages the checked-out repository below its job working directory.
     # Resolve provenance from the script's repository, not the caller's cwd.
@@ -140,6 +164,7 @@ def main() -> None:
         "terminal_status": manifest["status"],
         "final_grains": manifest["final_grains"],
         "target": parameters["external_delta_eta_target"],
+        "configured_time_step": config.pf.time_step,
     }
     atomic_write_text(args.output / "qualification_run_summary.json", json.dumps(summary, indent=2) + "\n")
     print(json.dumps(summary, indent=2))
