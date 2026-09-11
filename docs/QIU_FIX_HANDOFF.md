@@ -59,6 +59,11 @@ machine-readable attestations are retained at
 legacy step-1500 recovery archive, including checkpoint and evolution frames,
 is at `hpc_live/20260911T013800Z-legacy` with SHA-256
 `b8ae0b4205a1074dacef9cef7633442ea7b6a6ba743145662952bdb34a5e182a`.
+The newest legacy recovery archive is
+`hpc_live/20260911T041940Z-legacy`: checkpoint step 3500/t=140, 12 retained
+evolution frames through step 3000, and SHA-256
+`d58b052f5f8ff46112deee886f0f669013024b531851e22bcaaf0aa5c6e2ec5b`.
+It is nonterminal and must not be pooled as production evidence.
 
 The refinement and seed-5102/5103 job directories are staged but unplanned and
 unsubmitted. All three now contain the verified `a173624` bundle with SHA-256
