@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-11 05:02 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; corrected recovery audited through atomic checkpoint 1500; closure-specific source/work continuation remains first in the prepared queue.
+Last update: 2026-09-11 07:32 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; recoveries audited through legacy checkpoint 9500 and corrected checkpoint 1500; closure-specific source/work continuation remains first in the prepared queue.
 
 ## Current source state
 
@@ -275,6 +275,19 @@ Last update: 2026-09-11 05:02 PDT; legacy and corrected seed-5101 full-size jobs
   the step-9001 audit SHA-256 is
   `56c46c69da1d53528f46eaa91292445e9fdabfe7c9281856d3289bef865a00bf`.
   This snapshot remains nonterminal and nonpoolable.
+- The replay subsequently closed atomic checkpoint step 9500/t=380/N=495.
+  Its bounded recovery contains all 500 contiguous scalar rows from step 9001
+  through 9500, the exact restart and tracker offsets, all 18 compact frames,
+  and 101 movie-sufficient dense fields (step 9001 plus every tenth step
+  through 9500). Matching local/remote archive SHA-256 is
+  `a79f99d741883784edd8a897fbbce8e088a24f43d90582b0c5bfa676b673a4ba`;
+  durable path: `hpc_live/20260911T142720Z-legacy`. Across this interval there
+  are no extinctions, no disconnected grains, and only a 0.297 interfacial-
+  energy increase, while legacy elastic energy rises by 6,663.70 and stress
+  linf reaches 172.56. All non-source-work critical fields are finite. The
+  source/work columns remain intentionally classified unavailable in active
+  source `147141b`, and the step-9001 clipping capture remains excluded as
+  oversensitive; the snapshot is nonterminal and nonpoolable.
 - The first 16 active-replay rows (steps 9001--9016) have finite morphology,
   stress, eigenstrain, and energy, with N fixed at 495 and no extinction. They
   also exposed that `MigrationClosureSimulation._update_physics` overrides the
@@ -362,7 +375,7 @@ Last update: 2026-09-11 05:02 PDT; legacy and corrected seed-5101 full-size jobs
   immutable job before starting the same attested `a173624` production model.
 - The complete active/prepared/superseded queue is machine-readable at
   `hpc_execution_queue_20260911.json`, SHA-256
-  `817f517efe52e7bcf471e17c09bea5d8d8a94a068aa7de5c3a544df5a20540fe`.
+  `f54aa7612222c72dc227bf1af7c61e523b5a647b19596b68b4dc96cc06a9680e`.
   It records the two-worker rule and explicitly marks both unused plans as
   never-submit entries.
 - `production_revision_equivalence.json` records that corrected seed-5101

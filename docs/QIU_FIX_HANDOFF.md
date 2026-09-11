@@ -68,10 +68,11 @@ legacy step-1500 recovery archive, including checkpoint and evolution frames,
 is at `hpc_live/20260911T013800Z-legacy` with SHA-256
 `b8ae0b4205a1074dacef9cef7633442ea7b6a6ba743145662952bdb34a5e182a`.
 The newest legacy recovery archive is
-`hpc_live/20260911T110245Z-legacy`: atomic checkpoint step 9000/t=360, 18
-retained evolution frames through step 9000, the explicitly closed step-9001
-scalar/field capture, and SHA-256
-`20861606468eb6be39ae4012d7872e31ffd1e092fa7a71893586050e13ab3cea`.
+`hpc_live/20260911T142720Z-legacy`: atomic checkpoint step 9500/t=380/N=495,
+all 500 contiguous scalar rows from steps 9001--9500, 18 compact frames, and
+101 bounded dense fields sufficient for ten-step movie reconstruction. Its
+matching local/remote SHA-256 is
+`a79f99d741883784edd8a897fbbce8e088a24f43d90582b0c5bfa676b673a4ba`.
 It is nonterminal and must not be pooled as production evidence.
 All 18 common frames through step 9000 are byte-identical to the canonical
 historical files, with a second array-level bitwise comparison also passing.
@@ -128,7 +129,7 @@ contain the verified `a173624` source bundle with SHA-256
 `c0ba9161a8f519436deec75c7017f03614fa04de43328221996b9efd0dd545b3`.
 The authoritative machine-readable execution queue is
 `hpc_execution_queue_20260911.json` under the durable qualification root,
-SHA-256 `817f517efe52e7bcf471e17c09bea5d8d8a94a068aa7de5c3a544df5a20540fe`.
+SHA-256 `f54aa7612222c72dc227bf1af7c61e523b5a647b19596b68b4dc96cc06a9680e`.
 The refinement changes both the external-increment target from 0.02 to 0.01
 and the actual configured PF timestep from 0.04 to 0.02; it therefore remains
 a factor-two test even if the external limiter is inactive.
