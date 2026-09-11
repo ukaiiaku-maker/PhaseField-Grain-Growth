@@ -10,11 +10,14 @@ Last update: 2026-09-10, 384x384 corrected preflight accepted; legacy replay run
 - Phase-1 instrumentation commit: `147141b54227e7c80c457e9d80c1a2ca3475bf61`
 - Elastic-operator commit: `471412c`.
 - Reference-identity commit: `13b43a6`.
+- Local work-conjugate source commit: `e0a782b`.
+- Energy-checked integration commit: `f0493bd`.
 - Worktree: `/private/tmp/qiu-full-field-qualification-v1`
 - Reduced-matrix commit: `9edbd0f32625604e0d43334842a7ad024dbbe7a3`.
+- Scalable production runner commits: `6eb5977`, `8bb7837`.
 - Historical production source: `4761ef957715ba2faa84f015a0e4f4c4cd21c7aa`
 - Historical QIU run: canonical, read-only, all integration-manifest hashes verified
-- Current scientific decision: historical QIU remains an unresolved non-self-similar transient; source identity is provisionally `legacy FFT eigenstrain surrogate`, pending formal mathematical gates
+- Current scientific decision: the historical QIU remains an unresolved non-self-similar transient and its backend is conclusively a legacy FFT eigenstrain surrogate, not the archived current-geometry Qiu reference formulation. The selected qualification backend is therefore honestly named `FFT_EIGENSTRAIN_V2`; production behavior remains pending.
 
 ## Commands completed
 
@@ -116,6 +119,21 @@ Last update: 2026-09-10, 384x384 corrected preflight accepted; legacy replay run
   zero failures/errors. The subsequent complete repository suite passed all
   215 tests in 77.39 s with zero failures/errors; JUnit SHA-256 is
   `11d99dd625689ed7ba4f4a3f6fd4b3a94703bda27eeefa3ca3b186510ad4776c`.
+- The full corrected seed-5101 production run is immutable HPC3 plan
+  `20260911T003946Z-nogit-c53868`, source commit `8bb7837`, Slurm job
+  `55932457`, using account `SDILLON1_LAB`. Its source-bundle SHA-256 is
+  `e9926fc38ba41502d4deefadc57b344826924bfd2e4c0d75f4299ee1a6b8d5b0`.
+  It is running concurrently with legacy replay job `55930486`, exactly at the
+  two-full-worker ceiling. A delayed acknowledgement was reconciled against
+  Slurm before retry; unused plan `20260911T004157Z-nogit-7dd0b1` remains only
+  `PREPARED` and was never submitted.
+- A fixed-physical-domain reduced spatial study at dx=1 and dx=0.5 is under
+  `20260911T004500Z-spatial-convergence`. At matched t=4 it gives identical
+  N=17 and population grain size, 0.78% interfacial/total-energy-density
+  differences, 2.24% stress-p95 difference, and 1.40% mean-compactness
+  difference. Elastic energy density differs by 3.73% (a failed 2% gate) while
+  remaining about 4e-6 in absolute density; this is retained as a narrow
+  spatial-convergence limitation rather than hidden.
 
 ## Decisions recorded
 
@@ -134,7 +152,6 @@ Last update: 2026-09-10, 384x384 corrected preflight accepted; legacy replay run
 
 ## Next automatic action
 
-Commit the scalable production runner and preflight record, build an immutable
-checksummed source bundle, and submit seed-5101 corrected production as the
-second full worker. Continue monitoring the immutable legacy replay. Start the
+Commit the spatial-convergence runner/result record and continue monitoring both
+immutable HPC jobs. Retrieve and checksum terminal results locally. Start the
 factor-two target refinement only after a worker slot is free.
