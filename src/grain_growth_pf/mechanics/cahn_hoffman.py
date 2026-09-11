@@ -83,6 +83,8 @@ def herring_force(outward_tangents, pairs, orientations, law):
     pairs = np.asarray(pairs, int)
     if tangents.shape != (3, 2) or pairs.shape != (3, 2):
         raise ValueError("a triple junction requires exactly three incident pairs")
+    if np.any(pairs < 0) or np.any(pairs >= len(orientations)) or np.any(pairs[:, 0] == pairs[:, 1]):
+        raise ValueError("invalid grain pair")
     if np.any(~np.isfinite(tangents)) or np.any(np.linalg.norm(tangents, axis=1) < 1e-14):
         raise ValueError("nonzero finite outward tangents required")
     if len(set(map(tuple, np.sort(pairs, axis=1)))) != 3 or len(np.unique(pairs)) != 3:

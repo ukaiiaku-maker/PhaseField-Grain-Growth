@@ -78,7 +78,9 @@ def order_network(vertices, edges, pairs, *, box=None, junctions=()):
                 ids.append(chosen)
                 if chosen == start or chosen in junctions or len(graph[chosen]) != 2:
                     break
-            closed = ids[-1] == start
+            # A loop returning to a TJ has two endpoint forces at that TJ;
+            # it is not a free closed boundary with an interior node there.
+            closed = ids[-1] == start and start not in junctions
             raw = vertices[ids]
             delta = np.diff(raw, axis=0)
             if box is not None:

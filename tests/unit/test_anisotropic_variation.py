@@ -139,3 +139,26 @@ def test_conforming_periodic_inclusion_and_label_exchange():
         return sum(variation(p.points, BoundaryLaw(), .1, .7, closed=p.closed,
                              closing_displacement=p.winding if p.closed else None).energy for p in ps)
     assert energy(paths) == pytest.approx(energy(other[3]))
+
+
+def test_loop_attached_to_junction_keeps_endpoint_forces():
+    path = order_network([[0, 0], [1, 0], [1, 1], [0, 1]],
+                         [[0, 1], [1, 2], [2, 3], [3, 0]], [[0, 1]]*4,
+                         junctions=[0])[0]
+    assert not path.closed
+    assert path.endpoint_junctions == (0, 0)
+    assert path.node_ids[0] == path.node_ids[-1]
+    result = variation(path.points, BoundaryLaw(), .1, .7)
+    np.testing.assert_allclose((result.integrated_forces+result.endpoint_forces).sum(axis=0), 0, atol=1e-14)
+
+
+def test_wulff_weighted_curvature_static_mesh_convergence():
+    law = BoundaryLaw()
+    errors = []
+    for n in (128, 256, 512):
+        theta = np.arange(n)*2*np.pi/n
+        points = law.vectors(theta, .1, .4)[0]
+        result = variation(points, law, .1, .4, closed=True)
+        errors.append(np.max(np.abs(result.normal_pressure+1)))
+    assert errors[2] < .3*errors[1] < .1*errors[0]
+    assert errors[-1] < .02

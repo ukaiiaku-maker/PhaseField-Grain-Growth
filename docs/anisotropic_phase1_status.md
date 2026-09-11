@@ -48,3 +48,36 @@ Tests: pending. Simulations: none submitted.
 Current classification: ANISOTROPIC_IMPLEMENTATION_UNRESOLVED.
 Next automatic action: implement and verify independent energy/force primitives;
 prepare bounded HPC3 mathematical qualification; keep production fail-closed.
+
+## Phase 1: primitive and initial-network qualification
+
+Primitive commit: `78d8560`; initial-network qualification source: `db89a77`.
+New files: anisotropy law, exact polygon variation, strict edge-graph ordering,
+conforming upper-envelope reconstruction, geometry tests and compute entrypoint.
+Local checks: 10 tests passed initially; 12 tests passed in 0.85 s after adding
+a static Wulff mesh-convergence check and a returning-TJ-loop regression.
+These are small non-evolving unit/analytical checks.
+
+HPC3 environment-verification/full-regression/initial-network job: `55932113`.
+Runner ID: `20260911T002118Z-nogit-d279e0`. Source archive SHA-256:
+`a99aebe9f1d59d8a1b11fe194aa51645bf729d89cb7ffcf9305399f8df4e25e3`.
+Requested: standard / SDILLON1, 2 CPUs, 12 GiB, 1 h; maximum exposure 2 CPU-h.
+The second CPU provides memory under the live 6 GiB/core limit; numerical
+threads are fixed to one and this is not a parallel-speedup claim.
+The first attempt timed out in mkdir before upload or sbatch. Slurm then showed
+no matching job, remote directories existed, and the SAME prepared bundle was
+submitted once. No duplicate trajectory was launched.
+
+The job uses a read-only existing environment, verified inside the allocation.
+It runs the complete existing suite and the first 10 new tests, then measures
+A0/A1/A2 on the exact initial network. The later two local tests and returning-TJ
+fix require the final-source HPC3 regression before release.
+
+The preregistration JSON stores exact historical configs for all ten planned
+trajectories. It is explicitly non-executable: final normalization, full
+resource requests and resolved anisotropic configs are not invented.
+
+QIU now has uncommitted changes in `pf/solver.py` and `simulation.py` as well
+as its mechanical coupling and diagnostics. No cherry-pick or freeze is valid
+yet. Production remains closed. Next action: inspect retrieved qualification,
+resolve any geometry failures, then verify the updated source on HPC3.
