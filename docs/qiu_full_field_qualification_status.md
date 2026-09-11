@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-11 03:15 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; corrected-guard legacy continuation prepared but not submitted.
+Last update: 2026-09-11 03:20 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; storage-bounded legacy fallback prepared but not submitted.
 
 ## Current source state
 
@@ -241,11 +241,13 @@ Last update: 2026-09-11 03:15 PDT; legacy and corrected seed-5101 full-size jobs
 - The active legacy source commit `147141b` predates the relative clipping-guard
   correction and therefore still treats ordinary double-obstacle clipping
   (about 0.24 at a two-step step-8000 continuation smoke test) as a trigger at
-  the absolute 0.02 threshold. Its wrapper did not pass
-  `--continue-after-guard`, so it is expected to stop at the first instrumented
-  step near 9001. That terminal result will be retained but excluded as an
-  oversensitive diagnostic-control run; it cannot by itself satisfy the legacy
-  replay gate.
+  the absolute 0.02 threshold. Its immutable wrapper explicitly passes
+  `--continue-after-guard`, so the false marker near the first instrumented step
+  will not terminate the replay. The marker itself is excluded, but the
+  continued scalar trajectory and fields remain usable. That source revision
+  saves a guard field on every subsequent step, producing more data than needed
+  but remaining within the 100-GB scratch allocation at the observed roughly
+  12-MB compressed field size.
 - Commit `abde6e0` adds a validated continuation from the exact atomic step-8000
   checkpoint. It changes no legacy backend, timestep, or coupling parameter,
   uses the corrected warm-up/relative clipping guard, continues rather than
@@ -254,12 +256,14 @@ Last update: 2026-09-11 03:15 PDT; legacy and corrected seed-5101 full-size jobs
   two-step resume smoke test completed with no capture. The complete suite
   passes 231/231 in 39.25 s; JUnit SHA-256 is
   `7ec04ae5216a61d2a8887238241964f8a0d91672f22aacaacabe942950871c38`.
-- Immutable continuation plan `20260911T101424Z-nogit-6bb2f0` is prepared but
-  intentionally unsubmitted while two workers remain active. It asserts source
+- Immutable fallback plan `20260911T101424Z-nogit-6bb2f0` is prepared but
+  intentionally unsubmitted while the original replay remains healthy. It asserts source
   `abde6e0eb5af3b50425856602f5a0d15300a63bc`, source-bundle SHA-256
   `f9fc6f7ab9d5097d444b3202cd11d34b28425de44e1317f9980e85bdcf08e632`,
   and step-8000 recovery SHA-256
   `d0b093ec1d3e3a4f5656d9009c381609c61925fb70a9061fff76b25dbf1dbbe5`.
+  Submit it only if the active replay fails before a checksummed terminal result;
+  otherwise retain it as an unused contingency and launch the refinement next.
 - The active HPC application manifests say `UNCOMMITTED` because their scripts
   queried Git from the parent stage directory. This does not make their source
   ambiguous: both immutable wrappers assert the detached commit and verify the
@@ -359,7 +363,8 @@ Last update: 2026-09-11 03:15 PDT; legacy and corrected seed-5101 full-size jobs
 ## Next automatic action
 
 Continue monitoring both immutable HPC jobs without adding a third full worker.
-When the oversensitive legacy control terminates, retrieve and checksum it,
-mark it excluded, then submit the already prepared corrected-guard continuation
-from the exact step-8000 checkpoint. Start the factor-two target refinement only
-after the continuation or another active worker frees a verified slot.
+Retrieve and checksum each terminal result. If the legacy replay completes
+through its endpoint, exclude only the oversensitive first marker and launch the
+factor-two target refinement when that slot is verified free. Submit the
+step-8000 corrected-guard continuation only if the active replay fails before a
+checksummed terminal result.

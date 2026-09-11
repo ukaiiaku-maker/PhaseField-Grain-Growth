@@ -78,19 +78,21 @@ and neutral initial/midpoint/terminal contact sheet are retained as
 `hpc_live/20260911T082618Z-corrected/corrected-step1000-preview.*`. These prove
 movie reconstruction from the retained cadence but are not terminal products.
 
-The active legacy bundle predates the relative clipping-guard correction, and
-its wrapper did not request continuation after a capture. It is therefore
-expected to stop near step 9001 on ordinary ~0.24 double-obstacle clipping. Do
-not count that terminal as the completed legacy forensic replay. Fetch and
-retain it as an excluded oversensitive-guard control, then submit prepared plan
-`20260911T101424Z-nogit-6bb2f0`. That plan resumes the exact step-8000 archive
+The active legacy bundle predates the relative clipping-guard correction and
+is expected to mark ordinary ~0.24 double-obstacle clipping near step 9001.
+Its immutable wrapper does request continuation after a capture, so it should
+continue to the historical endpoint; exclude only that oversensitive first
+marker, not the continued trajectory. The old recorder will save one compressed
+guard field per subsequent step, so monitor its 100-GB scratch allocation.
+Prepared fallback plan `20260911T101424Z-nogit-6bb2f0` resumes the exact step-8000 archive
 with source `abde6e0eb5af3b50425856602f5a0d15300a63bc`, source-bundle SHA-256
 `f9fc6f7ab9d5097d444b3202cd11d34b28425de44e1317f9980e85bdcf08e632`,
 and recovery SHA-256
 `d0b093ec1d3e3a4f5656d9009c381609c61925fb70a9061fff76b25dbf1dbbe5`.
 It uses the corrected warm-up/relative guard, continues through the historical
 endpoint, and returns to ten-step dense-field cadence after saving one guard
-field. It is prepared only and must not be submitted before a slot is free.
+field. It is prepared only and must not be submitted unless the active legacy
+replay fails before producing a checksummed terminal result.
 
 The refinement and seed-5102/5103 job directories are staged but unplanned and
 unsubmitted. All three now contain the verified `a173624` bundle with SHA-256
@@ -113,12 +115,12 @@ source SHAs, and missing gate groups.
 ## Next execution order
 
 1. Retrieve and audit the first terminal active job; retain remote data.
-2. If that terminal is the original oversensitive legacy control, launch the
-   prepared corrected-guard legacy continuation from step 8000 and mark the
-   original control excluded.
-3. When the next slot frees, launch seed-5101 target=0.01 through the full critical
-   interval from the exact same initial state and physics revision.
-4. Prepare/hash two additional 384x384 initial states with the same
+2. If the original legacy replay completed through the endpoint, exclude only
+   its oversensitive first marker and launch seed-5101 target=0.01. If it failed,
+   launch the prepared corrected-guard continuation from step 8000 instead.
+3. When the next slot frees, launch whichever comes next in the queue:
+   seed-5101 refinement first, then corrected seeds 5102 and 5103.
+4. Prepare/hash the two additional 384x384 initial states with the same
    1068-to-800 equilibration/compaction protocol, then run the corrected model.
 5. Run `scripts/analyze_qiu_full_field_qualification.py` on terminal paths.
 6. Render legacy, corrected seed-5101, and at least one additional seed with

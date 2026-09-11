@@ -67,13 +67,12 @@ That immutable replay is HPC3 run `20260910T232437Z-nogit-f4803a`, Slurm job
 `55930486`, commit `147141b`. Its 17 saved frames through step 8,000 are
 byte-identical to the canonical historical frames. That source revision still
 has the original absolute clipping marker, which is oversensitive to ordinary
-double-obstacle projection, and its wrapper terminates after a marker. It is
-therefore expected to stop at its first instrumented step near 9,001 and will
-be retained as an excluded diagnostic-control run. Prepared continuation
-`20260911T101424Z-nogit-6bb2f0` resumes the exact step-8,000 checkpoint with the
-corrected warm-up/relative guard, records every step, saves dense fields every
-ten steps through 10,246, and continues after a real capture to preserve the
-post-transition window.
+double-obstacle projection, but its wrapper explicitly continues after a
+marker. The first marker itself will be excluded while the per-step scalars and
+dense fields continue through 10,246. Prepared fallback
+`20260911T101424Z-nogit-6bb2f0` can resume the exact step-8,000 checkpoint with
+the corrected warm-up/relative guard if the active replay fails; it is not to
+be submitted while that replay remains healthy.
 
 ## Corrected model
 
