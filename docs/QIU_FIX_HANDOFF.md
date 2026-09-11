@@ -121,6 +121,9 @@ and seed 5103 is immutable prepared plan `20260911T112156Z-nogit-439d11`
 Both have no Slurm job and remain unsubmitted. All three corrected-job directories
 contain the verified `a173624` source bundle with SHA-256
 `c0ba9161a8f519436deec75c7017f03614fa04de43328221996b9efd0dd545b3`.
+The authoritative machine-readable execution queue is
+`hpc_execution_queue_20260911.json` under the durable qualification root,
+SHA-256 `cf8b949e90ed3e6f3387a5daea5cac6e9dd2dbf5daf1cdf804536eb01066f5b6`.
 The refinement changes both the external-increment target from 0.02 to 0.01
 and the actual configured PF timestep from 0.04 to 0.02; it therefore remains
 a factor-two test even if the external limiter is inactive.

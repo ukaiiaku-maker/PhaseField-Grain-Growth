@@ -343,6 +343,11 @@ Last update: 2026-09-11 04:20 PDT; legacy and corrected seed-5101 full-size jobs
   `08fdd599d2816544a469839bde5388fdea9ceeff4dc68b71c73a6aec9d78d90c`).
   Each prepares its 1068-grain state and compacts to exactly 800 within the
   immutable job before starting the same attested `a173624` production model.
+- The complete active/prepared/superseded queue is machine-readable at
+  `hpc_execution_queue_20260911.json`, SHA-256
+  `cf8b949e90ed3e6f3387a5daea5cac6e9dd2dbf5daf1cdf804536eb01066f5b6`.
+  It records the two-worker rule and explicitly marks both unused plans as
+  never-submit entries.
 - `production_revision_equivalence.json` records that corrected seed-5101
   commit `8bb7837` and the staged refinement/paired-seed commit `a173624` have
   byte-identical FFT mechanics, PF solver, kernels, kinematics, and production
