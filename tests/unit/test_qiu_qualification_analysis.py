@@ -8,11 +8,19 @@ import pyarrow.parquet as pq
 from analyze_qiu_full_field_qualification import (
     capture_assessment,
     compare_timestep_runs,
+    json_safe,
     load,
     pre_extinction_precursor,
     sha256,
     transition_timing,
 )
+
+
+def test_json_safe_replaces_nonfinite_values_with_null_compatible_values():
+    result = json_safe({"values": [1.0, np.nan, np.inf, np.float64(-np.inf)]})
+
+    assert result == {"values": [1.0, None, None, None]}
+    assert json.dumps(result, allow_nan=False)
 
 
 def _trajectory(times: np.ndarray) -> pd.DataFrame:

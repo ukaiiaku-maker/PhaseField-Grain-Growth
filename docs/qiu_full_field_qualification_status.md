@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-11 16:15 PDT; the first legacy replay completed cleanly and its 7.79 GB terminal archive is transferring to local storage; corrected seed 5101 is running from atomic checkpoint 3000; the clean step-9000 source/work continuation now occupies the freed second HPC3 slot.
+Last update: 2026-09-11 16:42 PDT; the first legacy replay is retrieved, checksum-verified, source-attested, extracted, and formally audited through its N=100 endpoint; corrected seed 5101 is running beyond a locally verified atomic checkpoint 3000; the clean step-9000 source/work continuation remains in the second HPC3 slot and is trajectory-identical through the checked pre-transition fields.
 
 ## Current source state
 
@@ -391,25 +391,47 @@ Last update: 2026-09-11 16:15 PDT; the first legacy replay completed cleanly and
   completed with application/finalization exit `0/0` after 18:46:33. Its
   published terminal archive is 7,785,355,617 bytes with remote SHA-256
   `4774992d30b1316640c0e8142d33e004a50f12b93eb13569c416732f559c78dd`;
-  local transfer and verification are in progress, so it is not yet poolable.
+  the local 7.785-GB archive has the same digest, and all 2,096 stable entries
+  in its internal HPC checksum manifest pass. The final marker, source bundle,
+  and extracted tree are verified; the local runner ledger is reconciled to
+  `RETRIEVED/verified`. Retrieval evidence is
+  `hpc_terminal/20260910T232437Z-legacy-seed5101/retrieval_audit.json`.
+- The formally aggregated replay reaches the unchanged `N=100` termination at
+  step 9984/t=399.36. It reproduces the numerical avalanche: source singularity
+  at 9671, first disconnected grain at 9673, mean-compactness gate at 9706,
+  722 complete-energy increases, maximum equilibrium residual 0.7071, maximum
+  stress `5.443e13`, maximum compactness 9.845, and maximum 100-step population
+  loss fraction 0.4808. The accepted terminal analysis and eleven plots are
+  under `analysis/legacy_terminal-r2/`; its strict-JSON summary SHA-256 is
+  `261607c63d6887799dc933d30ddcf0caac83f3169732ff735d0722de02e3b2ea`.
+  The first derived aggregation is preserved with an exclusion manifest
+  because its unavailable legacy work residuals were emitted as nonstandard
+  IEEE `NaN` tokens; the analyzer now records such unavailable values as JSON
+  `null` without changing numerical results.
 - After the first submission attempt met a transient `/pub` metadata timeout,
   Slurm confirmed no duplicate job. The prepared source/work continuation was
   retried safely and submitted as Slurm `55948258`; it is running concurrently
   with corrected seed-5101 job `55932457`. Corrected seed 5101 has advanced to
-  atomic checkpoint 3000; its latest locally verified safety snapshot remains
-  step 2000 until the next archive is copied and checked.
+  atomic checkpoint 3000; that recovery is now copied, verified, audited, and
+  rendered locally.
 - The corrected step-3000/t=120/N=230 checkpoint now also has a remotely
   verified safety archive containing 3,000 contiguous scalar rows, 16 compact
   evolution frames through step 3000, and full tensor fields at steps 500,
   1000, 1500, 2000, 2500, and 3000. Remote archive SHA-256 is
   `3a69a914d69419fcbb634cba30358ccf5b5ac0864c8a3828e5db2ec2f9cea2b0`;
-  local transfer/audit remain pending behind the terminal legacy download.
-- The source/work continuation reached field step 9050. SHA-256 digests of its
+  the local archive digest matches. Its audit finds 3,000 contiguous unique
+  rows, no complete-energy increases or coupled rejections, no disconnected
+  grains, maximum compactness 1.954, maximum equilibrium residual `6.14e-12`,
+  and maximum absolute source-work error `1.97e-7`. The 19-frame preview and
+  initial/midpoint/latest contact sheet are retained beside the recovery under
+  `hpc_live/20260911T231500Z-corrected/`; it remains nonterminal/nonpoolable.
+- The source/work continuation reached field step 9170 at the last audit.
+  At the explicitly compared step 9050, SHA-256 digests of its
   `eta`, labels, eigenstrain, stress, and driving-field arrays are individually
-  identical to the first replay at that step. This extends the local two-step
-  invariance test to 50 full-size HPC3 continuation steps and confirms that the
-  recorder-hook revision has not perturbed the trajectory before the critical
-  window.
+  identical to the first replay. This extends the local two-step
+  invariance test through 50 checked full-size HPC3 continuation steps and
+  confirms that the recorder-hook revision has not perturbed the trajectory
+  before the critical window.
 - The complete branch suite after the transition-fragment audit, strengthened
   final-decision validator, and compact-frame renderer changes passes 245/245
   tests in 68.06 s with zero failures, errors, or skips. Durable JUnit:
@@ -417,7 +439,7 @@ Last update: 2026-09-11 16:15 PDT; the first legacy replay completed cleanly and
   `969e0141e8e36456041309c6c0dcbb15aa72bdb486f6cffbebfc973337b192ba`.
 - The reconciled two-worker queue is
   `hpc_execution_queue_20260911.json`, SHA-256
-  `5b0e0b7cf12ece8539dd6c7656bad127d6552450d17620498dd497f5728dabc8`.
+  `7937dd4ae4fea7fb2cd43d539804334e97657aefefc45377ae65dbd82a6bac97`.
   The completed replay is authoritative for dense-field evidence and exact
   reconstruction of its own post-9000 failure, but it is exact against the
   canonical historical trajectory only through step 9000 and is insufficient
@@ -598,7 +620,9 @@ Last update: 2026-09-11 16:15 PDT; the first legacy replay completed cleanly and
 
 Continue monitoring corrected seed 5101 (`55932457`) and the clean legacy
 source/work continuation (`55948258`) without adding a third full worker.
-Finish and verify the terminal legacy archive transfer, audit its terminal
-status/fields, and preserve it locally. When either active worker reaches a
-verified terminal state, submit the prepared factor-two refinement next; the
-two additional corrected seeds follow in queue order.
+Capture and audit the source/work continuation across the independently known
+step-9671 singularity and retrieve its terminal evidence. When that worker
+reaches a verified terminal state, submit the prepared factor-two refinement
+next while corrected seed 5101 continues; the two additional corrected seeds
+follow in queue order. Continue checkpoint snapshots, terminal retrievals,
+analysis, and movie generation without exceeding two full-size workers.

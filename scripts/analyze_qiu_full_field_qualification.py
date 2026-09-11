@@ -27,6 +27,21 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def json_safe(value: object) -> object:
+    """Replace non-finite numeric values with JSON null recursively."""
+    if isinstance(value, dict):
+        return {str(key): json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [json_safe(item) for item in value]
+    if isinstance(value, (float, np.floating)):
+        return float(value) if np.isfinite(value) else None
+    if isinstance(value, np.integer):
+        return int(value)
+    if isinstance(value, np.bool_):
+        return bool(value)
+    return value
+
+
 def parse_run(value: str) -> tuple[str, Path]:
     if "=" not in value:
         raise argparse.ArgumentTypeError("runs must be LABEL=/absolute/or/relative/path")
@@ -485,7 +500,10 @@ def main() -> None:
             else "partial_qualification_inputs"
         ),
     }
-    atomic_write_text(args.output / "qualification_analysis_summary.json", json.dumps(summary, indent=2) + "\n")
+    atomic_write_text(
+        args.output / "qualification_analysis_summary.json",
+        json.dumps(json_safe(summary), indent=2, allow_nan=False) + "\n",
+    )
     checksums = {
         str(path.relative_to(args.output)): sha256(path)
         for path in sorted(args.output.rglob("*")) if path.is_file()
