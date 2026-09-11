@@ -77,6 +77,12 @@ all 500 contiguous scalar rows from steps 9001--9500, 18 compact frames, and
 matching local/remote SHA-256 is
 `a79f99d741883784edd8a897fbbce8e088a24f43d90582b0c5bfa676b673a4ba`.
 It is nonterminal and must not be pooled as production evidence.
+The terminal analyzer now records raw-capture provenance separately from
+scientific transition acceptance and independently resolves the first
+extinction, 100-step burst, morphology, energy, and nonfinite-field steps.
+Through step 9500, the only such onset is a first total-energy increase at step
+9002; all population and morphology indicators remain absent while the
+source/stress/eigenstrain precursor grows.
 All 18 common frames through step 9000 are byte-identical to the canonical
 historical files, with a second array-level bitwise comparison also passing.
 The checkpoint-bounded grain and boundary tracks through step 8000 are likewise

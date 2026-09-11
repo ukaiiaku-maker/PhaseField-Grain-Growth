@@ -28,6 +28,8 @@ Last update: 2026-09-11 08:32 PDT; legacy and corrected seed-5101 full-size jobs
 - Curated transition-contact-sheet commit: `167c30c`.
 - Closure-specific source/work instrumentation commit: `bebd53b`.
 - Checkpoint-consistent live-snapshot utility commit: `6e7d9eb`.
+- Capture-assessment and independent transition-timing commits: `f737670`,
+  `b2c435f`.
 - Historical production source: `4761ef957715ba2faa84f015a0e4f4c4cd21c7aa`
 - Historical QIU run: canonical, read-only, all integration-manifest hashes verified
 - Current scientific decision: the historical QIU remains an unresolved non-self-similar transient and its backend is conclusively a legacy FFT eigenstrain surrogate, not the archived current-geometry Qiu reference formulation. The selected qualification backend is therefore honestly named `FFT_EIGENSTRAIN_V2`; production behavior remains pending.
@@ -319,6 +321,16 @@ Last update: 2026-09-11 08:32 PDT; legacy and corrected seed-5101 full-size jobs
   the source/work columns remain intentionally classified unavailable in active
   source `147141b`, and the step-9001 clipping capture remains excluded as
   oversensitive; the snapshot is nonterminal and nonpoolable.
+- Applying the independent transition-timing analysis to those 500 exact rows
+  finds no population, extinction, disconnected-grain, compactness-threshold,
+  or nonfinite-field indicator through step 9500. The first accepted total-
+  energy increase is already step 9002. Comparing the first and last 20-step
+  medians before any extinction, source-increment L2 rises from 1.149 to
+  37.553, stress linf from 163.797 to 172.523, and eigenstrain linf from
+  150.401 to 162.560; elastic energy rises by 6,480 while interfacial energy
+  falls by 12.7. This temporally orders the legacy elastic/source feedback
+  before the later kinetic and morphology cascade. Twelve focused analyzer and
+  renderer tests pass.
 - The first 16 active-replay rows (steps 9001--9016) have finite morphology,
   stress, eigenstrain, and energy, with N fixed at 495 and no extinction. They
   also exposed that `MigrationClosureSimulation._update_physics` overrides the
