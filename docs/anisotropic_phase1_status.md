@@ -286,3 +286,38 @@ undetermined. The next scientific block is the qualified PF coupling and its
 convergence matrix; production cannot be released from the mathematical checks
 alone. Final action for this evidence record: commit compact artifacts and
 reports, push the isolated branch and update the existing draft PR without merge.
+
+## Phase 8: resumed PF implementation, pending HPC3 qualification
+
+Recovery verified the pushed branch at `ac450038a4303900e52e9ad8b5fb7f648b213ecc`.
+The diff from the last HPC3-tested source `54189b6` contains only the two report
+and ledger utilities already recorded in the handoff; no scientific source or
+test changed after that qualification. All five historical anisotropy jobs are
+terminal and retrieved, the geometry-v7 fallback remains unsubmitted, and no
+anisotropy job is active. The live scheduler showed only independently owned QIU
+jobs 55932457 and 55948258; neither was modified or queried beyond read-only
+scheduler status.
+
+An opt-in native anisotropic PF path is now implemented locally for qualification.
+It evaluates one pairwise discrete double-obstacle energy and its analytic nodal
+derivative, exchanges complete pair driving antisymmetrically, applies the same
+inclination-dependent pair mobility to capillary and external work, and exposes
+the executed diffuse capillary derivative to activation-work diagnostics. A0 and
+the disabled setting dispatch to the unchanged historical kernel for exact path
+nesting. Frozen energy/mobility normalizations and phase orientations are explicit
+configuration/restart inputs. The new code is not yet production-qualified.
+
+Every physical clock in the base and corrected migration closures now consumes
+the accepted PF interval rather than the configured request. Optional physical
+time limits and output, energy, and checkpoint intervals are supported without
+changing the integration partition. Tiny local checks passed: exact derivative
+error below 1e-7, exact A0 array equality, pair-sum conservation, unforced A2
+energy decrease, pair-mobility scaling of external work, anisotropic restart,
+accepted-dt propagation, and physical-cadence invariance (7 focused tests).
+One initial local pytest invocation lacked `PYTHONPATH=src` and failed collection;
+the corrected invocation passed. Full regression and all evolving scientific
+qualification remain assigned to HPC3.
+
+Scientific decision remains **ANISOTROPIC_IMPLEMENTATION_UNRESOLVED** until the
+diffuse force/energy, A0 response, planar/circle/Wulff/TJ, refinement, restart,
+topology, and reduced-polycrystal gates pass. No production row is released.
