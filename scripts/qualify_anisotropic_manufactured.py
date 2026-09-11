@@ -41,7 +41,7 @@ def evolve_loop(points, law, horizon, dt, orientations=(.1, .4)):
     return points, np.asarray(records), rejections
 
 
-def relax_junction(law, dt):
+def relax_junction(law, dt, maximum_time=200.):
     orientations = [.1, .4, .7]
     angles = np.arange(3)*2*np.pi/3
     anchors = 3*np.column_stack((np.cos(angles), np.sin(angles)))
@@ -53,7 +53,7 @@ def relax_junction(law, dt):
     initial = energy(junction)
     previous = initial
     largest_increase = 0.
-    for step in range(20000):
+    for step in range(int(np.ceil(maximum_time/dt))):
         force = herring_force(anchors-junction, pairs, orientations, law)
         if np.linalg.norm(force) < 1e-7:
             break
@@ -66,6 +66,7 @@ def relax_junction(law, dt):
     else:
         raise RuntimeError('TJ residual did not converge')
     return {'junction': junction.tolist(), 'steps': step, 'dt': dt,
+            'physical_time': step*dt, 'maximum_physical_time': maximum_time,
             'initial_energy': initial, 'final_energy': previous,
             'force_residual': float(np.linalg.norm(force)),
             'largest_energy_increase': largest_increase}
@@ -86,8 +87,11 @@ def main():
             n = 128
             theta = np.arange(n)*2*np.pi/n
             points = 8*np.column_stack((np.cos(theta), np.sin(theta)))
-            results = []
-            for dt in (.002, .001):
+            results, final_points = [], []
+            # Earlier immutable run 55932951 retained 4.29% / 2.10% balance
+            # errors at .002/.001. Refine time, never the constitutive law or
+            # the unchanged 1% acceptance threshold.
+            for dt in (.00025, .000125):
                 final, records, rejected = evolve_loop(points, law, .2, dt)
                 np.savez_compressed(args.output/f'{name}-{dt}.npz', initial=points, final=final,
                                     time_energy_dt_dissipation_relative_balance_error=records)
@@ -96,10 +100,15 @@ def main():
                                 'final_energy': float(records[-1, 1]),
                                 'maximum_relative_dissipation_error': float(records[:, 4].max()),
                                 'mean_final_radius': float(np.linalg.norm(final, axis=1).mean())})
+                final_points.append(final)
                 if name == 'A0_ISOTROPIC':
                     expected = np.sqrt(8**2-2*4*.2)
                     results[-1]['circle_exact_radius_relative_error'] = abs(results[-1]['mean_final_radius']-expected)/expected
             report['cases'][name] = results
+            report.setdefault('loop_refinement', {})[name] = {
+                'relative_final_position_difference': float(np.linalg.norm(final_points[0]-final_points[1])/np.linalg.norm(final_points[1])),
+                'relative_final_energy_difference': abs(results[0]['final_energy']-results[1]['final_energy'])/results[1]['final_energy'],
+            }
         report['junction'] = relax_junction(BoundaryLaw(), .01)
         report['junction_half_dt'] = relax_junction(BoundaryLaw(), .005)
         report['junction_refinement_distance'] = float(np.linalg.norm(
@@ -107,6 +116,8 @@ def main():
         report['sharp_network_tests_passed'] = (
             all(c['final_energy'] < c['initial_energy'] and c['maximum_relative_dissipation_error'] < .01
                 for cases in report['cases'].values() for c in cases)
+            and all(v['relative_final_position_difference'] < 1e-4 and v['relative_final_energy_difference'] < 1e-4
+                    for v in report['loop_refinement'].values())
             and report['junction_refinement_distance'] < 1e-5)
         if not report['sharp_network_tests_passed']:
             raise RuntimeError('sharp-network energy or timestep gate failed')

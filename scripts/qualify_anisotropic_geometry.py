@@ -37,6 +37,8 @@ def describe(values, weights):
 
 
 def correlation(a, b, weights):
+    if np.ptp(a) == 0 or np.ptp(b) == 0:
+        return None
     a = a-np.average(a, weights=weights)
     b = b-np.average(b, weights=weights)
     denominator = np.sqrt(np.sum(weights*a*a)*np.sum(weights*b*b))
