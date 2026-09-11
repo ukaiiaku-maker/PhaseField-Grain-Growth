@@ -54,3 +54,14 @@ Finite eigenstrain, nonlocal stress, feedback, and continuous phase-field
 divergence are recorded in `results/validation/qiu_regression_benchmarks.json`;
 the immutable dense runs are listed there. Two rejected proxy/metric attempts
 remain beside it as failure records.
+
+## Qualification consequence
+
+The identity gate selects Path B from the qualification directive. The archived
+current-geometry line construction remains reference evidence and is not
+impersonated by a point/eigenstrain model. New production calculations use the
+explicit regime/backend name `FFT_EIGENSTRAIN_V2` and
+`configs/production/fft_eigenstrain_v2_qualification_900K.yaml`. The legacy
+`QiuFullFieldLegacy` code remains reproducible for historical replay only. This
+naming decision is final even if the corrected surrogate eventually exhibits
+an elastic transition of its own.

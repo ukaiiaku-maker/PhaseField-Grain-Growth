@@ -121,6 +121,10 @@ Last update: 2026-09-10, 384x384 corrected preflight accepted; legacy replay run
   zero failures/errors. The subsequent complete repository suite passed all
   215 tests in 77.39 s with zero failures/errors; JUnit SHA-256 is
   `11d99dd625689ed7ba4f4a3f6fd4b3a94703bda27eeefa3ca3b186510ad4776c`.
+- After adding only qualification analysis/movie tools and the configurable
+  reduced-cell population guard, the expanded complete suite passed 216/216 in
+  76.82 s; current JUnit SHA-256 is
+  `33cc6789dc661d66bc58ac76fcde7e003ef27daf536a38ebd81dda9046e82b8a`.
 - The full corrected seed-5101 production run is immutable HPC3 plan
   `20260911T003946Z-nogit-c53868`, source commit `8bb7837`, Slurm job
   `55932457`, using account `SDILLON1_LAB`. Its source-bundle SHA-256 is

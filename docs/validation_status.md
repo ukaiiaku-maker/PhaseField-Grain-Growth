@@ -11,13 +11,26 @@ This file is generated/updated by the validation campaign. A production label is
 | Mode selection/TJ | fast validation passed | isotropy, discrete minimum Burgers, feasible-combination and TJ persistence tests |
 | Shear/climb | fast validation passed | sign, balance, exchange, transport and serial-time tests |
 | Historical Qiu-labeled surrogate | regression reproduced; physical qualification rejected | legacy benchmark plus `docs/qiu_full_field_model_derivation.md`; Fourier equilibrium residual about 0.69 |
-| FFT eigenstrain V2 kernel | mathematical and source/work gates passed; production qualification pending | equilibrium/energy dense-oracle tests and manufactured local-sweep tests |
+| FFT eigenstrain V2 kernel | mathematical, source/work, reduced causal, and 384x384 preflight gates passed; production trajectories running | equilibrium/energy dense-oracle tests, manufactured local-sweep tests, `20260910T171500Z-reduced-matrix-r2`, and the full-field forensic report |
 | Curvature-only production scaling | quantitative validation passed | `results/production_summaries/baseline_qiu_extended_20_summary.csv` |
 | Larger-grid convergence | fixed-parabolic coefficient passed | `results/validation/baseline_convergence_256_pass.json` |
 | Mechanism production scaling | exact 165-run, 33-regime matched composite passed and plotted | `results/validation/mechanism_composite_165_completion_20260817.json` |
 | Activation campaign | selected 220/240 with all completed families through P4 archived; fully physical FP-G2/FP-T2/FP-S2/FP-C2--FP-C5 140/140 passed | `results/validation/fully_physical_fp_c5_activation_20260817.json` |
 
 The current fast suite passes **103 tests in 89.98 s** under the live production load on Python 3.13.5, NumPy 2.1.3, and SciPy 1.15.3. This includes production-path tests for Butler--Volmer exchange, domain-length-squared transport, distinct serial-stage rates, finite packet-renewal windows, primitive-hit ledgers, labeled TJ compatibility-failure rows with their actual residual-adjusted barriers, explicit stagnant-ensemble growth-fit suppression (including retained event-level temperature activation plots), complete growth/event Arrhenius figures, streamed event-distribution and TJ failure figures, temperature-dependent mode-occupation aggregation, checkpointed renewal age, persistent TJ residual/travel state, duplicate-free event-rate diagnostics, final-summary precedence, explicit GB-domain split/merge plus nearest-domain TJ adjacency and reconnection retirement, opposite signed Burgers increments at GB endpoints, packet-consistent strict TJ relaxation, finite-residual back-stress mode selection, negative full-field source self-work, exact restart from an atomically replaced archive when its companion JSON generation is stale, one-run multiprocessing chunks for balanced heterogeneous campaign tails, in-place cross-SHA campaign resume, completed-regime filtering for live-campaign analysis, geometry-gated explicit disconnection compatibility, and checkpoint-aligned gzip/Parquet event ledgers with exact orphan-output truncation. A 33-regime, three-step matrix completed only as a wiring smoke test; its near-zero fitted coefficients are deliberately not scientific scaling results. Component and baseline validation do not imply that the mechanism or temperature campaigns have completed.
+
+The separate 2026-09-10 QIU production-preflight suite collected the expanded
+repository and passed **215/215 tests in 77.39 s** with zero failures/errors;
+its JUnit SHA-256 is
+`11d99dd625689ed7ba4f4a3f6fd4b3a94703bda27eeefa3ca3b186510ad4776c`.
+This records the exact preflight source before later analysis-only additions.
+The corrected seed-5101 and immutable legacy replay are still running, so this
+kernel status is not a completed production qualification and does not yet
+answer whether the full-scale avalanche survives correction.
+
+The current qualification branch, including analysis and movie-index tooling,
+passes **216/216 tests in 76.82 s**. Its JUnit SHA-256 is
+`33cc6789dc661d66bc58ac76fcde7e003ef27daf536a38ebd81dda9046e82b8a`.
 
 Production-scale analysis of 31,255,548 primitive rows is numerically equivalent
 after switching event diagnostics to bounded-memory checkpoint-part streaming: the
