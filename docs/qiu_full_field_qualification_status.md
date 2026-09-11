@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-10 21:20 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; legacy recovery advanced to step 3500.
+Last update: 2026-09-10 21:50 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; both have current durable restart copies.
 
 ## Current source state
 
@@ -164,6 +164,18 @@ Last update: 2026-09-10 21:20 PDT; legacy and corrected seed-5101 full-size jobs
   `hpc_live/20260911T040500Z-corrected`, SHA-256
   `a06753ec606e29860b655624cc62195a572733c3c3e3648daa54ce7f82876bbd`,
   and remain explicitly nonterminal/nonpoolable.
+- The corrected trajectory subsequently reached its first regular restart
+  checkpoint at step 500/t=20/N=587. Its new durable archive contains all 500
+  contiguous scalar rows in 32 closed Parquet parts, the restart state, compact
+  frames through step 400, and the first cadence-dense full field at step 500.
+  The audit still finds zero complete-energy increases and coupled rejections,
+  finite critical fields, maximum equilibrium residual `3.42e-12`, maximum
+  absolute source-work error `1.33e-7`, maximum compactness 1.795, and zero
+  disconnected grains. Its external limit remains inactive (minimum 6.13
+  versus used dt 0.04). Durable path:
+  `hpc_live/20260911T044539Z-corrected`; matching local/remote archive SHA-256
+  `9ec285d7213768c446ccc34b5996f352b510160c3f049b4cc5cf43c1b50d40fe`.
+  This snapshot is explicitly nonterminal and nonpoolable.
 - The legacy step-1500 checkpoint plus all then-available movie frames were
   copied without pausing the solver to local recovery archive
   `hpc_live/20260911T013800Z-legacy`, SHA-256
@@ -191,6 +203,12 @@ Last update: 2026-09-10 21:20 PDT; legacy and corrected seed-5101 full-size jobs
   target (0.02 to 0.01) and the actual configured PF timestep (0.04 to 0.02).
   Thus the required refinement is exercised even if the external limiter never
   binds. Seven focused runner/movie/analyzer tests pass.
+- `production_revision_equivalence.json` records that corrected seed-5101
+  commit `8bb7837` and the staged refinement/paired-seed commit `a173624` have
+  byte-identical FFT mechanics, PF solver, kernels, kinematics, and production
+  config. Runner/provenance controls and the designed dt/target/seed factors are
+  the only execution-relevant differences. The attestation SHA-256 is
+  `2dfccd599372601b1266fc7583e764f2e37ca35da4b113c15da28a08431dfed2`.
 - The production analyzer now reports timestep agreement at matched physical
   time and matched grain-size progress, evaluates interpolated energy-history
   norms, checks avalanche-class consistency, honors explicit source

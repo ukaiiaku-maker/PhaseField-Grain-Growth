@@ -45,6 +45,9 @@ acknowledgement; Slurm confirmed the original job before any duplicate launch.
   `/Users/sdillon/PF-graingrowth/results/validation/qiu_fix_production_preflight_tests.xml`
 - First corrected live snapshot:
   `hpc_live/20260911T012000Z-corrected` under the durable root.
+- Latest corrected restart snapshot:
+  `hpc_live/20260911T044539Z-corrected`, step 500/t=20/N=587, archive
+  SHA-256 `9ec285d7213768c446ccc34b5996f352b510160c3f049b4cc5cf43c1b50d40fe`.
 
 Live snapshots contain only atomically closed Parquet parts and are marked
 `pooling_allowed=false`. The active jobs retain checkpoint cadence <=500 and
@@ -71,6 +74,9 @@ unsubmitted. All three now contain the verified `a173624` bundle with SHA-256
 The refinement changes both the external-increment target from 0.02 to 0.01
 and the actual configured PF timestep from 0.04 to 0.02; it therefore remains
 a factor-two test even if the external limiter is inactive.
+`production_revision_equivalence.json` in the durable root independently
+records the byte-identical mechanics/PF/config hashes across active corrected
+commit `8bb7837` and staged commit `a173624`.
 
 Recreate or verify the active-job attestations with
 `scripts/attest_qiu_hpc3_source.py`; its generated records are under
