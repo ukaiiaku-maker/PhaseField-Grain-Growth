@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-10 22:00 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; both have current durable restart copies.
+Last update: 2026-09-10 23:05 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; legacy recovery advanced to step 5000.
 
 ## Current source state
 
@@ -192,6 +192,12 @@ Last update: 2026-09-10 22:00 PDT; legacy and corrected seed-5101 full-size jobs
   retained under `hpc_live/20260911T041940Z-legacy`. Archive SHA-256 is
   `d58b052f5f8ff46112deee886f0f669013024b531851e22bcaaf0aa5c6e2ec5b`;
   the recovery manifest remains explicitly nonterminal and nonpoolable.
+- At 23:05 PDT, legacy reached step 5000/t=200. Its complete checkpoint and
+  14 saved evolution frames through step 5000 were copied and independently
+  rehashed on HPC3 and locally under `hpc_live/20260911T060150Z-legacy`.
+  Matching archive SHA-256 is
+  `26c26bb615846c6c91e4d0b99091bb53ad31f1af5d24b547e8fbc895b7f422ce`;
+  this recovery copy remains explicitly nonterminal and nonpoolable.
 - The active HPC application manifests say `UNCOMMITTED` because their scripts
   queried Git from the parent stage directory. This does not make their source
   ambiguous: both immutable wrappers assert the detached commit and verify the
