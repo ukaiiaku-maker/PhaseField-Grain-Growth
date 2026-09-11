@@ -32,3 +32,10 @@ changed QIU diagnostics, qualification scripts and documents, with no further
 shared PF kernel/solver/simulation change. The worktree is no longer globally
 clean, so this snapshot is not a production release freeze. The primary audited
 checkout remains clean at `9f66c8d7a5a266687284d8da35aefbc6062808f7`.
+
+The final read-only snapshot (2026-09-11 02:08 UTC) is clean at
+`c68312799b4e41ba404cc0dd1ec3865bdcc9f9b8`. There are no source changes since
+4ef9390, so the earlier shared-core relevance decisions are unchanged. Both
+known QIU jobs remain running with their original IDs/accounts. No anisotropy
+job remains active. No QIU changes were imported; the missing PF implementation
+and reduced validation independently prevent production release.

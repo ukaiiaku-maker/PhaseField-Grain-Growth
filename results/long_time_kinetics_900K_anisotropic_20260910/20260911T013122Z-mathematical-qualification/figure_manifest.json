@@ -1,0 +1,14 @@
+{
+  "figures": [
+    {
+      "path": "constitutive_ranges.png",
+      "scope": "provisional initial-network constitutive summaries"
+    },
+    {
+      "path": "sharp_network_timestep.png",
+      "scope": "retrieved sharp-network time evidence; failed coarse tests retained"
+    }
+  ],
+  "production_figures": [],
+  "status": "production not run"
+}

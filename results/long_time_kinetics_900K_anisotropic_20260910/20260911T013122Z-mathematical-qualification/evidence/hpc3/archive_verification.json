@@ -1,0 +1,37 @@
+[
+  {
+    "job_id": "55932113",
+    "archive_sha256": "4e1f446f06dbd0248485a0c0721f23b1f5a04ef1f59c83b2ee6b9b5465b85b73",
+    "compute_checksum_matches": true,
+    "local_archive": "/Users/sdillon/HPC3/anisotropic-phase1-state/hpc3-results/pfgg-anisotropic-cahn-hoffman-v1/20260911T002118Z-nogit-d279e0/results/results-single.tar.gz",
+    "scientific_outcome": "environment_import_failed_before_science"
+  },
+  {
+    "job_id": "55932211",
+    "archive_sha256": "a0d61c5cf56a4406bd1ddbc6a49a1fac722924523cfafe37aced80db262bd01e",
+    "compute_checksum_matches": true,
+    "local_archive": "/Users/sdillon/HPC3/anisotropic-phase1-state/hpc3-results/pfgg-anisotropic-cahn-hoffman-v1/20260911T002932Z-nogit-2371f7/results/results-single.tar.gz",
+    "scientific_outcome": "test_collection_error_before_science"
+  },
+  {
+    "job_id": "55932614",
+    "archive_sha256": "901bd3d767793a577db1c31769162ee8c9e9764960c0f9e3471d57be3fc1d677",
+    "compute_checksum_matches": true,
+    "local_archive": "/Users/sdillon/HPC3/anisotropic-phase1-state/hpc3-results/pfgg-anisotropic-cahn-hoffman-v1/20260911T004050Z-nogit-3e2ea8/results/results-single.tar.gz",
+    "scientific_outcome": "initial_network_topology_failed"
+  },
+  {
+    "job_id": "55932951",
+    "archive_sha256": "86e69f6d877bef320b26e82dcf5d7e5f3ca6212e475fc93e49e2a22789ac8168",
+    "compute_checksum_matches": true,
+    "local_archive": "/Users/sdillon/HPC3/anisotropic-phase1-state/hpc3-results/pfgg-anisotropic-cahn-hoffman-v1/20260911T010258Z-nogit-ae4ebc/results/results-single.tar.gz",
+    "scientific_outcome": "geometry_passed_sharp_network_time_tests_failed"
+  },
+  {
+    "job_id": "55933300",
+    "archive_sha256": "de36bf39e1d2fc6862f0a3166cb9187ab3c9c322938bb80b703cc64e103b0923",
+    "compute_checksum_matches": true,
+    "local_archive": "/Users/sdillon/HPC3/anisotropic-phase1-state/hpc3-results/pfgg-anisotropic-cahn-hoffman-v1/20260911T013122Z-nogit-e7f36e/results/results-single.tar.gz",
+    "scientific_outcome": "mathematical_checks_passed_pf_campaign_unresolved"
+  }
+]

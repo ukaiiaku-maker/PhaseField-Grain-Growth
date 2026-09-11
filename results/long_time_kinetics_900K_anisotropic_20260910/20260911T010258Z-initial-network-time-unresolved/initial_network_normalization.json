@@ -1,0 +1,52 @@
+{
+  "status": "PROVISIONAL_POLYGONAL_NOT_PRODUCTION_FROZEN",
+  "network": {
+    "vertices": 43540,
+    "edges": 44340,
+    "polylines": 2400,
+    "closed_loops": 0,
+    "total_length": 19434.31874897115,
+    "unique_pairs": 2400,
+    "reconstruction": "piecewise-linear upper envelope; fixed cell diagonal",
+    "continuum_geometry_converged": false
+  },
+  "laws": {
+    "A0_ISOTROPIC": {
+      "strength": {
+        "g_min": 1.0,
+        "inclination_weight": 0.0,
+        "support_power": 2,
+        "mobility_exponent": 0.0
+      },
+      "gamma0": 1.0,
+      "mobility0": 4.0,
+      "energy_normalization": 1.0,
+      "mobility_normalization": 1.0
+    },
+    "A1_MODERATE": {
+      "strength": {
+        "g_min": 0.8,
+        "inclination_weight": 0.65,
+        "support_power": 8,
+        "mobility_exponent": 1.0
+      },
+      "gamma0": 1.0,
+      "mobility0": 4.0,
+      "energy_normalization": 1.1078418017561684,
+      "mobility_normalization": 0.9925527524942722
+    },
+    "A2_STRONG": {
+      "strength": {
+        "g_min": 0.65,
+        "inclination_weight": 0.85,
+        "support_power": 16,
+        "mobility_exponent": 2.0
+      },
+      "gamma0": 1.0,
+      "mobility0": 4.0,
+      "energy_normalization": 1.2060485247581734,
+      "mobility_normalization": 0.924620319961451
+    }
+  },
+  "initial_sha256": "106819770289d156b0ff6a35d356a9aa172258f428325ec50c5f62f380ea56f6"
+}

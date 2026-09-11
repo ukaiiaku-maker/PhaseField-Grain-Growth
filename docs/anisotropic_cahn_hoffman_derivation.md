@@ -16,6 +16,9 @@ Publisher full text was not accessible during this session. The following
 discrete derivation is independent and is checked directly by finite variation;
 it is not represented as a full-text literature review.
 Direct publisher abstract-page retrieval also returned HTTP 403 for both papers.
+An additional search found the [TMS selected-works contents](https://www.tms.org/pubs/Books/PDFs/01-416X/01-416X-0.pdf),
+which lists the two reprints on pages 293–313 and 315–324. Full reprint retrieval
+was unsuccessful; this does not remove the full-text review limitation.
 
 ## Constitutive derivatives
 

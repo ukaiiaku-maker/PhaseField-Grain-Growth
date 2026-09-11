@@ -1,0 +1,382 @@
+{
+  "audited_base": "9f66c8d7a5a266687284d8da35aefbc6062808f7",
+  "verified_scientific_source": "54189b6fc7767535018afc5112bbffb3f47b8831",
+  "scope": "all pre-existing tracked source files; new standalone modules excluded",
+  "files": [
+    {
+      "path": "src/grain_growth_pf/__init__.py",
+      "sha256": "8f8dbe2d1aaeb2b8d3fb2b9c78c79d6b8a6d4860b7096009b6131bdefd45483c",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/analysis/__init__.py",
+      "sha256": "ea05a6afa7a749cc1fa4212da9c6917571f4e6f3180d99e4c00fbb686f4743c1",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/analysis/activation_energy.py",
+      "sha256": "9fa35107c311df1d33751202fbd2e5922b11adecee34f49ed4caf768f4fbd1de",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/analysis/aggregate.py",
+      "sha256": "83f16da30dd3790cfab732289310376a542e2f58c902de1d7e9b921bec1f67f5",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/analysis/analytical_models.py",
+      "sha256": "d95d7b69432867f1ac0431248f75cff3ea986d48831f6e696eba9192e429163e",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/analysis/campaign.py",
+      "sha256": "49cdadbcafd2a52621a08fb2f80e04f2cfd258b5118d0ebcc5189a9df269d641",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/analysis/causal.py",
+      "sha256": "3895b1c8fa763e0ebdc03018cb9b4642718e63a58c5ef6346d94258de5620720",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/analysis/grain_tracks.py",
+      "sha256": "bd1a46021185b45faad43f2332ce4cacf8adeb0acb6e0aa367efc739836a8bbe",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/analysis/growth_law.py",
+      "sha256": "eb712ee74f068ad67c0dab6c6934b73132bac235e408c28bcf38afbc66870060",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/analysis/jerkiness.py",
+      "sha256": "f1227dedb217053acbfe518debb40c343d9ee97ab4c408b82139dd5eae0abaf2",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/analysis/kinetic_resistance.py",
+      "sha256": "1423e824b70691bef01fd3514951d652a7a242e9f020e412e3c8cb6999fa727c",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/analysis/long_time.py",
+      "sha256": "2a1a69c262535df8c950867ee63b1942fd6efca7175d674b2e4e40ab60cc10c2",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/analysis/mechanism_diagnostics.py",
+      "sha256": "5a193ef896c2ef1cc3d1665be3ef2d4582580e470bc3d62fa0ec7b75d3950dcf",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/analysis/mode_occupation.py",
+      "sha256": "22fc1d4c43450d19e2f4c4196d5b01079c4f47e979d3fe72419890aabe170756",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/analysis/pareto.py",
+      "sha256": "eecdb24483b437fb1006a09e72277b08ff5c3f4c79743142bb49f7c9f33fbd24",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/analysis/plots.py",
+      "sha256": "dfda1b2101e6493e4938b2ad247c6e217b6e4a53e94c693638541ad5de976015",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/analysis/qiu_metrics.py",
+      "sha256": "6114a2239369f1fdb680b4ae39458171258ddc9e76834d0cccf126336be93afb",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/campaign.py",
+      "sha256": "1737802c2cf2e592af2bd0e8928ebf80e81fe54f5948391da39514df0b4019c1",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/cli.py",
+      "sha256": "62f2abc04ade2fae49da67be8d996bb11307fa5493a37da59626ebb1db1407e1",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/climb/__init__.py",
+      "sha256": "71625ef9d18533e09eb06bdebd1ff132788bd7d7cd6fe3732ee67d7559d6b171",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/climb/area_loss.py",
+      "sha256": "2817ee450313d2bb62a760559f1bfb58067929c183dd494bd5845899ba8a5707",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/climb/exchange.py",
+      "sha256": "04878c6e378250b814d3699d7548ff1e81dbf5f8cb1a1a906e0e3e964d146d78",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/climb/free_volume.py",
+      "sha256": "55beb4d2fcc33281d74bf5dbd05b9787a55b1811e4c428da0e8a48dff61c3a4d",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/climb/nucleation.py",
+      "sha256": "7dad349c45b004b4845ee697b836a615463d5d07c0ad5fbe3ad031e43f57ff25",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/climb/serial_cycle.py",
+      "sha256": "aeb6288d29e528b64389d830b70d479d6d154337c256da730f02c7e22678558b",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/climb/transport.py",
+      "sha256": "d397c0fd8bb3f5132522502cba43868b300c27317f8105e64c923a395a6f8067",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/config.py",
+      "sha256": "8aae6cf04d12b786b9f4694f878dccf7c0964beecbb8ac6ab695945e457ab430",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/disconnections/__init__.py",
+      "sha256": "e2e8450c0e17e5c010fa447ee853772665f8df4ce3173e0497036701f8956e57",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/disconnections/admissibility.py",
+      "sha256": "ac59b46d42efbc806e9cc37244e7dcae210ee9d4f21e70eb5c7468efb304858d",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/disconnections/barriers.py",
+      "sha256": "157665a9a66c0718883cda79ad4cc65b7a9a5ef4f3fc308c5c311583856280b0",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/disconnections/mode.py",
+      "sha256": "3281d271997d200d24da0607ab22c36d32eba07d76620708786617a5c91d29f7",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/disconnections/shear_coupling.py",
+      "sha256": "13278646eedbb63dedca822cef04116ec2a96b96983957833122db5c4e044827",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/disconnections/spectrum.py",
+      "sha256": "2374a0ef59ff7e1efc820200935a46ad22c785b18cc8552fdc7c2043d8575903",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/encounters/__init__.py",
+      "sha256": "d1a24b36dff98a048cda137f8efdb9f3f246dc089ca81cb625cf94834df09fc5",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/encounters/gb_area.py",
+      "sha256": "56e7ca84a33d4cc9711655dd2be3a8b23ff5a8084c55fbea3a1f9f413346abcc",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/encounters/geometric_hazard.py",
+      "sha256": "3ff3d2c88ca75c1ea97312903f6bbf0752064b81487da287431c0b63f7ba9f57",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/encounters/swept_volume.py",
+      "sha256": "8d6c98e2dc143d1bd62b24e60476c1ed3d4f406515a899e341182bbbb314da85",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/encounters/tj_path.py",
+      "sha256": "fe52e65c86067724867d42a0400485b59d5d495b28ca69232d41a9b30d80ca7a",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/entities/__init__.py",
+      "sha256": "67d1642212eb546214b4ab57882984c37670dbf7d49c9604f5c518b7a7101409",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/entities/arclength_tracker.py",
+      "sha256": "1d19c41749e3a6db4d566031c0104876558bcb127d926894ce08562447f8d22b",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/entities/gb_segment.py",
+      "sha256": "bd586fa5573c321f3dea344a1c99db9bce1a9fa822268b6067ef43b2caf18217",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/entities/grain.py",
+      "sha256": "110d1638607fd96d9790c87c8c0d9d553675b275096b61662b4d1c55114cd9e5",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/entities/tracker.py",
+      "sha256": "1edc094e3788683b35676dfa57df9b807b5de088cbd9facc81cd9f9684d280bf",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/entities/triple_junction.py",
+      "sha256": "5932241ac2dee7343c023d72a52dc767cf0c5a5c88dead7b93337b475ee5646a",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/io/__init__.py",
+      "sha256": "84e017d9b16b6ed2820133896a0686699c4a6e9693dde4ca44a9333236e4d104",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/io/checkpoints.py",
+      "sha256": "cb449561d4c28d9378a857c9e5113adcafed2bb42cbf46e74a49917e0ff0f2cd",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/io/config.py",
+      "sha256": "59a8807f110f5157e82daf2cc70ee386b3cbd7e436c30b0dfaea2e4b886df212",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/io/event_ledger.py",
+      "sha256": "b42354c41800dbc9b9764577513841ccb2df8c6cbdcbe5f7ca05a433febfd5df",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/io/event_trace.py",
+      "sha256": "ba4d9007286f968a31591350fbac2e51ccead94f44a19932928c386cef18edde",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/io/provenance.py",
+      "sha256": "fc1c653821023f91ab9d25420f340a57f81c889c6b12ae3711e4ce32c2632710",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/mechanics/__init__.py",
+      "sha256": "6ec385df38d039f52ec5df0d77a5a70b15e6c46a77b99d865dddcfaf345d86a9",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/mechanics/curvature.py",
+      "sha256": "1edb18cbe6ac6254e2816c37612342753ec0c1e7ff083d74ca24dc009caed59f",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/mechanics/force_balance.py",
+      "sha256": "1835bc03ee7332f7ec588da6cf8af167c6018bae00e50cc792cc7249ad4fc064",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/mechanics/local_shear_memory.py",
+      "sha256": "fa2a91e6534d56f1e19c5c5fb9aca43a94ccea654e23ca39d469bdda96d45514",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/mechanics/qiu_full_field.py",
+      "sha256": "15bb7315455f1636a7d15f790b47c16bb27dd90ca6615226d039518af9b112a3",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/migration_closure.py",
+      "sha256": "e7ea59f99bff6e7f23d9659000d267d1b5c3bbce1de278ea96c5d1cf59ee8e57",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/obstacles/__init__.py",
+      "sha256": "c9dbdc224d808f3bffffc51588702fd48a2c13ebc766f5166684d5d097584a47",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/obstacles/gb_pinning.py",
+      "sha256": "55405b8a0e49c3456d0d3cff566ebcaa5e64ef1a6915fdf4fe769ca29368d47a",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/obstacles/particles.py",
+      "sha256": "a1f467c58c026d8244bf1d94936e2ff58746a3ca74809771b39c9978894f0045",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/obstacles/random_pins.py",
+      "sha256": "9767ab6d9e0aa2cfd1bf92f8997da97cf462d6a4f175fc07b05367bcf7e02256",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/obstacles/tj_pinning.py",
+      "sha256": "0bbce77c6bfc1246c769174373357c1282f8a574222d53e6e7093578868f6b46",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/pf/__init__.py",
+      "sha256": "d2ea05d24f92b7011a635bc979429d19a056de956f66fa6619be4f645f48251c",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/pf/free_energy.py",
+      "sha256": "4cad5e323db032f3f6a2bfb702d43d3a7caa96bc3d1d763f527f5d840b5dfc44",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/pf/geometry.py",
+      "sha256": "578d13aaa162a785ec244f711efeed0dc122d3030e3dc227f941c4ce32e83ed8",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/pf/initial_conditions.py",
+      "sha256": "7f8e040c00047144744ede117694b1380546d4adb7f334e9c20449113dc6d0ef",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/pf/kernels.py",
+      "sha256": "aa339c51ca026ac16a18f7e233b3323a00455ecdb4ddd1211cdceea2744afed1",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/pf/kinematics.py",
+      "sha256": "91448fc4607003db7f02a9c4d2a7d5ee6698d90328f904448823dd42cc2794c1",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/pf/solver.py",
+      "sha256": "844a6db297ab9f19e3b3f4fcaa3701b7f007f8686406eb1ce61821acba49c056",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/pf/topology.py",
+      "sha256": "cced87d5b0a9edbee9d52690cb1b0bb980d04d652564eeb98aad34de22054239",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/simulation.py",
+      "sha256": "c84e887ad78e7b65981d093254329ff3be294b88d8b352182795eb244a51afce",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/stochastic/__init__.py",
+      "sha256": "65d4212c3b1f02da4f8a2693555710c74d4e4ba247a45d2b86867f1533e7d726",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/stochastic/hazard.py",
+      "sha256": "88e7ba29b3c3bdf6cbc3946e0276ee97efb54c24fdc47e8dfa7e4184045a33e9",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/stochastic/multihit.py",
+      "sha256": "31518ff0715c0218b2b56d9fbf8e977e3e6f79f6b1fb93b50726552eb914dcb4",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/stochastic/poisson.py",
+      "sha256": "d2c95794750a7e15dcb4cb627d853facf20aa6bb823d32c18dc8159e8c5676e6",
+      "byte_identical_to_audited_base": true
+    },
+    {
+      "path": "src/grain_growth_pf/stochastic/renewal.py",
+      "sha256": "25e644cad3cb33c17819f1741d10555348d7929b80e81b236bb87b9052097eae",
+      "byte_identical_to_audited_base": true
+    }
+  ]
+}

@@ -48,10 +48,18 @@ Its verified archive is
 Job **55933300**, runner `20260911T013122Z-nogit-e7f36e`, uses source
 `54189b6fc7767535018afc5112bbffb3f47b8831`, archive SHA-256
 `7eb06d15256487ef35df2a3b6cb85babbc60c25a2f9ddf1c50718b62b5a27b54`.
-It refines loop time and matches TJ physical horizons without changing A2 or
-acceptance thresholds. Latest state: SUBMITTED. Request: 1 CPU, 3 GiB, 1 h on
-SDILLON1 / standard. Two pre-upload directory timeouts caused no Slurm submission;
-the same immutable bundle was reconciled and then submitted exactly once.
+It refined loop time and matched TJ physical horizons without changing A2 or
+acceptance thresholds. Final state: **COMPLETED, verified, fetched twice**.
+All 193 tests and the tested sharp-network time gates passed. Request: 1 CPU,
+3 GiB, 1 h on SDILLON1 / standard; elapsed 1742 s, CPU 211 s, peak RSS 2.14 GB,
+CPU efficiency 12.11%. Archive SHA-256:
+`de36bf39e1d2fc6862f0a3166cb9187ab3c9c322938bb80b703cc64e103b0923`.
+Two pre-upload directory timeouts caused no Slurm submission; the same immutable
+bundle was reconciled and then submitted exactly once. A later BeeGFS plotting
+stall recovered before any cancellation. Diagnostic steps 55933300.0/.1/.2
+read progress/process status and staged a partial archive inside its allocation.
+A locally staged geometry-v7 fallback has no saved plan or Slurm ID and must
+not be submitted as a duplicate.
 The scripts refuse scientific execution outside a Slurm compute allocation.
 
 The regression-v4 plan `20260911T005754Z-nogit-669634` was superseded before
@@ -80,8 +88,10 @@ time cadence, checkpoint state and stochastic clocks together. Preserve exact
 A0 nesting and do not invent a new constitutive family or use A3 prematurely.
 
 QIU shared-core changes were reviewed at clean commit `847eb06e`. A later
-snapshot at `4ef9390` contains additional QIU-specific scripts/diagnostics and a
-dirty spatial-convergence script, without further shared solver/kernel changes.
+snapshot at `4ef9390` contained additional QIU-specific scripts/diagnostics and a
+dirty spatial-convergence script. The final read-only snapshot is clean at
+`c68312799b4e41ba404cc0dd1ec3865bdcc9f9b8`, with no further source changes since
+4ef9390.
 See `anisotropic_qiu_shared_core_review.md`. No changes were imported. Recheck
 its durable status before production; never write to its worktree, jobs or
 artifacts. Necessary selective integration requires repeated qualification.
@@ -90,3 +100,26 @@ The non-executable preregistration holds exact historical configs for all ten
 trajectories. There is deliberately no runnable anisotropic production YAML:
 the implementation and normalization have not qualified. Never run the old
 isotropic solver with anisotropic case names as a substitute.
+
+## Final evidence and remaining scientific work
+
+All five submitted anisotropy qualification jobs are terminal and retrieved.
+Reconciliation reports no unretrieved jobs. The source tested on HPC3 is 54189b6;
+later commits add reports and compact evidence. A2 passes the four provisional
+initial-network constitutive gates. Refined sharp-loop dissipation errors are
+0.517%/0.258%; TJ residuals are below 1e-7 and the refinement distance is 3.10e-10.
+No production strength or continuum normalization is frozen.
+
+Primary compact result root:
+`results/long_time_kinetics_900K_anisotropic_20260910/20260911T013122Z-mathematical-qualification/`.
+It contains the decision, parameters, provisional normalizations, constitutive
+CSV, ten-row run/comparison matrices, two actual mathematical summary figures,
+movie nonproduction index, checksum inventory and compact HPC evidence.
+Earlier coarse failures remain in the 20260911T010258Z companion directory.
+
+The next implementation block is the coupled PF energy/mobility operator, not
+another strength search or production submission. Use the integration audit
+for its force, TJ, activation pressure and physical-time contracts. Then qualify
+grid/width/cadence/restart, run the reduced polycrystal and attribution matrix,
+and evaluate the >=10% effect gate before releasing any full trajectory.
+The current campaign is incomplete and classification remains UNRESOLVED.

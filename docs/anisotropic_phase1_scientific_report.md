@@ -42,8 +42,15 @@ errors were 4.2868%/2.1004%, failing the unchanged 1% gate. A2 here uses unit
 normalization constants, not the provisional initial-network constants. The
 anisotropic TJ reached residual 9.995e-8 at t=180.55 with dt=0.01. The half-dt
 run hit a step limit after only half as much physical time and is a failed test,
-not evidence of a converged refinement. A new immutable run refines loop time
-and gives the TJ tests equal physical horizons.
+not evidence of a converged refinement.
+
+The corrected immutable run **55933300** passed the tested sharp-network time
+gates. At dt=.00025/.000125, A2 balance errors decrease to 0.5170%/0.2578%
+without timestep rejection. Relative final loop position and energy differences
+are 1.10e-6 and 2.15e-8. Both TJ relaxations reach residual below 1e-7 by
+t=180.55/180.58, and their final positions differ by 3.10e-10. Energy decreases
+apart from TJ roundoff of 1.78e-15. This resolves the tested sharp-time failures
+while leaving the coupled PF and continuum-geometry gates open.
 
 No anisotropic counterpart of B0, G, T, GT, GTC_GB, GSC_GBTJ_Ks025,
 GTSC_GBTJ_Ks025 or GTSC_GBTJ_Ks030_LONG has run. Neither full-domain B0
@@ -57,8 +64,8 @@ requirement are **not evaluated**. Whether anisotropy changes the minimum
 progressive-slowing model is **undetermined**. No movies or paired production
 figures exist, and no inference about abnormal growth is supported.
 
-The next scientific decision depends on measured constitutive ranges,
-reconstruction convergence and a validated work-conjugate PF implementation.
+The next scientific decision depends on reconstruction convergence and a
+validated work-conjugate PF implementation.
 The principal risk identified by the audit is substituting a sharp geometric
 pressure into a diffuse kernel without establishing the corresponding discrete
 energy derivative and pair mobility. Merely completing HPC3 jobs cannot resolve

@@ -219,3 +219,70 @@ and single-directory `mkdir` subsequently succeeded. Retrying the same
 prepared bundle assigned exactly one job: **55933300**. No duplicate run ID or
 Slurm submission was created. Ledger sync completed. The scientific source is
 54189b6; full tests and corrected sharp-time checks are running in that allocation.
+
+## Phase 6: shared-filesystem stall recovered without cancellation
+
+Job 55933300 was observed blocked during an unchanged Arrhenius plotting test:
+86 tests had completed, live CPU was about 24 s, peak RSS about 552 MiB, and
+its pytest process was in `IBVSocket_waitForRecvCompletionEvent` (BeeGFS I/O).
+Three one-minute read/staging diagnostic steps were launched within the existing
+allocation; they read progress/process status and preserved a partial result
+archive. No scientific computation ran on a login node.
+
+The preserved archive verifies as
+`f2e66cdeab1d23a600f4ca964fee650e4ee93a3a5684d77729d68f753c5b3a65`.
+Inspection before any cancellation revealed that the I/O wait had cleared:
+**193 tests passed in 1219.61 s**, and exact-initial geometry plus refined loop
+checks had begun. Consequently **no cancellation was issued and no replacement
+was submitted**. A fallback wrapper bundle `geometry-v7/` in the orchestration
+state was staged but never given a saved runner plan or Slurm ID; it is marked
+NOT_SUBMITTED. The original known job continues its sharp-network checks.
+
+The full suite therefore passes on scientific source
+`54189b6fc7767535018afc5112bbffb3f47b8831`. The observed filesystem stall is
+not classified as a numerical or constitutive instability. Next action: retain
+this one calculation, retrieve its terminal result, and record actual time-gate
+outcomes rather than predictions from the coarse study.
+
+## Phase 7: mathematical evidence finalized; PF campaign remains incomplete
+
+Branch: `codex/anisotropic-cahn-hoffman-phase1-v1`; HEAD before this final
+report/evidence commit: `c839284`. Scientific source tested on HPC3:
+`54189b6fc7767535018afc5112bbffb3f47b8831`.
+
+Job 55933300 completed with application/finalization exit 0 and a complete
+marker. Its independently verified archive is
+`de36bf39e1d2fc6862f0a3166cb9187ab3c9c322938bb80b703cc64e103b0923`.
+An idempotent second fetch and final reconciliation succeeded; all five
+submitted qualification jobs are terminal/retrieved. No anisotropy job remains
+active. There was no cancellation or replacement submission.
+
+All 193 tests passed. Refined sharp-loop A2 balance errors are 0.5170%/0.2578%;
+relative final position/energy differences are 1.10e-6/2.15e-8. Both TJ residuals
+are below 1e-7, with final position difference 3.10e-10. The tested mathematical
+time gates pass without relaxing thresholds. A2 also passes the four provisional
+initial-network constitutive gates. A3 remains unreleased.
+
+The primary compact result root is
+`results/long_time_kinetics_900K_anisotropic_20260910/20260911T013122Z-mathematical-qualification/`.
+It includes numerical tables, actual constitutive/time-refinement figures,
+all ten NOT_RELEASED production rows, explicit uncomputed comparisons and
+unproduced movies, raw compact mathematical evidence, HPC accounting/identity
+records and checksums. The companion initial-network/time-unresolved result
+retains the coarse failures. Full source/input bundles and remote outputs remain
+in the dedicated orchestration roots; no historical/QIU artifacts were changed.
+
+Final read-only QIU snapshot: clean at
+`c68312799b4e41ba404cc0dd1ec3865bdcc9f9b8`, with no further source changes since
+the reviewed 4ef9390 snapshot. Both original QIU jobs remain independently
+running. The primary audited checkout is clean at 9f66c8d; all 75 pre-existing
+source files on this branch are byte-identical to the audited base.
+
+Scientific decision: **ANISOTROPIC_IMPLEMENTATION_UNRESOLVED**. This is an
+incomplete campaign. No coupled PF implementation, reduced polycrystal response,
+production trajectory, matched kinetic/morphology comparison or movie exists.
+The >=10% effect-size requirement is untested and minimum-model change is
+undetermined. The next scientific block is the qualified PF coupling and its
+convergence matrix; production cannot be released from the mathematical checks
+alone. Final action for this evidence record: commit compact artifacts and
+reports, push the isolated branch and update the existing draft PR without merge.

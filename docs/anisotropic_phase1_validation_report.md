@@ -19,6 +19,9 @@ All changes are in `/private/tmp/pfgg-anisotropic-cahn-hoffman-v1` on
 `codex/anisotropic-cahn-hoffman-phase1-v1`. The historical solver, kernels,
 kinematics, simulation, tracker and QIU code are unchanged on this branch.
 QIU has only been read; no QIU job-control action or artifact write was issued.
+A byte-level comparison of all 75 pre-existing tracked source files against the
+audited base passed. The new modules are standalone and are not imported by the
+historical execution path.
 
 ## Completed lightweight mathematical checks
 
@@ -52,7 +55,7 @@ work-conjugate coupling of those forces to the historical diffuse PF kernel.
 | 55932211 | Dedicated environment setup and regression | f4aa53f | 2 CPUs, 12 GiB, 1 h | Environment succeeded; collection failed because wrapper omitted source root from PYTHONPATH |
 | 55932614 | Corrected wrapper, full regression and matched initial geometry | f4aa53f | 1 CPU, 6 GiB, 1 h | 190 tests passed in 559.20 s; initial network failed periodic closure |
 | 55932951 | Tolerance-based vertex matching, pullback regression and independent sharp-network flows | 81c8785 | 1 CPU, 3 GiB, 1 h | 193 tests passed; initial network and A2 constitutive gates passed; sharp-network time tests failed |
-| 55933300 | Refined loop timesteps and equal TJ physical horizons | 54189b6 | 1 CPU, 3 GiB, 1 h | Submitted; result pending |
+| 55933300 | Refined loop timesteps and equal TJ physical horizons | 54189b6 | 1 CPU, 3 GiB, 1 h | Completed: 193 tests, initial geometry, constitutive and tested sharp-network time gates pass |
 
 All use `SDILLON1` / `standard`, no GPUs and no high QOS. Numerical libraries
 use one thread. Requests respect the live 6 GiB/core memory rule; no
@@ -99,6 +102,30 @@ raw result is retained. Job 55933300 uses dt=.00025/.000125 for the loop and
 equal 200-time-unit TJ horizons, with unchanged balance/residual tolerances.
 It also tests final loop position and energy differences below 1e-4.
 
+Job 55933300 completed with application/finalization exit 0 and a complete
+finalization marker. All 193 tests passed in 1219.61 s after a documented
+BeeGFS I/O stall in an existing plotting test. No cancellation or replacement
+submission occurred. The final archive was verified and fetched twice:
+`de36bf39e1d2fc6862f0a3166cb9187ab3c9c322938bb80b703cc64e103b0923`.
+Elapsed 1742 s, CPU 211 s, efficiency 12.11%, reported peak RSS 2.14 GB.
+
+At dt=.00025/.000125 the A2 sharp loop has maximum relative dissipation errors
+0.00517020/0.00257837 (0.517%/0.258%), satisfying the unchanged 1% gate.
+No timestep rejection occurred. Relative final position and energy differences
+are 1.10e-6 and 2.15e-8, below 1e-4. A0 circle radius errors are 1.01e-7 and
+5.07e-8. Both anisotropic TJ relaxations reach force residual below 1e-7 at
+t=180.55/180.58, before their common t=200 ceiling; final junction positions
+differ by 3.10e-10. The largest energy increase is 1.78e-15 (roundoff).
+These are sharp polygon checks with unit normalization constants, not PF
+convergence or the reduced polycrystal effect-size study.
+The loop uses 128 vertices, initial radius 8 and horizon 0.2. The anchored
+three-arm junction uses unit junction mobility, anchors at radius 3 and fixed
+grain orientations (0.1, 0.4, 0.7) radians.
+
+All five submitted jobs are terminal and retrieved; reconciliation reports no
+unretrieved jobs. Complete accounting and immutable identities are in
+[the HPC3 execution report](anisotropic_hpc_execution_report.md).
+
 The first mkdir attempt timed out before transfer or submission. Empty Slurm
 reconciliation preceded retry of the same prepared bundle. Exactly one Slurm ID
 was assigned to that bundle. A later monitoring timeout did not trigger a
@@ -106,13 +133,24 @@ resubmission. No full scientific trajectory or continuation has been launched.
 
 ## Outstanding scientific gates
 
+| Requested gate family | Evidence and remaining scope |
+| --- | --- |
+| A: symmetry/objectivity | Passed for the independent A2 constitutive/geometry primitives. |
+| B: isotropic nesting | Exact A0 primitive values and geometric reference subtraction pass; all historical source files are identical. No coupled anisotropic PF A0 path exists. |
+| C: Cahn–Hoffman geometry | Straight/circle, endpoint closure, finite TJ variation and static Wulff mesh tests pass. Dynamic PF geometries have not run. |
+| D: regularity and strength | A2 dense convexity/stiffness and all initial-network constitutive range gates pass provisionally; continuum reconstruction convergence remains open. |
+| E: PF coupling | Not implemented: no pair-mobility/full-force operator, activation-pressure mapping or qualified TJ correction. |
+| F: topology | Periodic closure, graph partition, disconnected paths and static split-energy checks pass. Dynamic merges/reconnection/history transfer are not qualified. |
+| G: numerics | Static Wulff spatial convergence is tested. Sharp-network time refinement is separate from the unrun PF grid, width, cadence, restart, extinction and no-resurrection checks. |
+| H: regression | 193 repository tests pass on HPC3; 75 pre-existing source files are byte-identical to the audited base. This does not supply missing anisotropic PF integration tests. |
+
 - Initial-network reconstruction convergence and frozen normalization acceptance.
 - Acceptance of measured constitutive ranges after reconstruction convergence.
 - Variational diffuse PF coupling, pair-specific full-force mobility and TJ correction.
 - Identical capillary pressure in PF evolution and activation-work diagnostics.
 - Anisotropic PF dissipation and all timestep, grid, width, cadence and restart checks.
 - Reduced 200-grain PF response, attribution controls and >=10% effect-size gate.
-- QIU shared-core freeze and selective reconciliation.
+- A fresh QIU clean shared-core release snapshot; the earlier review found no physical correction to import.
 - Resource profiling, funded production exposure and all ten production trajectories.
 - Full historical artifact audit, matched comparisons, analysis figures and movies.
 
