@@ -288,6 +288,16 @@ class EventResolvedSimulation:
         ))
         if not resume or boundary_path.stat().st_size == 0:
             self.boundary_writer.writeheader()
+        timestep_path = self.output_dir / "timesteps.csv"
+        self.timestep_handle = timestep_path.open(
+            "a" if resume else "w", newline="", encoding="utf-8"
+        )
+        self.timestep_writer = csv.DictWriter(self.timestep_handle, fieldnames=(
+            "run_id", "step", "start_time", "end_time", "requested_dt",
+            "accepted_dt", "stability_limit",
+        ))
+        if not resume or timestep_path.stat().st_size == 0:
+            self.timestep_writer.writeheader()
         self.run_id = self.output_dir.name
         self.energy_records: list[dict[str, float]] = []
         self.accumulated_shear_strain = 0.0
@@ -1212,6 +1222,7 @@ class EventResolvedSimulation:
         for name, handle in (
             ("grain_tracks_offset", self.track_handle),
             ("boundary_tracks_offset", self.boundary_handle),
+            ("timesteps_offset", self.timestep_handle),
         ):
             handle.flush()
             os.fsync(handle.fileno())
@@ -1234,6 +1245,8 @@ class EventResolvedSimulation:
             "accumulated_shear_strain": self.accumulated_shear_strain,
             "accumulated_volumetric_strain": self.accumulated_volumetric_strain,
             "previous_entity_time": self.previous_entity_time,
+            "accepted_step_dt": self._accepted_step_dt,
+            "accepted_step_start_time": self._accepted_step_start_time,
             "event_ledger_offset": event_ledger_offset,
             "extension_state": self._extra_checkpoint_state(),
             **stream_offsets,
@@ -1267,6 +1280,7 @@ class EventResolvedSimulation:
             for name, handle in (
                 ("grain_tracks_offset", self.track_handle),
                 ("boundary_tracks_offset", self.boundary_handle),
+                ("timesteps_offset", self.timestep_handle),
             ):
                 if name in state:
                     offset = int(state[name])
@@ -1297,6 +1311,12 @@ class EventResolvedSimulation:
         self.solver.time = float(state["time"])
         self.solver.step_number = int(state["step_number"])
         self.previous_entity_time = float(state.get("previous_entity_time", self.solver.time))
+        self._accepted_step_dt = float(
+            state.get("accepted_step_dt", self.config.pf.time_step)
+        )
+        self._accepted_step_start_time = float(
+            state.get("accepted_step_start_time", self.solver.time - self._accepted_step_dt)
+        )
         self.tracker = EntityTracker(
             self.orientations, self.config.pf.grid_spacing,
             float(self.config.parameters.get("event_domain_length", 8.0)),
@@ -1391,8 +1411,9 @@ class EventResolvedSimulation:
                 requested_dt = self.config.pf.time_step
                 if maximum_time is not None:
                     requested_dt = min(requested_dt, maximum_time - self.solver.time)
+                stability_limit = self.solver.stable_dt()
                 predicted_dt = (
-                    min(requested_dt, self.solver.stable_dt())
+                    min(requested_dt, stability_limit)
                     if self.config.pf.adaptive_stepping else requested_dt
                 )
                 predicted_time = self.solver.time + predicted_dt
@@ -1412,6 +1433,15 @@ class EventResolvedSimulation:
                     )
                 self._accepted_step_dt = float(diag.dt)
                 self._accepted_step_start_time = float(diag.time - diag.dt)
+                self.timestep_writer.writerow({
+                    "run_id": self.run_id,
+                    "step": diag.step,
+                    "start_time": self._accepted_step_start_time,
+                    "end_time": diag.time,
+                    "requested_dt": requested_dt,
+                    "accepted_dt": diag.dt,
+                    "stability_limit": stability_limit,
+                })
                 output_due = (
                     diag.time >= next_output_time - 1e-12
                     if output_interval is not None
@@ -1480,6 +1510,7 @@ class EventResolvedSimulation:
             self.ledger.close()
             self.track_handle.close()
             self.boundary_handle.close()
+            self.timestep_handle.close()
             (self.output_dir / "energy.json").write_text(json.dumps(self.energy_records, indent=2) + "\n")
             restart_artifacts = []
             for name in ("checkpoint.npz", "checkpoint.json"):

@@ -71,6 +71,11 @@ def test_adaptive_accepted_dt_advances_physical_shear_clock(monkeypatch, tmp_pat
     assert all(value == accepted for value in observed_dt)
     assert simulation._accepted_step_start_time == 0.0
     assert simulation.solver.time == accepted
+    with (tmp_path / "accepted-dt" / "timesteps.csv").open() as handle:
+        rows = list(csv.DictReader(handle))
+    assert len(rows) == 1
+    assert float(rows[0]["accepted_dt"]) == accepted
+    assert float(rows[0]["requested_dt"]) == config.pf.time_step
 
 
 def test_physical_horizon_and_time_cadences_do_not_change_trajectory(tmp_path):
@@ -109,6 +114,12 @@ def test_physical_horizon_and_time_cadences_do_not_change_trajectory(tmp_path):
     assert first.solver.time == second.solver.time == 0.025
     assert first.solver.step_number == second.solver.step_number == 3
     assert np.array_equal(first.solver.eta, second.solver.eta)
+    with (tmp_path / "physical-first" / "timesteps.csv").open() as handle:
+        rows = list(csv.DictReader(handle))
+    assert np.allclose(
+        [float(row["accepted_dt"]) for row in rows], [0.01, 0.01, 0.005],
+        rtol=0.0, atol=2e-18,
+    )
 
 
 def test_qiu_full_field_backend_smoke(tmp_path):
