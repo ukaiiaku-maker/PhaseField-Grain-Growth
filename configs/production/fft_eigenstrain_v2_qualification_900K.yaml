@@ -1,0 +1,53 @@
+regime: FFT_EIGENSTRAIN_V2
+seed: 5101
+pf:
+  shape: [384, 384]
+  grid_spacing: 1.0
+  interface_width: 4.0
+  time_step: 0.04
+  gb_energy: 1.0
+  intrinsic_mobility: 4.0
+  boundary_conditions: periodic
+  temperature: 900.0
+  adaptive_stepping: true
+  grain_extinction_threshold: 0.5
+mechanics_backend: fft_eigenstrain_v2
+compatibility_model: off
+active_modules: [fft_eigenstrain_shear]
+output_cadence: 200
+max_steps: 100000
+termination_grains: 100
+parameters:
+  initial_grains: 1068
+  equilibration_steps: 20
+  equilibrate_to_grains: 800
+  equilibration_max_steps: 2000
+  compact_after_equilibration: true
+  checkpoint_cadence: 500
+  energy_diagnostic_cadence: 1
+  event_domain_length: 12.0
+  event_ledger_format: parquet
+  video_frame_cadence: 200
+  video_frame_progress_fraction: 0.01
+  full_field_source_mapping: local_sweep
+  coupled_integration_enabled: true
+  elastic_shear_modulus: 1.0
+  elastic_poisson_ratio: 0.3
+  elastic_constitutive_state: plane_strain
+  rigid_shift_search: 2
+  max_local_phases: 8
+  external_delta_eta_target: 0.02
+  coupled_minimum_dt: 1.0e-8
+  coupled_max_rejections: 20
+  coupled_energy_relative_tolerance: 1.0e-10
+  coupled_energy_absolute_tolerance: 1.0e-10
+  qiu_diagnostics_enabled: true
+  qiu_diagnostic_flush_rows: 16
+  qiu_diagnostic_field_start_step: 0
+  qiu_diagnostic_field_cadence: 500
+  qiu_guard_terminate: true
+  qiu_guard_clip_fraction: 0.02
+  qiu_guard_clip_factor: 1.5
+  qiu_guard_clip_additive: 0.05
+  qiu_guard_clip_warmup_steps: 20
+  qiu_guard_extinction_count: 10

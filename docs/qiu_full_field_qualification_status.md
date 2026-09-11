@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-10, Phase 6 reduced causal matrix complete; legacy replay running.
+Last update: 2026-09-10, 384x384 corrected preflight accepted; legacy replay running; corrected production bundle next.
 
 ## Current source state
 
@@ -11,6 +11,7 @@ Last update: 2026-09-10, Phase 6 reduced causal matrix complete; legacy replay r
 - Elastic-operator commit: `471412c`.
 - Reference-identity commit: `13b43a6`.
 - Worktree: `/private/tmp/qiu-full-field-qualification-v1`
+- Reduced-matrix commit: `9edbd0f32625604e0d43334842a7ad024dbbe7a3`.
 - Historical production source: `4761ef957715ba2faa84f015a0e4f4c4cd21c7aa`
 - Historical QIU run: canonical, read-only, all integration-manifest hashes verified
 - Current scientific decision: historical QIU remains an unresolved non-self-similar transient; source identity is provisionally `legacy FFT eigenstrain surrogate`, pending formal mathematical gates
@@ -28,6 +29,11 @@ Last update: 2026-09-10, Phase 6 reduced causal matrix complete; legacy replay r
 - Ran focused diagnostic invariance and restart tests, then the complete suite:
   `PYTHONPATH=src:scripts /opt/anaconda3/bin/python -m pytest -vv
   --junitxml=results/validation/qiu_fix_phase1_tests.xml`.
+- Ran 384x384 corrected-backend preflights from the canonical seed-5101 state,
+  including exact trajectory comparisons across the performance revisions.
+- Profiled the full production path and replaced phase-strided source/feedback
+  scans, per-grain morphology masks, repeated rigid-translation label maps,
+  repeated label reconstruction, and redundant dense PF rollback/history copies.
 
 ## Evidence obtained
 
@@ -93,6 +99,23 @@ Last update: 2026-09-10, Phase 6 reduced causal matrix complete; legacy replay r
   excluded: its absolute clipping threshold confused normal double-obstacle
   halo projection with a clipping spike. The corrected guard uses a 20-step
   running baseline plus multiplicative and additive spike margins.
+- The accepted corrected preflight is
+  `results/qiu_full_field_qualification_20260910/20260910T190000Z-384-preflight-r5`.
+  It completed three accepted 384x384, 800-starting-grain steps with zero coupled
+  rejections, finite fields, equilibrium residual below `2.3e-13`, decreasing
+  complete energy, restart checkpoint, per-step Parquet diagnostics, and movie
+  frames. Its final state, energies, stresses, clipping statistics, and grain
+  count are identical to the earlier unoptimized corrected preflights.
+- Peak local RSS fell from 7.21 GB to 5.29 GB after eliminating redundant dense
+  state copies. The observed local wall time is not a clean throughput estimate:
+  two unrelated four-core DDD jobs were concurrently saturating the workstation.
+  This is recorded as an operational limitation, not a numerical result.
+- The production runner refuses cross-revision checkpoint resumes and verifies
+  the canonical initial-state SHA before allocating the simulation.
+- Latest focused validation after the production-memory changes: 58 passed,
+  zero failures/errors. The subsequent complete repository suite passed all
+  215 tests in 77.39 s with zero failures/errors; JUnit SHA-256 is
+  `11d99dd625689ed7ba4f4a3f6fd4b3a94703bda27eeefa3ca3b186510ad4776c`.
 
 ## Decisions recorded
 
@@ -111,8 +134,7 @@ Last update: 2026-09-10, Phase 6 reduced causal matrix complete; legacy replay r
 
 ## Next automatic action
 
-Commit the reduced-control machinery and results. Launch seed-5101 corrected
-production and a factor-two tighter target only after a 384x384 short preflight
-passes memory, checkpoint, diagnostic, and performance checks. Continue
-monitoring the immutable legacy replay without consuming a second full worker
-until that preflight is accepted.
+Commit the scalable production runner and preflight record, build an immutable
+checksummed source bundle, and submit seed-5101 corrected production as the
+second full worker. Continue monitoring the immutable legacy replay. Start the
+factor-two target refinement only after a worker slot is free.

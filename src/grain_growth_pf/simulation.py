@@ -279,6 +279,7 @@ class EventResolvedSimulation:
             self.fft_coupling = LocalInterfaceSweepCoupling(
                 config.pf.grid_spacing,
                 rigid_shift_search=int(config.parameters.get("rigid_shift_search", 2)),
+                max_local_phases=int(config.parameters.get("max_local_phases", 8)),
             )
         self.coupled_integration_enabled = bool(config.parameters.get(
             "coupled_integration_enabled",
@@ -328,7 +329,10 @@ class EventResolvedSimulation:
         self.energy_records: list[dict[str, float]] = []
         self.accumulated_shear_strain = 0.0
         self.accumulated_volumetric_strain = 0.0
-        self.previous_entity_eta = self.solver.eta.copy()
+        # The PF kernel is out-of-place, so this reference remains immutable
+        # while the next state is constructed.  Avoid a nearly 1 GiB copy for
+        # an 800-phase 384x384 production state.
+        self.previous_entity_eta = self.solver.eta
         self.previous_entity_time = self.solver.time
         diagnostics_enabled = bool(config.parameters.get("qiu_diagnostics_enabled", False))
         if diagnostics_enabled and self.full_field is None:
@@ -1265,7 +1269,7 @@ class EventResolvedSimulation:
             self.driving_field += self.fft_coupling.driving_field(
                 self.solver.eta, self.orientations, self.full_field.stress
             )
-        self.previous_entity_eta = self.solver.eta.copy()
+        self.previous_entity_eta = self.solver.eta
         self.previous_entity_time = self.solver.time
 
     def _advance_fft_v2_step(self, maximum_dt: float | None = None) -> Any:
@@ -1284,7 +1288,10 @@ class EventResolvedSimulation:
         if minimum_dt <= 0.0 or maximum_rejections < 0:
             raise ValueError("invalid FFT-v2 coupled-step control")
 
-        eta_before = self.solver.eta.copy()
+        # pairwise_obstacle_step is out-of-place.  Retaining the input object is
+        # sufficient for exact rejection rollback and avoids two dense copies
+        # on every accepted production step.
+        eta_before = self.solver.eta
         active_before = self.solver.active_phases.copy()
         time_before = self.solver.time
         step_before = self.solver.step_number
@@ -1304,7 +1311,7 @@ class EventResolvedSimulation:
             )
 
         for rejection in range(maximum_rejections + 1):
-            self.solver.eta = eta_before.copy()
+            self.solver.eta = eta_before
             self.solver.active_phases = active_before.copy()
             self.solver.time = time_before
             self.solver.step_number = step_before

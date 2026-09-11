@@ -57,6 +57,37 @@ def _pair_tensor(
 
 
 @njit(cache=True)
+def _pair_tensor_midpoint(
+    before: NDArray[np.float64], after: NDArray[np.float64],
+    i: int, j: int, y: int, x: int,
+    orientations: NDArray[np.float64], dx: float,
+) -> tuple[float, float, float]:
+    ny, nx = before.shape[1:]
+    ym, yp = (y - 1) % ny, (y + 1) % ny
+    xm, xp = (x - 1) % nx, (x + 1) % nx
+
+    def difference(phase_j: int, phase_i: int, yy: int, xx: int) -> float:
+        return 0.5 * (
+            before[phase_j, yy, xx] + after[phase_j, yy, xx]
+            - before[phase_i, yy, xx] - after[phase_i, yy, xx]
+        )
+
+    gy = (difference(j, i, yp, x) - difference(j, i, ym, x)) / (2.0 * dx)
+    gx = (difference(j, i, y, xp) - difference(j, i, y, xm)) / (2.0 * dx)
+    norm = np.sqrt(gy * gy + gx * gx)
+    if norm <= 1e-14:
+        return 0.0, 0.0, 0.0
+    ny_value, nx_value = gy / norm, gx / norm
+    ty_value, tx_value = -nx_value, ny_value
+    beta = _beta_first(orientations[i], orientations[j])
+    return (
+        beta * ty_value * ny_value,
+        beta * tx_value * nx_value,
+        0.5 * beta * (ty_value * nx_value + ny_value * tx_value),
+    )
+
+
+@njit(cache=True)
 def _map_local_transfer(
     before: NDArray[np.float64], after: NDArray[np.float64],
     orientations: NDArray[np.float64], dx: float,
@@ -114,6 +145,69 @@ def _map_local_transfer(
 
 
 @njit(cache=True)
+def _map_local_transfer_sparse(
+    before: NDArray[np.float64], after: NDArray[np.float64],
+    orientations: NDArray[np.float64], dx: float, max_local_phases: int,
+) -> tuple[NDArray[np.float64], float, float, int]:
+    """Cache-friendly phase scan followed by small local pair loops."""
+    phases, ny, nx = before.shape
+    local_ids = np.full((max_local_phases, ny, nx), -1, dtype=np.int32)
+    local_delta = np.zeros((max_local_phases, ny, nx), dtype=np.float64)
+    local_count = np.zeros((ny, nx), dtype=np.int16)
+    overflow = 0
+    for phase in range(phases):
+        for y in range(ny):
+            for x in range(nx):
+                delta = after[phase, y, x] - before[phase, y, x]
+                if abs(delta) <= 1e-14:
+                    continue
+                slot = local_count[y, x]
+                if slot >= max_local_phases:
+                    overflow += 1
+                    continue
+                local_ids[slot, y, x] = phase
+                local_delta[slot, y, x] = delta
+                local_count[y, x] += 1
+    increment = np.zeros((2, 2, ny, nx), dtype=np.float64)
+    absolute_sweep = 0.0
+    signed_transfer = 0.0
+    for y in range(ny):
+        for x in range(nx):
+            count = local_count[y, x]
+            positive_total = 0.0
+            for slot in range(count):
+                positive_total += max(local_delta[slot, y, x], 0.0)
+            if positive_total <= 0.0:
+                continue
+            absolute_sweep += positive_total * dx * dx
+            for donor_slot in range(count):
+                donor_delta = local_delta[donor_slot, y, x]
+                if donor_delta >= 0.0:
+                    continue
+                donor = local_ids[donor_slot, y, x]
+                for receiver_slot in range(count):
+                    receiver_delta = local_delta[receiver_slot, y, x]
+                    if receiver_delta <= 0.0:
+                        continue
+                    receiver = local_ids[receiver_slot, y, x]
+                    amount = -donor_delta * receiver_delta / positive_total
+                    if donor < receiver:
+                        i, j, sign = donor, receiver, 1.0
+                    else:
+                        i, j, sign = receiver, donor, -1.0
+                    b00, b11, b01 = _pair_tensor_midpoint(
+                        before, after, i, j, y, x, orientations, dx
+                    )
+                    q = sign * amount
+                    increment[0, 0, y, x] += q * b00
+                    increment[1, 1, y, x] += q * b11
+                    increment[0, 1, y, x] += q * b01
+                    increment[1, 0, y, x] += q * b01
+                    signed_transfer += q * dx * dx
+    return increment, absolute_sweep, signed_transfer, overflow
+
+
+@njit(cache=True)
 def _work_conjugate_driving(
     eta: NDArray[np.float64], orientations: NDArray[np.float64],
     stress: NDArray[np.float64], dx: float,
@@ -154,18 +248,76 @@ def _work_conjugate_driving(
     return driving
 
 
+@njit(cache=True)
+def _work_conjugate_driving_sparse(
+    eta: NDArray[np.float64], orientations: NDArray[np.float64],
+    stress: NDArray[np.float64], dx: float, max_local_phases: int,
+) -> tuple[NDArray[np.float64], int]:
+    phases, ny, nx = eta.shape
+    local_ids = np.full((max_local_phases, ny, nx), -1, dtype=np.int32)
+    local_count = np.zeros((ny, nx), dtype=np.int16)
+    overflow = 0
+    for phase in range(phases):
+        for y in range(ny):
+            ym, yp = (y - 1) % ny, (y + 1) % ny
+            for x in range(nx):
+                xm, xp = (x - 1) % nx, (x + 1) % nx
+                if (
+                    eta[phase, y, x] <= 1e-14
+                    and eta[phase, ym, x] <= 1e-14
+                    and eta[phase, yp, x] <= 1e-14
+                    and eta[phase, y, xm] <= 1e-14
+                    and eta[phase, y, xp] <= 1e-14
+                ):
+                    continue
+                slot = local_count[y, x]
+                if slot >= max_local_phases:
+                    overflow += 1
+                    continue
+                local_ids[slot, y, x] = phase
+                local_count[y, x] += 1
+    driving = np.zeros_like(eta)
+    for y in range(ny):
+        for x in range(nx):
+            count = local_count[y, x]
+            for left in range(count):
+                i = local_ids[left, y, x]
+                for right in range(left + 1, count):
+                    j = local_ids[right, y, x]
+                    b00, b11, b01 = _pair_tensor(
+                        eta, i, j, y, x, orientations, dx
+                    )
+                    work = (
+                        stress[0, 0, y, x] * b00
+                        + stress[1, 1, y, x] * b11
+                        + (stress[0, 1, y, x] + stress[1, 0, y, x]) * b01
+                    )
+                    driving[i, y, x] -= 0.5 * work
+                    driving[j, y, x] += 0.5 * work
+    return driving, overflow
+
+
 def _is_exact_periodic_translation(
     before: NDArray[np.float64], after: NDArray[np.float64], max_shift: int
 ) -> bool:
-    before_labels = np.argmax(before, axis=0)
-    after_labels = np.argmax(after, axis=0)
+    # Reject almost every evolving phase-field state using a small exact probe.
+    # A true roll must pass every probe, after which the full array comparison
+    # below remains the authoritative test.  This avoids repeatedly forming two
+    # dense label maps and up to 24 rolled copies of a production-sized field.
+    phases, ny, nx = before.shape
+    phase_probes = sorted({0, phases // 3, (2 * phases) // 3, phases - 1})
+    y_probes = sorted({0, ny // 3, (2 * ny) // 3, ny - 1})
+    x_probes = sorted({0, nx // 3, (2 * nx) // 3, nx - 1})
     for shift_y in range(-max_shift, max_shift + 1):
         for shift_x in range(-max_shift, max_shift + 1):
             if shift_y == 0 and shift_x == 0:
                 continue
-            if np.array_equal(
-                np.roll(before_labels, (shift_y, shift_x), axis=(0, 1)), after_labels
-            ) and np.array_equal(
+            matches_probe = all(
+                before[phase, (y - shift_y) % ny, (x - shift_x) % nx]
+                == after[phase, y, x]
+                for phase in phase_probes for y in y_probes for x in x_probes
+            )
+            if matches_probe and np.array_equal(
                 np.roll(before, (shift_y, shift_x), axis=(-2, -1)), after
             ):
                 return True
@@ -183,11 +335,13 @@ class SweepDiagnostics:
 class LocalInterfaceSweepCoupling:
     """Unique phase-transfer source and its discrete work-conjugate force."""
 
-    def __init__(self, grid_spacing: float = 1.0, *, rigid_shift_search: int = 2):
-        if grid_spacing <= 0.0 or rigid_shift_search < 0:
+    def __init__(self, grid_spacing: float = 1.0, *, rigid_shift_search: int = 2,
+                 max_local_phases: int = 8):
+        if grid_spacing <= 0.0 or rigid_shift_search < 0 or max_local_phases < 2:
             raise ValueError("invalid local-sweep discretization")
         self.grid_spacing = float(grid_spacing)
         self.rigid_shift_search = int(rigid_shift_search)
+        self.max_local_phases = int(max_local_phases)
         self.last_diagnostics = SweepDiagnostics(0.0, 0.0, ((0.0, 0.0), (0.0, 0.0)), False)
 
     def source_increment(
@@ -211,9 +365,14 @@ class LocalInterfaceSweepCoupling:
             increment = np.zeros((2, 2, *before_value.shape[1:]), dtype=float)
             swept, signed = 0.0, 0.0
         else:
-            increment, swept, signed = _map_local_transfer(
-                before_value, after_value, orientation_value, self.grid_spacing
+            increment, swept, signed, overflow = _map_local_transfer_sparse(
+                before_value, after_value, orientation_value, self.grid_spacing,
+                self.max_local_phases,
             )
+            if overflow:
+                raise RuntimeError(
+                    f"local source support exceeded {self.max_local_phases} phases at {overflow} insertions"
+                )
         integrated = np.sum(increment, axis=(-2, -1)) * self.grid_spacing**2
         self.last_diagnostics = SweepDiagnostics(
             float(swept), float(signed),
@@ -227,7 +386,13 @@ class LocalInterfaceSweepCoupling:
         self, eta: NDArray[np.float64], orientations: NDArray[np.float64],
         stress: NDArray[np.float64],
     ) -> NDArray[np.float64]:
-        return _work_conjugate_driving(
+        driving, overflow = _work_conjugate_driving_sparse(
             np.asarray(eta, dtype=float), np.asarray(orientations, dtype=float),
             np.asarray(stress, dtype=float), self.grid_spacing,
+            self.max_local_phases,
         )
+        if overflow:
+            raise RuntimeError(
+                f"local driving support exceeded {self.max_local_phases} phases at {overflow} insertions"
+            )
+        return driving

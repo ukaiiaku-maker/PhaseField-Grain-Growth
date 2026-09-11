@@ -6,6 +6,7 @@ import pyarrow.dataset as ds
 
 from grain_growth_pf.config import ModelConfig, PFConfig
 from grain_growth_pf.simulation import EventResolvedSimulation
+from run_qiu_fft_v2_qualification import FFTEigenstrainFrameSimulation
 
 
 def _config(*, diagnostics: bool) -> ModelConfig:
@@ -235,3 +236,15 @@ def test_fft_v2_converges_as_external_increment_target_is_tightened(tmp_path):
     errors = [np.linalg.norm(result[0] - reference) for result in results[:-1]]
     assert errors[0] > errors[1] > errors[2]
     assert results[0][1] < results[1][1] < results[2][1] < results[3][1]
+
+
+def test_fft_v2_movie_path_uses_base_coupling_and_writes_restart_frames(tmp_path):
+    config = replace(_fft_v2_config(3), parameters={
+        **_fft_v2_config().parameters, "video_frame_cadence": 2,
+    })
+    output = tmp_path / "movie"
+    FFTEigenstrainFrameSimulation(config, output, code_sha="same").run()
+    frames = sorted((output / "frames").glob("frame-*.npz"))
+    assert [int(path.stem.rsplit("-", 1)[1]) for path in frames] == [0, 2, 3]
+    with np.load(frames[-1]) as frame:
+        assert set(("labels", "stress", "eigenstrain", "step", "time")).issubset(frame.files)

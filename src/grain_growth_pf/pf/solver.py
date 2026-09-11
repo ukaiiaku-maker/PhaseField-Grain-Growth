@@ -83,10 +83,17 @@ class MultiphaseFieldSolver:
         self.time = 0.0
         self.step_number = 0
         self.capture_step_diagnostics = False
+        self._labels_cache_key: tuple[int, int] | None = None
+        self._labels_cache: NDArray[np.int64] | None = None
 
     @property
     def labels(self) -> NDArray[np.int64]:
-        return np.argmax(self.eta, axis=0)
+        key = (self.step_number, id(self.eta))
+        if self._labels_cache_key != key:
+            self._labels_cache = np.argmax(self.eta, axis=0)
+            self._labels_cache_key = key
+        assert self._labels_cache is not None
+        return self._labels_cache
 
     def stable_dt(self) -> float:
         # Explicit diffusion stability bound in 2-D; the factor 0.18 leaves

@@ -45,6 +45,38 @@ def _component_counts(labels: np.ndarray) -> np.ndarray:
     return counts
 
 
+@njit(cache=True)
+def _periodic_aspect_ratios(
+    labels: np.ndarray, centroid_y: np.ndarray, centroid_x: np.ndarray,
+) -> np.ndarray:
+    ny, nx = labels.shape
+    phases = len(centroid_y)
+    count = np.zeros(phases, dtype=np.int64)
+    yy = np.zeros(phases); xx = np.zeros(phases); yx = np.zeros(phases)
+    for y in range(ny):
+        for x in range(nx):
+            phase = labels[y, x]
+            dy = (y - centroid_y[phase] + ny / 2.0) % ny - ny / 2.0
+            dx = (x - centroid_x[phase] + nx / 2.0) % nx - nx / 2.0
+            count[phase] += 1
+            yy[phase] += dy * dy
+            xx[phase] += dx * dx
+            yx[phase] += dy * dx
+    result = np.ones(phases)
+    for phase in range(phases):
+        if count[phase] == 0:
+            continue
+        a = yy[phase] / count[phase] + 1.0 / 12.0
+        d = xx[phase] / count[phase] + 1.0 / 12.0
+        b = yx[phase] / count[phase]
+        center = 0.5 * (a + d)
+        radius = np.sqrt((0.5 * (a - d)) ** 2 + b * b)
+        low = max(center - radius, 1.0 / 12.0)
+        high = max(center + radius, low)
+        result[phase] = np.sqrt(high / low)
+    return result
+
+
 def _quantile(values: np.ndarray, q: float) -> float:
     return float(np.quantile(values, q)) if len(values) else float("nan")
 
@@ -60,20 +92,15 @@ def morphology_metrics(labels: np.ndarray, snapshot: Any) -> tuple[dict[str, flo
     components_all = _component_counts(np.asarray(labels, dtype=np.int64))
     components = np.asarray([components_all[grain.grain_id] for grain in grains], dtype=int)
 
-    # Periodic second moments are evaluated about the tracker's circular centroid.
-    flat = labels.ravel()
-    yy, xx = np.indices(labels.shape)
-    aspects: list[float] = []
+    # One compiled image scan replaces one full boolean mask allocation per grain.
+    maximum = int(np.max(labels))
+    centroid_y = np.zeros(maximum + 1); centroid_x = np.zeros(maximum + 1)
     for grain in grains:
-        mask = flat == grain.grain_id
-        y = yy.ravel()[mask]
-        x = xx.ravel()[mask]
-        dy = (y - grain.centroid[0] + labels.shape[0] / 2) % labels.shape[0] - labels.shape[0] / 2
-        dx = (x - grain.centroid[1] + labels.shape[1] / 2) % labels.shape[1] - labels.shape[1] / 2
-        covariance = np.cov(np.stack((dy, dx)), bias=True) if len(y) > 1 else np.zeros((2, 2))
-        eigenvalues = np.maximum(np.linalg.eigvalsh(covariance), 0.0) + 1.0 / 12.0
-        aspects.append(float(np.sqrt(eigenvalues[-1] / eigenvalues[0])))
-    aspect = np.asarray(aspects)
+        centroid_y[grain.grain_id], centroid_x[grain.grain_id] = grain.centroid
+    aspect_all = _periodic_aspect_ratios(
+        np.asarray(labels, dtype=np.int64), centroid_y, centroid_x
+    )
+    aspect = np.asarray([aspect_all[grain.grain_id] for grain in grains])
     count = len(grains)
     centroids = {
         grain.grain_id: (*grain.centroid, grain.equivalent_radius) for grain in grains

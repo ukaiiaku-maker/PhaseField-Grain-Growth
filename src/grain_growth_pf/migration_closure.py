@@ -1573,8 +1573,12 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                         floor,
                     )
 
-    def _update_physics(self) -> None:
+    def _update_physics(self, *, fft_source_applied: bool = False) -> None:
         """Update corrected local kinematics, barriers, and internal stresses."""
+        if fft_source_applied:
+            raise ValueError(
+                "MigrationClosureSimulation does not implement the FFT-v2 coupled update"
+            )
         cfg, modules = self.config, set(self.config.active_modules)
         self._event_trace_local_displacement.clear()
         self._event_trace_records_by_entity.clear()
@@ -1850,7 +1854,9 @@ class MigrationClosureSimulation(EventResolvedSimulation):
         if self.full_field is not None:
             self.full_field.solve()
         self._capture_event_trace()
-        self.previous_entity_eta = self.solver.eta.copy()
+        # The phase-field solver advances out-of-place, so this accepted array
+        # remains the immutable comparison state for the next update.
+        self.previous_entity_eta = self.solver.eta
         self.previous_entity_time = self.solver.time
         self._apply_diffuse_blocked_gate()
         if self.area_loss_enabled:
