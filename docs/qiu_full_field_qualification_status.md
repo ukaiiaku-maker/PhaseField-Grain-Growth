@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-11 08:32 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; recoveries audited through legacy checkpoint 9500 and corrected checkpoint 2000; closure-specific source/work continuation remains first in the prepared queue.
+Last update: 2026-09-11 16:15 PDT; the first legacy replay completed cleanly and its 7.79 GB terminal archive is transferring to local storage; corrected seed 5101 is running from atomic checkpoint 3000; the clean step-9000 source/work continuation now occupies the freed second HPC3 slot.
 
 ## Current source state
 
@@ -30,6 +30,8 @@ Last update: 2026-09-11 08:32 PDT; legacy and corrected seed-5101 full-size jobs
 - Checkpoint-consistent live-snapshot utility commit: `6e7d9eb`.
 - Capture-assessment and independent transition-timing commits: `f737670`,
   `b2c435f`.
+- Live-fragment, causal-reconstruction, and historical-frame renderer commits:
+  `cf5a094`, `f1f4f28`, `b667763`.
 - Historical production source: `4761ef957715ba2faa84f015a0e4f4c4cd21c7aa`
 - Historical QIU run: canonical, read-only, all integration-manifest hashes verified
 - Current scientific decision: the historical QIU remains an unresolved non-self-similar transient and its backend is conclusively a legacy FFT eigenstrain surrogate, not the archived current-geometry Qiu reference formulation. The selected qualification backend is therefore honestly named `FFT_EIGENSTRAIN_V2`; production behavior remains pending.
@@ -338,8 +340,71 @@ Last update: 2026-09-11 08:32 PDT; legacy and corrected seed-5101 full-size jobs
   per-source energy baseline or per-boundary recorder, leaving
   `source_elastic_energy_change`/`source_work_error` undefined and the boundary
   stream empty. This is a read-only evidence defect, not a trajectory change.
-  The active replay remains authoritative for exact trajectory/dense fields but
-  is insufficient by itself for the source/work gate.
+- The replay later entered a source-driven instability before the archived
+  trajectory. The bounded transition fragment at
+  `hpc_live/20260911T155411Z-legacy-transition` contains 709 contiguous,
+  duplicate-free scalar rows for steps 9001--9709, 125 unique field steps (all
+  steps 9650--9709), 18 compact evolution frames, and the independently
+  verified step-9500 restart. Its 1.07 GB archive SHA-256 is
+  `54ad3839a60fb5da85a0bf58e28230cc8b7db6df371b5b3fb98f40e574fb7d6c`.
+- Exact transition ordering in that fragment is: first extinction at 9611,
+  catastrophic source/stress jump at 9671, first disconnected grain at 9673,
+  and first mean-compactness guard crossing at 9706. At step 9671 the grain
+  count is still 494, no grain is disconnected, compactness max is 1.448, and
+  the applied driving field is still modest; nevertheless source L2 jumps from
+  50.48 to `6.278075e12`, stress linf to `3.715871e12`, and elastic energy to
+  `1.970698e25`. The feedback field reaches about `2.1e7` on the following
+  step, and disconnected morphology follows one step later. This orders the
+  numerical source singularity before the morphology cascade.
+- The transition is causally reconstructed to floating-point precision. For
+  arclength domain `gb:343-357:1`, a radius-two stencil accepts pixel
+  `(116,191)` as a valid interface (`|grad eta|=0.21665`) while the independent
+  radius-one velocity denominator is exactly zero and `delta eta=0.50735`.
+  The `1e-14` floor produces point velocity `1.26836e15`, domain-mean velocity
+  `6.34181e14`, normal displacement `2.53673e13`, and a midpoint source tensor
+  of L2 `6.27808e12` at `(118,192)`. The reconstructed full source increment
+  matches the observed step-to-step increment with relative L2 residual
+  `1.8e-28`. The formal audit and localized/precursor plots are under
+  `audit-step9709`; this is direct mechanism evidence, not an inference from
+  temporal correlation.
+- The closure override in source `147141b` also bypasses
+  `begin_source_step`, so its diagnostic source accumulator retains prior
+  increments (previous L2 50.48 at the onset). The causal audit therefore uses
+  the step-to-step accumulator difference. This is distinct from the
+  denominator singularity that creates the catastrophic increment and from
+  the already-demonstrated non-equilibrated legacy Fourier operator.
+- Active-replay trackers remain identical to the canonical history through
+  step 9000 but differ by step 9200; the divergence is bounded to
+  `(9000,9200]`, before the replay's step-9671 source singularity. Therefore
+  this run is exact through the clean step-9000 recovery only and must not be
+  described as an exact terminal reproduction of the archived step-10246
+  trajectory. The clean same-platform source/work continuation is the planned
+  control for separating instrumentation/platform sensitivity from this
+  post-9000 divergence.
+- The transition movie pipeline produced a 143-frame GIF spanning steps
+  0--9709, a SHA-indexed frame CSV, JSON metadata, and a transition-centered
+  contact sheet at `hpc_live/20260911T155411Z-legacy-transition/movies/`.
+  Eighteen historical compact frames retain labels and resolved shear but not
+  full stress/eigenstrain tensors; metadata now identifies those reduced-field
+  frames explicitly, while all 125 forensic frames carry full tensors.
+- Legacy replay job `20260910T232437Z-nogit-f4803a` / Slurm `55930486`
+  completed with application/finalization exit `0/0` after 18:46:33. Its
+  published terminal archive is 7,785,355,617 bytes with remote SHA-256
+  `4774992d30b1316640c0e8142d33e004a50f12b93eb13569c416732f559c78dd`;
+  local transfer and verification are in progress, so it is not yet poolable.
+- After the first submission attempt met a transient `/pub` metadata timeout,
+  Slurm confirmed no duplicate job. The prepared source/work continuation was
+  retried safely and submitted as Slurm `55948258`; it is running concurrently
+  with corrected seed-5101 job `55932457`. Corrected seed 5101 has advanced to
+  atomic checkpoint 3000; its latest locally verified safety snapshot remains
+  step 2000 until the next archive is copied and checked.
+- The reconciled two-worker queue is
+  `hpc_execution_queue_20260911.json`, SHA-256
+  `e9119c26cc09f5da29ac0c46f4ee2a98f2d42defc0651b34ac12abd4ec10e2c7`.
+  The completed replay is authoritative for dense-field evidence and exact
+  reconstruction of its own post-9000 failure, but it is exact against the
+  canonical historical trajectory only through step 9000 and is insufficient
+  by itself for the source/work gate.
 - Commit `bebd53b` adds the missing closure-specific recorder hooks: it resets
   only the read-only per-step source accumulator, seeds the pre-source energy,
   and records the unchanged midpoint source event and old-stress work. A paired
@@ -380,8 +445,9 @@ Last update: 2026-09-11 08:32 PDT; legacy and corrected seed-5101 full-size jobs
   because it corrected guard/storage semantics but did not yet add the missing
   closure-specific source/work recorder hooks. It remains `PREPARED` with no
   Slurm job and must never be submitted.
-- Immutable source/work continuation plan `20260911T111913Z-nogit-06fc67` is
-  prepared but not submitted while two workers remain active. It resumes the
+- Immutable source/work continuation plan `20260911T111913Z-nogit-06fc67` was
+  submitted as Slurm job `55948258` after the original replay completed and is
+  now running in the freed second slot. It resumes the
   clean, canonical-matching atomic step-9000 checkpoint and asserts source
   `bebd53b8706301715c216dafe224f2e0c4180aaa`, source-bundle SHA-256
   `d024b52083f7f1c4042d4d8a99987cff8c5c17160499c8d2bbbc2d4d1f8cffb5`,
@@ -407,8 +473,8 @@ Last update: 2026-09-11 08:32 PDT; legacy and corrected seed-5101 full-size jobs
   it asserts source `a173624e4a0b3b3e5074166a2fe0229ed2f34398` and the already
   attested source-bundle SHA-256
   `c0ba9161a8f519436deec75c7017f03614fa04de43328221996b9efd0dd545b3`.
-  It is ready for submission when either active worker reaches a verified
-  terminal state, and has not been submitted early.
+  It remains the next prepared submission when either currently active worker
+  reaches a verified terminal state.
 - The paired corrected seeds are also immutable prepared plans with no Slurm
   jobs: seed 5102 is `20260911T112155Z-nogit-6247ef` (HPC input SHA-256
   `8c7596aeff28ebd6a02919368f5a0dab2de86f4404f20922c2c7309273c72a9b`)
@@ -418,7 +484,7 @@ Last update: 2026-09-11 08:32 PDT; legacy and corrected seed-5101 full-size jobs
   immutable job before starting the same attested `a173624` production model.
 - The complete active/prepared/superseded queue is machine-readable at
   `hpc_execution_queue_20260911.json`, SHA-256
-  `2d2380a8eca2f150bf9d15e58907da61ee89c3730ce74736538a05b30b363bf2`.
+  `e9119c26cc09f5da29ac0c46f4ee2a98f2d42defc0651b34ac12abd4ec10e2c7`.
   It records the two-worker rule and explicitly marks both unused plans as
   never-submit entries.
 - `production_revision_equivalence.json` records that corrected seed-5101
@@ -513,9 +579,9 @@ Last update: 2026-09-11 08:32 PDT; legacy and corrected seed-5101 full-size jobs
 
 ## Next automatic action
 
-Continue monitoring both immutable HPC jobs without adding a third full worker.
-Retrieve and checksum each terminal result. If the legacy replay completes
-through its endpoint, retain it for exact trajectory/dense-field evidence but
-launch prepared source/work continuation `20260911T111913Z-nogit-06fc67` when
-that slot is verified free. The factor-two refinement follows after the
-source/work continuation or another active worker reaches terminal state.
+Continue monitoring corrected seed 5101 (`55932457`) and the clean legacy
+source/work continuation (`55948258`) without adding a third full worker.
+Finish and verify the terminal legacy archive transfer, audit its terminal
+status/fields, and preserve it locally. When either active worker reaches a
+verified terminal state, submit the prepared factor-two refinement next; the
+two additional corrected seeds follow in queue order.
