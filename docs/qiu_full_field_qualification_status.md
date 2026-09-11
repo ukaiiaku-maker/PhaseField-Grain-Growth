@@ -284,8 +284,13 @@ Last update: 2026-09-11 07:32 PDT; legacy and corrected seed-5101 full-size jobs
   durable path: `hpc_live/20260911T142720Z-legacy`. Across this interval there
   are no extinctions, no disconnected grains, and only a 0.297 interfacial-
   energy increase, while legacy elastic energy rises by 6,663.70 and stress
-  linf reaches 172.56. All non-source-work critical fields are finite. The
-  source/work columns remain intentionally classified unavailable in active
+  linf reaches 172.56. The mean source-increment L2 norm rises stage by stage
+  from 5.21 over steps 9001--9100 to 35.25 over steps 9401--9500, while total
+  energy increases on
+  311 of 499 step differences. This is a quantified positive-feedback
+  precursor before any extinction or disconnected morphology, not yet the
+  exact avalanche-onset step. All non-source-work critical fields are finite;
+  the source/work columns remain intentionally classified unavailable in active
   source `147141b`, and the step-9001 clipping capture remains excluded as
   oversensitive; the snapshot is nonterminal and nonpoolable.
 - The first 16 active-replay rows (steps 9001--9016) have finite morphology,
