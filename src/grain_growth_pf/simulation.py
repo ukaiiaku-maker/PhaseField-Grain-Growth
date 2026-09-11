@@ -1356,6 +1356,7 @@ class EventResolvedSimulation:
 
     def run(self) -> Path:
         failure: str | None = None
+        outcome_classification = "running"
         maximum_time_value = self.config.parameters.get("maximum_physical_time")
         maximum_time = (
             None if maximum_time_value is None else float(maximum_time_value)
@@ -1407,6 +1408,7 @@ class EventResolvedSimulation:
             entity_every_step = bool(self.config.active_modules) or self.config.compatibility_model != "off"
             for _ in range(max(0, self.config.max_steps - self.solver.step_number)):
                 if maximum_time is not None and self.solver.time >= maximum_time - 1e-12:
+                    outcome_classification = "censored_physical_time_horizon"
                     break
                 requested_dt = self.config.pf.time_step
                 if maximum_time is not None:
@@ -1497,9 +1499,18 @@ class EventResolvedSimulation:
                     while next_checkpoint_time <= diag.time + 1e-12:
                         next_checkpoint_time += checkpoint_interval or float("inf")
                 if update_entities and len(self.snapshot.grains) <= self.config.termination_grains:
+                    outcome_classification = "completed_terminal_grain_count"
                     break
+            if outcome_classification == "running":
+                if len(self.snapshot.grains) <= self.config.termination_grains:
+                    outcome_classification = "completed_terminal_grain_count"
+                elif maximum_time is not None and self.solver.time >= maximum_time - 1e-12:
+                    outcome_classification = "censored_physical_time_horizon"
+                else:
+                    outcome_classification = "censored_max_steps"
         except BaseException as exc:
             failure = f"{type(exc).__name__}: {exc}"
+            outcome_classification = "failed"
             raise
         finally:
             if failure is None and self.solver.step_number > 0:
@@ -1524,6 +1535,8 @@ class EventResolvedSimulation:
             write_manifest(self.output_dir / "manifest.json", self.config.to_dict(),
                            "failed" if failure else "completed", {
                                "failure": failure, "steps_completed": self.solver.step_number,
+                               "outcome_classification": outcome_classification,
+                               "final_physical_time": self.solver.time,
                                "final_grains": len(self.snapshot.grains),
                                "accumulated_shear_strain": self.accumulated_shear_strain,
                                "accumulated_volumetric_strain": self.accumulated_volumetric_strain,

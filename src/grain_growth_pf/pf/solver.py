@@ -172,6 +172,8 @@ class MultiphaseFieldSolver:
                 cfg.grid_spacing,
                 cfg.boundary_conditions == "periodic",
             )
+        if np.any(~np.isfinite(self.eta)):
+            raise FloatingPointError("PF update produced a nonfinite phase value")
         extinct = self.active_phases & (
             np.max(self.eta, axis=(1, 2)) < cfg.grain_extinction_threshold
         )

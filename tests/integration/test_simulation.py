@@ -120,6 +120,9 @@ def test_physical_horizon_and_time_cadences_do_not_change_trajectory(tmp_path):
         [float(row["accepted_dt"]) for row in rows], [0.01, 0.01, 0.005],
         rtol=0.0, atol=2e-18,
     )
+    manifest = json.loads((tmp_path / "physical-first" / "manifest.json").read_text())
+    assert manifest["outcome_classification"] == "censored_physical_time_horizon"
+    assert manifest["final_physical_time"] == 0.025
 
 
 def test_qiu_full_field_backend_smoke(tmp_path):
