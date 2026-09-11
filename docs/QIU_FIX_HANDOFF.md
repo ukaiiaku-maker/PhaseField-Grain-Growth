@@ -94,7 +94,13 @@ and recovery SHA-256
 It uses the corrected warm-up/relative guard, continues through the historical
 endpoint, and returns to ten-step dense-field cadence after saving one guard
 field. It is prepared only and must not be submitted unless the active legacy
-replay fails before producing a checksummed terminal result.
+replay fails before producing a checksummed terminal result. A matched
+full-size two-step smoke from the step-8000 archive found all seven checkpoint
+arrays bitwise identical and the nondiagnostic checkpoint state identical
+between active source `147141b` and fallback source `abde6e0`; only the
+read-only guard decision differed. The evidence JSON beside the recovery
+archive has SHA-256
+`5c5543ecbc51201cecbfe4e01ffcbb2c6cc97c835e265d319a735c46b2e5204c`.
 
 The refinement and seed-5102/5103 job directories are staged but unplanned and
 unsubmitted. All three now contain the verified `a173624` bundle with SHA-256

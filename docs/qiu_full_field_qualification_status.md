@@ -256,7 +256,13 @@ Last update: 2026-09-11 03:20 PDT; legacy and corrected seed-5101 full-size jobs
   uses the corrected warm-up/relative clipping guard, continues rather than
   terminating after a scientifically meaningful capture, and saves the guard
   field only once before returning to ten-step field cadence. A local 384x384
-  two-step resume smoke test completed with no capture. The complete suite
+  two-step resume smoke test completed with no capture. A matched smoke using
+  active source `147141b` triggered its legacy absolute clipping marker at step
+  8001, but all seven checkpoint arrays and all nondiagnostic checkpoint state
+  were bitwise/equivalently identical between revisions at step 8002. Evidence:
+  `hpc_live/20260911T100125Z-legacy/legacy_fallback_equivalence_step8000_to8002.json`,
+  SHA-256 `5c5543ecbc51201cecbfe4e01ffcbb2c6cc97c835e265d319a735c46b2e5204c`.
+  The complete suite
   passes 231/231 in 39.25 s; JUnit SHA-256 is
   `7ec04ae5216a61d2a8887238241964f8a0d91672f22aacaacabe942950871c38`.
 - Immutable fallback plan `20260911T101424Z-nogit-6bb2f0` is prepared but
