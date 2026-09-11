@@ -5,7 +5,12 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
-from analyze_qiu_full_field_qualification import compare_timestep_runs, load
+from analyze_qiu_full_field_qualification import (
+    capture_assessment,
+    compare_timestep_runs,
+    load,
+    sha256,
+)
 
 
 def _trajectory(times: np.ndarray) -> pd.DataFrame:
@@ -64,3 +69,33 @@ def test_load_applies_external_source_attestation(tmp_path):
 
     assert manifest["git_sha"] == "UNCOMMITTED"
     assert manifest["verified_source_commit"] == "0123456789abcdef"
+
+
+def test_capture_assessment_can_exclude_false_raw_guard_without_erasing_it(tmp_path):
+    capture = tmp_path / "diagnostic_capture.json"
+    capture.write_text(json.dumps({"step": 9001, "reason": "clipping_spike"}))
+    (tmp_path / "diagnostic_capture_assessment.json").write_text(json.dumps({
+        "raw_capture_sha256": sha256(capture),
+        "accepted_as_transition": False,
+        "scientific_transition_step": 9876,
+        "reason": "Absolute clipping threshold fired on the ordinary obstacle halo.",
+    }))
+
+    result = capture_assessment(tmp_path)
+
+    assert result["raw_capture_exists"]
+    assert not result["accepted_as_transition"]
+    assert result["scientific_transition_step"] == 9876
+    assert result["raw_capture_sha256"] == sha256(capture)
+
+
+def test_capture_assessment_requires_exact_raw_capture_hash(tmp_path):
+    (tmp_path / "diagnostic_capture.json").write_text("{}")
+    (tmp_path / "diagnostic_capture_assessment.json").write_text(json.dumps({
+        "raw_capture_sha256": "0" * 64,
+        "accepted_as_transition": False,
+        "reason": "Known false marker.",
+    }))
+
+    with np.testing.assert_raises_regex(ValueError, "SHA-256 mismatch"):
+        capture_assessment(tmp_path)

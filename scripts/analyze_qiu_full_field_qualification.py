@@ -53,6 +53,47 @@ def load(label: str, run: Path) -> tuple[pd.DataFrame, dict[str, object]]:
     return frame, manifest
 
 
+def capture_assessment(run: Path) -> dict[str, object]:
+    """Classify a raw guard capture without erasing its provenance."""
+    capture = run / "diagnostic_capture.json"
+    assessment_path = run / "diagnostic_capture_assessment.json"
+    result: dict[str, object] = {
+        "raw_capture_exists": capture.exists(),
+        "raw_capture_path": str(capture.resolve()) if capture.exists() else "",
+        "raw_capture_sha256": sha256(capture) if capture.exists() else "",
+        "accepted_as_transition": capture.exists(),
+        "assessment_path": "",
+        "assessment_sha256": "",
+        "assessment_reason": "",
+        "scientific_transition_step": None,
+    }
+    if not assessment_path.exists():
+        return result
+    assessment = json.loads(assessment_path.read_text())
+    expected = str(assessment.get("raw_capture_sha256", ""))
+    if not capture.exists():
+        raise ValueError(f"{assessment_path} assesses a missing raw capture")
+    if expected != result["raw_capture_sha256"]:
+        raise ValueError(f"{assessment_path} raw capture SHA-256 mismatch")
+    if not str(assessment.get("reason", "")).strip():
+        raise ValueError(f"{assessment_path} requires a nonempty reason")
+    if not isinstance(assessment.get("accepted_as_transition"), bool):
+        raise ValueError(f"{assessment_path} requires boolean accepted_as_transition")
+    transition_step = assessment.get("scientific_transition_step")
+    if transition_step is not None and (
+        not isinstance(transition_step, int) or isinstance(transition_step, bool)
+    ):
+        raise ValueError(f"{assessment_path} scientific_transition_step must be an integer or null")
+    result.update({
+        "accepted_as_transition": assessment["accepted_as_transition"],
+        "assessment_path": str(assessment_path.resolve()),
+        "assessment_sha256": sha256(assessment_path),
+        "assessment_reason": str(assessment["reason"]),
+        "scientific_transition_step": transition_step,
+    })
+    return result
+
+
 def relative_series(frame: pd.DataFrame) -> pd.Series:
     denominator = (
         frame["source_elastic_energy_change"].abs()
@@ -188,6 +229,7 @@ def main() -> None:
     frames: dict[str, pd.DataFrame] = {}
     manifests: dict[str, dict[str, object]] = {}
     captures: dict[str, bool] = {}
+    capture_assessments: dict[str, dict[str, object]] = {}
     matrix: list[dict[str, object]] = []
     for label, path in args.run:
         frame, manifest = load(label, path)
@@ -197,7 +239,9 @@ def main() -> None:
         scale = np.maximum(np.abs(energy[:-1]), 1.0)
         increases = np.diff(energy) > (1e-10 + 1e-10 * scale)
         capture = path / "diagnostic_capture.json"
-        captures[label] = capture.exists()
+        assessment = capture_assessment(path)
+        capture_assessments[label] = assessment
+        captures[label] = bool(assessment["accepted_as_transition"])
         final = frame.iloc[-1]
         internal_source = str(manifest.get("git_sha", ""))
         verified_source = str(manifest.get("verified_source_commit", internal_source))
@@ -212,6 +256,9 @@ def main() -> None:
             "terminal_grains": int(final["grain_count"]),
             "terminal_G": float(final["G_population"]),
             "guard_triggered": capture.exists(),
+            "guard_accepted_as_transition": captures[label],
+            "guard_assessment_reason": assessment["assessment_reason"],
+            "scientific_transition_step": assessment["scientific_transition_step"],
             "guard": capture.read_text().strip() if capture.exists() else "",
             "maximum_equilibrium_residual": float(frame["mechanical_equilibrium_residual"].max()),
             "maximum_relative_work_residual": float(work_relative.max()),
@@ -312,6 +359,7 @@ def main() -> None:
 
     summary = {
         "schema_version": 1, "runs": matrix, "timestep_comparison": timestep,
+        "capture_assessments": capture_assessments,
         "plots": {path.name: str(path.resolve()) for path in sorted(plot_dir.glob("*.png"))},
         "scientific_status": (
             "complete_input_set" if timestep["available"] and len(frames) >= 4
