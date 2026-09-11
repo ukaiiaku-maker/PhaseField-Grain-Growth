@@ -22,6 +22,24 @@ def test_qiu_movie_discovers_compact_frames_and_loads_required_fields(tmp_path):
     assert record["grain_count"] == 2
     assert np.array_equal(record["stress_xy"], np.full((2, 2), 2.0))
     assert np.array_equal(record["eigenstrain_xy"], np.full((2, 2), -0.5))
+    assert record["stress_kind"] == "full_tensor"
+    assert record["eigenstrain_available"] is True
+
+
+def test_qiu_movie_loads_historical_compact_resolved_shear(tmp_path):
+    labels = np.asarray([[1, 2], [2, 1]])
+    shear = np.asarray([[0.0, 2.0], [-3.0, 0.0]])
+    path = tmp_path / "frame-0000004.npz"
+    np.savez_compressed(
+        path, labels=labels, qiu_shear_stress=shear,
+        step=np.asarray(4), time=np.asarray(0.16), grain_count=np.asarray(2),
+    )
+    record = load(path)
+    assert np.array_equal(record["stress_xy"], shear)
+    assert np.array_equal(record["stress_norm"], np.abs(shear))
+    assert np.array_equal(record["eigenstrain_xy"], np.zeros_like(shear))
+    assert record["stress_kind"] == "resolved_shear_only"
+    assert record["eigenstrain_available"] is False
 
 
 def test_qiu_movie_merges_dense_fields_and_prefers_them_at_duplicate_steps(tmp_path):

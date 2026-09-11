@@ -44,13 +44,34 @@ def discover(run: Path) -> list[Path]:
 def load(path: Path) -> dict[str, object]:
     with np.load(path) as data:
         labels = np.asarray(data["labels"], dtype=np.int64)
-        stress = np.asarray(data["stress"], dtype=float)
-        eigenstrain = np.asarray(data["eigenstrain"], dtype=float)
+        if "stress" in data:
+            stress = np.asarray(data["stress"], dtype=float)
+            stress_xy = stress[0, 1]
+            stress_norm = np.sqrt(np.sum(stress * stress, axis=(0, 1)))
+            stress_kind = "full_tensor"
+        elif "qiu_shear_stress" in data:
+            # Historical compact frames retained the resolved Qiu shear field,
+            # not the full tensor. It is still valid for morphology/history
+            # playback, but the metadata must make the reduced field explicit.
+            stress_xy = np.asarray(data["qiu_shear_stress"], dtype=float)
+            stress_norm = np.abs(stress_xy)
+            stress_kind = "resolved_shear_only"
+        else:
+            stress_xy = np.zeros_like(labels, dtype=float)
+            stress_norm = np.zeros_like(labels, dtype=float)
+            stress_kind = "unavailable"
+        eigenstrain_available = "eigenstrain" in data
+        eigenstrain_xy = (
+            np.asarray(data["eigenstrain"], dtype=float)[0, 1]
+            if eigenstrain_available else np.zeros_like(labels, dtype=float)
+        )
         return {
             "labels": labels,
-            "stress_xy": stress[0, 1],
-            "stress_norm": np.sqrt(np.sum(stress * stress, axis=(0, 1))),
-            "eigenstrain_xy": eigenstrain[0, 1],
+            "stress_xy": stress_xy,
+            "stress_norm": stress_norm,
+            "stress_kind": stress_kind,
+            "eigenstrain_xy": eigenstrain_xy,
+            "eigenstrain_available": eigenstrain_available,
             "step": int(data["step"]), "time": float(data["time"]),
             "grain_count": (
                 int(data["grain_count"])
@@ -135,7 +156,8 @@ def main() -> None:
     stress_norm_quantiles: list[float] = []
     with index_path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.DictWriter(handle, fieldnames=(
-            "frame", "source", "source_kind", "source_sha256", "step", "time", "grain_count"
+            "frame", "source", "source_kind", "source_sha256", "step", "time",
+            "grain_count", "stress_kind", "eigenstrain_available",
         ))
         writer.writeheader()
         for index, path in enumerate(paths):
@@ -149,6 +171,8 @@ def main() -> None:
                 "source_kind": path.parent.name,
                 "source_sha256": sha256(path), "step": record["step"],
                 "time": record["time"], "grain_count": record["grain_count"],
+                "stress_kind": record["stress_kind"],
+                "eigenstrain_available": record["eigenstrain_available"],
             }
             metadata_records.append(row)
             writer.writerow(row)
@@ -247,10 +271,13 @@ def main() -> None:
     contact_figure.colorbar(contact_stress, ax=contact_axes[1, :], fraction=0.02)
     contact_figure.colorbar(contact_eigenstrain, ax=contact_axes[2, :], fraction=0.02)
     contact = destination.with_suffix(".contact_sheet.png")
+    selection_title = {
+        "diagnostic_capture": "capture-resolved fields",
+        "explicit_transition_step": "transition-resolved fields",
+        "trajectory_without_diagnostic_capture": "initial/midpoint/terminal fields",
+    }[contact_selection["selection_basis"]]
     contact_figure.suptitle(
-        f"{args.run.name}: "
-        + ("capture-resolved fields" if contact_selection["selection_basis"] == "diagnostic_capture"
-           else "initial/midpoint/terminal fields")
+        f"{args.run.name}: {selection_title}"
     )
     contact_figure.savefig(contact, dpi=args.dpi)
     plt.close(contact_figure)
@@ -263,6 +290,12 @@ def main() -> None:
         "frame_count": len(paths),
         "compact_frame_count": sum(path.parent.name == "frames" for path in paths),
         "dense_field_count": sum(path.parent.name == "diagnostic_fields" for path in paths),
+        "reduced_stress_frame_count": sum(
+            record["stress_kind"] == "resolved_shear_only" for record in metadata_records
+        ),
+        "missing_eigenstrain_frame_count": sum(
+            not record["eigenstrain_available"] for record in metadata_records
+        ),
         "first_step": metadata_records[0]["step"],
         "last_step": metadata_records[-1]["step"],
     }
