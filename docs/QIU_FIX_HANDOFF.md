@@ -67,6 +67,14 @@ The refinement changes both the external-increment target from 0.02 to 0.01
 and the actual configured PF timestep from 0.04 to 0.02; it therefore remains
 a factor-two test even if the external limiter is inactive.
 
+Recreate or verify the active-job attestations with
+`scripts/attest_qiu_hpc3_source.py`; its generated records are under
+`hpc_live/source_attestations` in the durable root. Before issuing the final
+decision, run `scripts/validate_qiu_qualification_decision.py` against
+`qualification_decision.json`; it refuses missing terminal roles, nonterminal
+or nonpoolable production records, nonzero final test outcomes, ambiguous
+source SHAs, and missing gate groups.
+
 ## Next execution order
 
 1. Retrieve and audit the first terminal active job; retain remote data.

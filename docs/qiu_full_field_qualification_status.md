@@ -177,6 +177,14 @@ Last update: 2026-09-10 18:30 PDT; legacy and corrected seed-5101 full-size jobs
   pre/transition/post contact-sheet panel metadata. Two focused tests and a
   two-frame 384x384 GIF/contact-sheet smoke render pass; FFmpeg is unavailable,
   so GIF is the retained animation format unless it is installed later.
+- Commit `92fcfc9` adds a reproducible HPC3 source-attestation command. It
+  independently rehashes each input archive and source bundle, verifies the
+  asserted commit is in the Git bundle, and has generated attestations for both
+  active jobs under `hpc_live/source_attestations`.
+- A terminal-decision validator now enforces all five full production roles,
+  explicit backend identity/classification, full source SHA, poolable terminal
+  records, nonempty gate groups, and a zero-failure/error/skip final suite
+  before `qualification_decision.json` can be accepted.
 - The accepted fixed-physical-domain reduced spatial study is
   `20260911T013000Z-spatial-convergence-r2` at dx=1, 0.5, and 0.25. At matched
   t=4 every grid gives N=17 and the same physical population grain size. From
