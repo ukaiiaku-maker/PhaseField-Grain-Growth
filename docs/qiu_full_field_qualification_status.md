@@ -146,6 +146,14 @@ Last update: 2026-09-10 18:30 PDT; legacy and corrected seed-5101 full-size jobs
   is `8.65e-14`, source-work error is `-3.49e-8`, and external dt limit is
   11.10 versus used dt 0.04. The live outputs continue to grow on node-local
   Slurm scratch and neither job has a terminal marker yet.
+- The next atomically closed corrected milestone contains 208 steps through
+  t=8.32/N=705. It has zero complete-energy increases and coupled rejections;
+  all guard-critical fields are finite; maximum equilibrium residual is
+  `2.16e-12`; maximum absolute source-work error is `1.33e-7`; maximum
+  compactness is 1.795; and no disconnected grain appears. The largest
+  100-step loss is 52 (about 7% of its preceding population, below the 10%
+  guard), while clipping stays in the narrow 0.263--0.273 running baseline.
+  Durable nonterminal audit: `hpc_live/20260911T024100Z-corrected-step208-audit.json`.
 - The legacy step-1500 checkpoint plus all then-available movie frames were
   copied without pausing the solver to local recovery archive
   `hpc_live/20260911T013800Z-legacy`, SHA-256
