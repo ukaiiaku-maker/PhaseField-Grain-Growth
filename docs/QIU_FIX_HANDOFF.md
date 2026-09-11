@@ -78,6 +78,20 @@ and neutral initial/midpoint/terminal contact sheet are retained as
 `hpc_live/20260911T082618Z-corrected/corrected-step1000-preview.*`. These prove
 movie reconstruction from the retained cadence but are not terminal products.
 
+The active legacy bundle predates the relative clipping-guard correction, and
+its wrapper did not request continuation after a capture. It is therefore
+expected to stop near step 9001 on ordinary ~0.24 double-obstacle clipping. Do
+not count that terminal as the completed legacy forensic replay. Fetch and
+retain it as an excluded oversensitive-guard control, then submit prepared plan
+`20260911T101424Z-nogit-6bb2f0`. That plan resumes the exact step-8000 archive
+with source `abde6e0eb5af3b50425856602f5a0d15300a63bc`, source-bundle SHA-256
+`f9fc6f7ab9d5097d444b3202cd11d34b28425de44e1317f9980e85bdcf08e632`,
+and recovery SHA-256
+`d0b093ec1d3e3a4f5656d9009c381609c61925fb70a9061fff76b25dbf1dbbe5`.
+It uses the corrected warm-up/relative guard, continues through the historical
+endpoint, and returns to ten-step dense-field cadence after saving one guard
+field. It is prepared only and must not be submitted before a slot is free.
+
 The refinement and seed-5102/5103 job directories are staged but unplanned and
 unsubmitted. All three now contain the verified `a173624` bundle with SHA-256
 `c0ba9161a8f519436deec75c7017f03614fa04de43328221996b9efd0dd545b3`.
@@ -99,14 +113,17 @@ source SHAs, and missing gate groups.
 ## Next execution order
 
 1. Retrieve and audit the first terminal active job; retain remote data.
-2. When one slot frees, launch seed-5101 target=0.01 through the full critical
+2. If that terminal is the original oversensitive legacy control, launch the
+   prepared corrected-guard legacy continuation from step 8000 and mark the
+   original control excluded.
+3. When the next slot frees, launch seed-5101 target=0.01 through the full critical
    interval from the exact same initial state and physics revision.
-3. Prepare/hash two additional 384x384 initial states with the same
+4. Prepare/hash two additional 384x384 initial states with the same
    1068-to-800 equilibration/compaction protocol, then run the corrected model.
-4. Run `scripts/analyze_qiu_full_field_qualification.py` on terminal paths.
-5. Render legacy, corrected seed-5101, and at least one additional seed with
+5. Run `scripts/analyze_qiu_full_field_qualification.py` on terminal paths.
+6. Render legacy, corrected seed-5101, and at least one additional seed with
    `scripts/render_qiu_qualification_movie.py`; retain each `.frames.csv`.
-6. Issue `qualification_decision.json`, update the live report and validation
+7. Issue `qualification_decision.json`, update the live report and validation
    files, rerun the complete suite, commit, push, and open (but do not merge) a
    pull request.
 

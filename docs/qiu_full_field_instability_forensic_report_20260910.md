@@ -64,11 +64,16 @@ bookkeeping state. The only defensible reconstruction is deterministic replay
 from the hashed initial condition.
 
 That immutable replay is HPC3 run `20260910T232437Z-nogit-f4803a`, Slurm job
-`55930486`, commit `147141b`. It advances normally to step 9,000, then records
-every step and saves dense fields every ten steps through 10,246. Its original
-absolute clipping marker is known to be oversensitive to ordinary
-double-obstacle projection; the job continues after the marker, so its scalar
-and field evidence remains usable while that marker itself is excluded.
+`55930486`, commit `147141b`. Its 17 saved frames through step 8,000 are
+byte-identical to the canonical historical frames. That source revision still
+has the original absolute clipping marker, which is oversensitive to ordinary
+double-obstacle projection, and its wrapper terminates after a marker. It is
+therefore expected to stop at its first instrumented step near 9,001 and will
+be retained as an excluded diagnostic-control run. Prepared continuation
+`20260911T101424Z-nogit-6bb2f0` resumes the exact step-8,000 checkpoint with the
+corrected warm-up/relative guard, records every step, saves dense fields every
+ten steps through 10,246, and continues after a real capture to preserve the
+post-transition window.
 
 ## Corrected model
 
