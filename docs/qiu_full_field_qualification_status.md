@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-10, 384x384 corrected preflight accepted; legacy replay running; corrected production bundle next.
+Last update: 2026-09-10 18:30 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; three-grid spatial study accepted with one narrow failed gate.
 
 ## Current source state
 
@@ -17,6 +17,10 @@ Last update: 2026-09-10, 384x384 corrected preflight accepted; legacy replay run
 - Scalable production runner commits: `6eb5977`, `8bb7837`.
 - Spatial-convergence commit: `c9813b5`.
 - Qualification-movie renderer commit: `847eb06`.
+- Reduced long-time target study/analysis commits: `41859ec`, `f04cf8f`.
+- Live report and handoff commit: `3b06bd5`.
+- Paired-seed preparation commit: `4ef9390`.
+- Three-grid spatial-convergence commit: `ae99d34`.
 - Historical production source: `4761ef957715ba2faa84f015a0e4f4c4cd21c7aa`
 - Historical QIU run: canonical, read-only, all integration-manifest hashes verified
 - Current scientific decision: the historical QIU remains an unresolved non-self-similar transient and its backend is conclusively a legacy FFT eigenstrain surrogate, not the archived current-geometry Qiu reference formulation. The selected qualification backend is therefore honestly named `FFT_EIGENSTRAIN_V2`; production behavior remains pending.
@@ -133,6 +137,12 @@ Last update: 2026-09-10, 384x384 corrected preflight accepted; legacy replay run
   two-full-worker ceiling. A delayed acknowledgement was reconciled against
   Slurm before retry; unused plan `20260911T004157Z-nogit-7dd0b1` remains only
   `PREPARED` and was never submitted.
+- A nonintrusive 18:30 PDT live audit found legacy replay at step 1500/t=60
+  and corrected seed 5101 at step 96/t=3.84/N=760. The corrected trajectory
+  remains finite with zero coupled rejections; its latest equilibrium residual
+  is `8.65e-14`, source-work error is `-3.49e-8`, and external dt limit is
+  11.10 versus used dt 0.04. The live outputs continue to grow on node-local
+  Slurm scratch and neither job has a terminal marker yet.
 - The accepted fixed-physical-domain reduced spatial study is
   `20260911T013000Z-spatial-convergence-r2` at dx=1, 0.5, and 0.25. At matched
   t=4 every grid gives N=17 and the same physical population grain size. From
@@ -159,6 +169,9 @@ Last update: 2026-09-10, 384x384 corrected preflight accepted; legacy replay run
 - Do not treat saved frames as restart states.
 - Replay deterministically from the immutable initial state.
 - Keep superseded diagnostic analyses with explicit exclusion manifests.
+- Exclude every short full-size preflight/profile from production inference;
+  all five now have root-level exclusion manifests, while r5 remains accepted
+  solely as the engineering preflight for the immutable HPC production path.
 - Test the whole-grain-area/per-boundary source-overcount hypothesis rather than assuming it is the sole cause.
 - If mathematical equivalence to the archived reference is not established, qualify the corrected backend as `FFT_EIGENSTRAIN_V2`, not `QIU_REFERENCE_V2`.
 - Treat the non-equilibrated legacy Green projection as a demonstrated defect,
@@ -170,6 +183,7 @@ Last update: 2026-09-10, 384x384 corrected preflight accepted; legacy replay run
 
 ## Next automatic action
 
-Commit the spatial-convergence runner/result record and continue monitoring both
-immutable HPC jobs. Retrieve and checksum terminal results locally. Start the
-factor-two target refinement only after a worker slot is free.
+Continue monitoring both immutable HPC jobs without adding a third full worker.
+Retrieve and checksum each terminal result locally, render/analyze it, and start
+the already staged factor-two target refinement only after a worker slot is
+verified free.
