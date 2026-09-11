@@ -63,9 +63,9 @@ legacy step-1500 recovery archive, including checkpoint and evolution frames,
 is at `hpc_live/20260911T013800Z-legacy` with SHA-256
 `b8ae0b4205a1074dacef9cef7633442ea7b6a6ba743145662952bdb34a5e182a`.
 The newest legacy recovery archive is
-`hpc_live/20260911T060150Z-legacy`: checkpoint step 5000/t=200, 14 retained
-evolution frames through step 5000, and SHA-256
-`26c26bb615846c6c91e4d0b99091bb53ad31f1af5d24b547e8fbc895b7f422ce`.
+`hpc_live/20260911T083849Z-legacy`: checkpoint step 7000/t=280, 16 retained
+evolution frames through step 7000, and SHA-256
+`89e04dcd7b0f95b2e950b52f001b6dcf8d922ffa148f1be100d4f6462703bf6e`.
 It is nonterminal and must not be pooled as production evidence.
 
 The refinement and seed-5102/5103 job directories are staged but unplanned and
