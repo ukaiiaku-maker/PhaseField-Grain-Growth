@@ -230,6 +230,17 @@ Last update: 2026-09-11 08:32 PDT; legacy and corrected seed-5101 full-size jobs
   inactive (minimum 4.03 versus used dt 0.04). Population loss continues to
   slow: the two newest 250-step stages lose 27 and 20 grains, compared with 41
   in the preceding stage. This snapshot remains nonterminal and nonpoolable.
+- The step-2000 recovery also passed the final renderer path as a 13-frame
+  nonterminal preview with a SHA-indexed frame table and initial/midpoint/latest
+  contact sheet. Direct inspection shows connected, substantially polygonal
+  coarsening grains and finite boundary-localized stress/eigenstrain, with no
+  fragmentation or runaway elongation. Preview GIF SHA-256 is
+  `46a36f465fd7446aab9dc1fab65f574b9f13d1e13919251bec7a084ab39ad518`;
+  it remains renderer/recoverability evidence rather than a terminal movie.
+- The complete suite after the checkpoint-consistent snapshot utility passes
+  234/234 tests in 60.67 s with zero failures, errors, or skips. Durable JUnit:
+  `results/validation/qiu_fix_step2000_tests.xml`; SHA-256
+  `f959e6452185a76ac34e44dd6703c370f48bb09822a9619c6b3d18b953c9a93b`.
 - The legacy step-1500 checkpoint plus all then-available movie frames were
   copied without pausing the solver to local recovery archive
   `hpc_live/20260911T013800Z-legacy`, SHA-256

@@ -42,8 +42,10 @@ acknowledgement; Slurm confirmed the original job before any duplicate launch.
   `/Users/sdillon/PF-graingrowth/results/qiu_full_field_qualification_20260910`
 - Working-copy root:
   `/private/tmp/qiu-full-field-qualification-v1/results/qiu_full_field_qualification_20260910`
-- Full JUnit:
-  `/Users/sdillon/PF-graingrowth/results/validation/qiu_fix_production_preflight_tests.xml`
+- Latest full JUnit:
+  `/Users/sdillon/PF-graingrowth/results/validation/qiu_fix_step2000_tests.xml`,
+  234/234 passed in 60.67 s, SHA-256
+  `f959e6452185a76ac34e44dd6703c370f48bb09822a9619c6b3d18b953c9a93b`.
 - First corrected live snapshot:
   `hpc_live/20260911T012000Z-corrected` under the durable root.
 - Latest corrected restart snapshot:
