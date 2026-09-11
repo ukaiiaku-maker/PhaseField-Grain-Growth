@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-11 07:32 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; recoveries audited through legacy checkpoint 9500 and corrected checkpoint 1500; closure-specific source/work continuation remains first in the prepared queue.
+Last update: 2026-09-11 08:32 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; recoveries audited through legacy checkpoint 9500 and corrected checkpoint 2000; closure-specific source/work continuation remains first in the prepared queue.
 
 ## Current source state
 
@@ -27,6 +27,7 @@ Last update: 2026-09-11 07:32 PDT; legacy and corrected seed-5101 full-size jobs
 - Bounded legacy-continuation/guard commit: `abde6e0`.
 - Curated transition-contact-sheet commit: `167c30c`.
 - Closure-specific source/work instrumentation commit: `bebd53b`.
+- Checkpoint-consistent live-snapshot utility commit: `6e7d9eb`.
 - Historical production source: `4761ef957715ba2faa84f015a0e4f4c4cd21c7aa`
 - Historical QIU run: canonical, read-only, all integration-manifest hashes verified
 - Current scientific decision: the historical QIU remains an unresolved non-self-similar transient and its backend is conclusively a legacy FFT eigenstrain surrogate, not the archived current-geometry Qiu reference formulation. The selected qualification backend is therefore honestly named `FFT_EIGENSTRAIN_V2`; production behavior remains pending.
@@ -215,6 +216,20 @@ Last update: 2026-09-11 07:32 PDT; legacy and corrected seed-5101 full-size jobs
   filename-based Parquet bound stopped at step 1480 while the checkpoint was
   1500. `superseded_archive_manifest.json` records the mismatch and points to
   the range-verified v2 archive; no trajectory or live output was affected.
+- Corrected seed 5101 subsequently reached atomic checkpoint step
+  2000/t=80/N=317. Its durable recovery contains all 2,000 contiguous, unique
+  scalar rows in the 128 parts explicitly closed by the checkpoint recorder,
+  exact tracker prefixes, 11 compact frames through step 2000, and cadence
+  fields at steps 500, 1000, 1500, and 2000. Matching local/remote archive
+  SHA-256 is
+  `2a8e3d1ab77404c5efb0aef778496fb2f9ea86bb498480f53b7d00845ad57812`;
+  durable path: `hpc_live/20260911T152821Z-corrected`. The audit still finds
+  zero complete-energy increases, zero coupled rejections, no capture, no
+  disconnected grain, equilibrium residual at most `3.42e-12`, and absolute
+  source-work error at most `1.42e-7`. The finite external limit remains
+  inactive (minimum 4.03 versus used dt 0.04). Population loss continues to
+  slow: the two newest 250-step stages lose 27 and 20 grains, compared with 41
+  in the preceding stage. This snapshot remains nonterminal and nonpoolable.
 - The legacy step-1500 checkpoint plus all then-available movie frames were
   copied without pausing the solver to local recovery archive
   `hpc_live/20260911T013800Z-legacy`, SHA-256
@@ -380,7 +395,7 @@ Last update: 2026-09-11 07:32 PDT; legacy and corrected seed-5101 full-size jobs
   immutable job before starting the same attested `a173624` production model.
 - The complete active/prepared/superseded queue is machine-readable at
   `hpc_execution_queue_20260911.json`, SHA-256
-  `f54aa7612222c72dc227bf1af7c61e523b5a647b19596b68b4dc96cc06a9680e`.
+  `2d2380a8eca2f150bf9d15e58907da61ee89c3730ce74736538a05b30b363bf2`.
   It records the two-worker rule and explicitly marks both unused plans as
   never-submit entries.
 - `production_revision_equivalence.json` records that corrected seed-5101
