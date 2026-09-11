@@ -10,7 +10,7 @@ For isotropic boundaries its implemented interfacial energy is
 
 \[
 F_{\rm int}=\frac{2\gamma}{\epsilon}\int_\Omega
-\sum_{i<j}\left[\eta_i\eta_j-rac{\epsilon^2}{\pi^2}
+\sum_{i<j}\left[\eta_i\eta_j-\frac{\epsilon^2}{\pi^2}
 \nabla\eta_i\cdot\nabla\eta_j\right]dA.
 \]
 

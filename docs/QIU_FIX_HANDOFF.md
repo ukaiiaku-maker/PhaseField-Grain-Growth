@@ -80,3 +80,11 @@ unsubmitted. All three now contain the verified `a236192` bundle with SHA-256
 
 The final avalanche conclusion remains deliberately unset until the full
 corrected/refined evidence exists.
+
+The renderer at commit `cc1461e` merges compact cadence frames with dense
+diagnostic fields, prefers the dense archive at duplicate steps, streams data
+to bound memory, and writes transition-resolved morphology/stress/eigenstrain
+contact sheets. This is required for the legacy step-9000--10246 onset rather
+than rendering only the coarse cadence frames. FFmpeg is not installed on the
+workstation, so the verified fallback product is an animated GIF with the same
+CSV frame/hash index and JSON metadata.

@@ -165,6 +165,13 @@ Last update: 2026-09-10 18:30 PDT; legacy and corrected seed-5101 full-size jobs
   failures/errors/skips. The durable JUnit is
   `results/validation/qiu_fix_provenance_analysis_tests.xml`, SHA-256
   `c43697f80a640194da43ce6cb40410f334e604ec6afd821a9fce67cb3df8f28b`.
+- Movie commit `cc1461e` fixes the final rendering path to merge coarse frames
+  with dense transition fields and deduplicate by step, so the legacy onset is
+  not reduced to 200-step cadence. Rendering is streamed, uses a symmetric-log
+  field scale for the extreme legacy dynamic range, and writes explicit
+  pre/transition/post contact-sheet panel metadata. Two focused tests and a
+  two-frame 384x384 GIF/contact-sheet smoke render pass; FFmpeg is unavailable,
+  so GIF is the retained animation format unless it is installed later.
 - The accepted fixed-physical-domain reduced spatial study is
   `20260911T013000Z-spatial-convergence-r2` at dx=1, 0.5, and 0.25. At matched
   t=4 every grid gives N=17 and the same physical population grain size. From
