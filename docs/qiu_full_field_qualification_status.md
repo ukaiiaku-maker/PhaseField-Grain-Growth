@@ -229,6 +229,14 @@ Last update: 2026-09-11 03:01 PDT; legacy and corrected seed-5101 full-size jobs
   `hpc_live/20260911T100125Z-legacy`. Matching archive SHA-256 is
   `d0b093ec1d3e3a4f5656d9009c381609c61925fb70a9061fff76b25dbf1dbbe5`;
   this recovery copy remains explicitly nonterminal and nonpoolable.
+- All 17 replay frames from step 0 through 8000 are byte-for-byte identical to
+  their canonical historical counterparts. An independent NPZ load also found
+  identical key sets and bitwise-identical arrays in every frame. The durable
+  machine-readable comparison is
+  `hpc_live/20260911T100125Z-legacy/legacy_replay_equivalence_through_step8000.json`,
+  SHA-256 `8c3778638b555838d2d90524b0d54fc01a99d6aa3ff09db6ade98faa21c86fc8`.
+  This establishes exact deterministic historical reproduction before the
+  critical window, while leaving terminal avalanche reproduction pending.
 - The active HPC application manifests say `UNCOMMITTED` because their scripts
   queried Git from the parent stage directory. This does not make their source
   ambiguous: both immutable wrappers assert the detached commit and verify the

@@ -67,6 +67,10 @@ The newest legacy recovery archive is
 evolution frames through step 8000, and SHA-256
 `d0b093ec1d3e3a4f5656d9009c381609c61925fb70a9061fff76b25dbf1dbbe5`.
 It is nonterminal and must not be pooled as production evidence.
+All 17 common frames through step 8000 are byte-identical to the canonical
+historical files, with a second array-level bitwise comparison also passing.
+The evidence JSON beside the archive has SHA-256
+`8c3778638b555838d2d90524b0d54fc01a99d6aa3ff09db6ade98faa21c86fc8`.
 
 The corrected step-1000 recovery has also been exercised through the final
 renderer. Its seven-frame preview animation, SHA-indexed frame CSV, metadata,
