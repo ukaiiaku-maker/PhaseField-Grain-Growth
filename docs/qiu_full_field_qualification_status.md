@@ -336,6 +336,13 @@ Last update: 2026-09-11 04:20 PDT; legacy and corrected seed-5101 full-size jobs
   `c0ba9161a8f519436deec75c7017f03614fa04de43328221996b9efd0dd545b3`.
   It is ready for submission when either active worker reaches a verified
   terminal state, and has not been submitted early.
+- The paired corrected seeds are also immutable prepared plans with no Slurm
+  jobs: seed 5102 is `20260911T112155Z-nogit-6247ef` (HPC input SHA-256
+  `8c7596aeff28ebd6a02919368f5a0dab2de86f4404f20922c2c7309273c72a9b`)
+  and seed 5103 is `20260911T112156Z-nogit-439d11` (HPC input SHA-256
+  `08fdd599d2816544a469839bde5388fdea9ceeff4dc68b71c73a6aec9d78d90c`).
+  Each prepares its 1068-grain state and compacts to exactly 800 within the
+  immutable job before starting the same attested `a173624` production model.
 - `production_revision_equivalence.json` records that corrected seed-5101
   commit `8bb7837` and the staged refinement/paired-seed commit `a173624` have
   byte-identical FFT mechanics, PF solver, kernels, kinematics, and production

@@ -112,7 +112,13 @@ per-boundary records. Evidence JSON SHA-256:
 The refinement is prepared as immutable, unsubmitted plan
 `20260911T110924Z-nogit-6b926f`; its HPC input archive SHA-256 is
 `dfe68bb909d310bab479d328b3e76f9d1235a6b08d59c499d526f18a78d87583`.
-Seed-5102/5103 remain staged but unplanned and unsubmitted. All three directories
+Seed 5102 is immutable prepared plan `20260911T112155Z-nogit-6247ef`
+(HPC input SHA-256
+`8c7596aeff28ebd6a02919368f5a0dab2de86f4404f20922c2c7309273c72a9b`),
+and seed 5103 is immutable prepared plan `20260911T112156Z-nogit-439d11`
+(HPC input SHA-256
+`08fdd599d2816544a469839bde5388fdea9ceeff4dc68b71c73a6aec9d78d90c`).
+Both have no Slurm job and remain unsubmitted. All three corrected-job directories
 contain the verified `a173624` source bundle with SHA-256
 `c0ba9161a8f519436deec75c7017f03614fa04de43328221996b9efd0dd545b3`.
 The refinement changes both the external-increment target from 0.02 to 0.01
