@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-10 21:50 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; both have current durable restart copies.
+Last update: 2026-09-10 22:00 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; both have current durable restart copies.
 
 ## Current source state
 
@@ -231,6 +231,10 @@ Last update: 2026-09-10 21:50 PDT; legacy and corrected seed-5101 full-size jobs
   step; a run without a capture uses neutral initial/midpoint/terminal roles.
   The corrected four-frame full-size smoke render and 10 focused movie,
   analyzer, and runner tests pass.
+- The complete suite after that renderer correction passes 229/229 tests in
+  65.14 s with zero failures, errors, or skips. Durable JUnit:
+  `results/validation/qiu_fix_capture_selection_tests.xml`; SHA-256
+  `29a634fcaddb3f2a341a434d803f3e9ea8e25547d72c453b70616c748505eab5`.
 - Commit `92fcfc9` adds a reproducible HPC3 source-attestation command. It
   independently rehashes each input archive and source bundle, verifies the
   asserted commit is in the Git bundle, and has generated attestations for both

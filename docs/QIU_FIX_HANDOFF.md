@@ -115,3 +115,5 @@ The later contact-sheet correction selects pre/transition/post panels from the
 recorded `diagnostic_capture.json` step. In runs without a capture it uses
 initial/midpoint/terminal roles, avoiding false event labels from ordinary
 population loss between sparse frames.
+The complete post-correction suite passes 229/229 tests; durable JUnit SHA-256
+is `29a634fcaddb3f2a341a434d803f3e9ea8e25547d72c453b70616c748505eab5`.
