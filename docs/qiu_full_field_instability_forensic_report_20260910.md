@@ -49,9 +49,12 @@ can close that latter question.
   `results/qiu_full_field_qualification_20260910`.
 
 The baseline suite passed 178 tests. After read-only instrumentation it passed
-181. The production-preflight revision passed all 215 collected tests in
-77.39 s; JUnit SHA-256 is
-`11d99dd625689ed7ba4f4a3f6fd4b3a94703bda27eeefa3ca3b186510ad4776c`.
+181. The complete suite at corrected checkpoint step 2000 passed all 234
+collected tests in 60.67 s, with no failure, error, or skip; JUnit SHA-256 is
+`f959e6452185a76ac34e44dd6703c370f48bb09822a9619c6b3d18b953c9a93b`.
+The subsequent raw-capture/transition-classification analyzer change passes 12
+focused analyzer and renderer tests; the final complete suite remains reserved
+for the terminal evidence revision.
 
 ## Historical transition
 
@@ -68,11 +71,21 @@ That immutable replay is HPC3 run `20260910T232437Z-nogit-f4803a`, Slurm job
 byte-identical to the canonical historical frames. That source revision still
 has the original absolute clipping marker, which is oversensitive to ordinary
 double-obstacle projection, but its wrapper explicitly continues after a
-marker. The first marker itself will be excluded while the per-step scalars and
-dense fields continue through 10,246. The replay has now reached step 9,000;
-that frame is byte-identical to history, and the predicted clipping-only marker
-at step 9,001 has zero extinctions and compactness mean/max 1.337/1.448.
-The first 16 scalar rows also reveal a read-only instrumentation omission in
+marker. The first marker itself is excluded while the per-step scalars and
+dense fields continue through 10,246. The replay has now closed checkpoint
+step 9,500/t=380/N=495. Its 18 common frames through step 9,000 are
+byte-identical to history, and the predicted clipping-only marker at step 9,001
+has zero extinctions and compactness mean/max 1.337/1.448. All 500 exact rows
+from 9,001 through 9,500 have N=495, zero extinctions, zero disconnected
+grains, and no compactness threshold crossing. Nevertheless, accepted total
+energy first rises at step 9,002 and rises on 311 of 499 differences. From the
+first to last 20-step medians, source-increment L2 rises 1.149 to 37.553,
+stress linf 163.797 to 172.523, eigenstrain linf 150.401 to 162.560, and
+elastic energy by 6,480 while interfacial energy falls by 12.7. Thus the
+legacy elastic/source positive feedback demonstrably precedes population and
+morphology failure rather than being caused by the extinction cascade.
+
+The first 16 scalar rows also revealed a read-only instrumentation omission in
 the production closure override: source-energy/work values are undefined and
 no per-boundary rows are emitted, although trajectory fields remain valid.
 Commit `bebd53b` adds those recorder hooks without changing any numerical array;
@@ -159,10 +172,18 @@ The corrected seed-5101 production run is immutable HPC3 plan
 `20260911T003946Z-nogit-c53868`, Slurm `55932457`, source `8bb7837`, with a
 10-day allocation and 16 GB memory. Its source bundle SHA-256 is
 `e9926fc38ba41502d4deefadc57b344826924bfd2e4c0d75f4299ee1a6b8d5b0`.
-At the first locally retrieved nonterminal snapshot (48 accepted steps,
-t=1.92), N=779, complete energy decreases every step, maximum equilibrium
-residual is 4.63e-13, maximum stress is 0.01735, there are no rejected steps,
-and the external limit remains far above dt. Peak remote RSS is about 5.23 GB.
+The latest locally retrieved nonterminal snapshot is the atomic step
+2000/t=80/N=317 state. It contains all 2,000 contiguous scalar rows, exact
+tracker prefixes, 11 compact frames, and full fields at steps 500, 1000, 1500,
+and 2000. Complete energy decreases every step; maximum equilibrium residual
+is `3.42e-12`; maximum absolute source-work error is `1.42e-7`; there are no
+rejected steps, no disconnected grains, and no guard capture. The external
+limit remains inactive (minimum finite limit 4.03 versus dt 0.04). Population
+loss slows from 41 to 27 to 20 grains across the last three 250-step stages.
+Its 13-frame preview and initial/midpoint/latest contact sheet show connected,
+substantially polygonal coarsening without runaway elongation. Matching
+local/remote recovery-archive SHA-256 is
+`2a8e3d1ab77404c5efb0aef778496fb2f9ea86bb498480f53b7d00845ad57812`.
 This snapshot is recovery/status evidence only and is not pooled as a completed
 run.
 
