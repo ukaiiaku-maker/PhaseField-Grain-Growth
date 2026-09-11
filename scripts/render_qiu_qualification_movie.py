@@ -67,9 +67,30 @@ def color_table(max_label: int) -> np.ndarray:
 
 def select_contact_panels(
     run: Path, metadata_records: list[dict[str, object]],
+    explicit_transition_step: int | None = None,
 ) -> tuple[list[int], list[str], dict[str, object]]:
     """Select capture-centered panels, or neutral trajectory panels if none fired."""
     capture_path = run / "diagnostic_capture.json"
+    if explicit_transition_step is not None:
+        steps = np.asarray([int(record["step"]) for record in metadata_records])
+        transition = int(np.argmin(np.abs(steps - explicit_transition_step)))
+        evidence: dict[str, object] = {
+            "selection_basis": "explicit_transition_step",
+            "requested_transition_step": explicit_transition_step,
+            "selected_transition_step": int(steps[transition]),
+        }
+        if capture_path.exists():
+            capture = json.loads(capture_path.read_text())
+            evidence.update({
+                "preserved_diagnostic_capture": str(capture_path.resolve()),
+                "preserved_diagnostic_capture_step": int(capture["step"]),
+                "preserved_diagnostic_capture_reasons": capture.get("reasons", []),
+            })
+        return (
+            [max(0, transition - 1), transition, min(len(metadata_records) - 1, transition + 1)],
+            ["pre-transition", "transition", "post-transition"],
+            evidence,
+        )
     if capture_path.exists():
         capture = json.loads(capture_path.read_text())
         capture_step = int(capture["step"])
@@ -98,6 +119,10 @@ def main() -> None:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--fps", type=int, default=12)
     parser.add_argument("--dpi", type=int, default=130)
+    parser.add_argument(
+        "--transition-step", type=int,
+        help="center contact-sheet panels on a scientifically curated transition step",
+    )
     args = parser.parse_args()
     paths = discover(args.run)
     destination = args.output or args.run / "qiu_fields.mp4"
@@ -191,7 +216,9 @@ def main() -> None:
         destination = destination.with_suffix(".gif")
         movie.save(destination, writer=animation.PillowWriter(fps=args.fps), dpi=args.dpi)
 
-    selected, roles, contact_selection = select_contact_panels(args.run, metadata_records)
+    selected, roles, contact_selection = select_contact_panels(
+        args.run, metadata_records, args.transition_step,
+    )
     contact_figure, contact_axes = plt.subplots(3, 3, figsize=(12, 11), constrained_layout=True)
     contact_stress = None
     contact_eigenstrain = None

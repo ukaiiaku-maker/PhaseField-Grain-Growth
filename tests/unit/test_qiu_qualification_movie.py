@@ -71,3 +71,27 @@ def test_contact_sheet_centers_on_recorded_diagnostic_capture(tmp_path):
     assert evidence["selection_basis"] == "diagnostic_capture"
     assert evidence["diagnostic_capture_step"] == 115
     assert evidence["diagnostic_capture_reasons"] == ["morphology_guard"]
+
+
+def test_explicit_transition_step_overrides_but_preserves_capture_provenance(tmp_path):
+    capture = tmp_path / "diagnostic_capture.json"
+    capture.write_text(json.dumps({
+        "step": 101, "reasons": ["oversensitive_legacy_clipping"],
+    }))
+    records = [
+        {"step": 100}, {"step": 110}, {"step": 120}, {"step": 130},
+    ]
+
+    selected, roles, evidence = select_contact_panels(
+        tmp_path, records, explicit_transition_step=121,
+    )
+
+    assert selected == [1, 2, 3]
+    assert roles == ["pre-transition", "transition", "post-transition"]
+    assert evidence["selection_basis"] == "explicit_transition_step"
+    assert evidence["requested_transition_step"] == 121
+    assert evidence["selected_transition_step"] == 120
+    assert evidence["preserved_diagnostic_capture_step"] == 101
+    assert evidence["preserved_diagnostic_capture_reasons"] == [
+        "oversensitive_legacy_clipping"
+    ]
