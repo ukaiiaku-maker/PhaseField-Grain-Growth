@@ -197,7 +197,7 @@ def main():
         "triple_junction": triple_junction_check(),
         "restart_topology": restart_and_topology(),
     }
-    gates = {
+    raw_gates = {
         "force_gradient": report["force_gradient"]["maximum_relative_error"] <= 1e-4,
         "a0_exact": report["a0_nesting"]["exact"],
         "planar_finite": all(row["finite"] for row in report["planar"]),
@@ -210,6 +210,7 @@ def main():
         "restart_exact": report["restart_topology"]["restart_exact"],
         "no_resurrection": report["restart_topology"]["no_resurrection"],
     }
+    gates = {name: bool(value) for name, value in raw_gates.items()}
     report["gates"] = gates
     report["passed"] = all(gates.values())
     (args.output / "qualification.json").write_text(json.dumps(report, indent=2) + "\n")
