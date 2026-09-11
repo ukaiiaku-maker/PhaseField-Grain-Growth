@@ -9,7 +9,9 @@ from analyze_qiu_full_field_qualification import (
     capture_assessment,
     compare_timestep_runs,
     load,
+    pre_extinction_precursor,
     sha256,
+    transition_timing,
 )
 
 
@@ -99,3 +101,53 @@ def test_capture_assessment_requires_exact_raw_capture_hash(tmp_path):
 
     with np.testing.assert_raises_regex(ValueError, "SHA-256 mismatch"):
         capture_assessment(tmp_path)
+
+
+def test_transition_timing_separates_extinction_burst_and_morphology():
+    step = np.arange(1, 8)
+    frame = pd.DataFrame({
+        "step": step,
+        "grain_count": [100, 100, 99, 98, 88, 87, 87],
+        "newly_extinct_phases": [0, 0, 1, 1, 10, 1, 0],
+        "largest_100_step_population_loss": [0, 0, 1, 2, 12, 13, 13],
+        "compactness_mean": [1.2, 1.2, 1.3, 1.4, 1.5, 2.6, 2.7],
+        "compactness_max": [1.5, 1.5, 1.6, 1.7, 1.8, 2.0, 6.1],
+        "disconnected_grain_count": [0, 0, 0, 1, 1, 2, 2],
+        "total_energy": [10.0, 9.0, 8.0, 8.1, 7.0, 6.0, 5.0],
+        "stress_linf": np.ones(7),
+        "eigenstrain_linf": np.ones(7),
+    })
+
+    result = transition_timing(frame)
+
+    assert result["first_population_decrease_step"] == 3
+    assert result["first_extinction_step"] == 3
+    assert result["first_disconnected_grain_step"] == 4
+    assert result["first_100_step_population_loss_above_10pct_step"] == 5
+    assert result["first_mean_compactness_above_2p5_step"] == 6
+    assert result["first_max_compactness_above_6_step"] == 7
+    assert result["first_complete_energy_increase_step"] == 4
+    assert result["first_objective_avalanche_indicator_step"] == 5
+
+
+def test_pre_extinction_precursor_uses_only_rows_before_first_extinction():
+    step = np.arange(1, 7)
+    frame = pd.DataFrame({
+        "step": step,
+        "grain_count": [10, 10, 10, 10, 9, 8],
+        "newly_extinct_phases": [0, 0, 0, 0, 1, 1],
+        "disconnected_grain_count": np.zeros(6),
+        "compactness_max": np.ones(6),
+        "source_increment_l2": [1, 2, 3, 4, 100, 100],
+        "stress_linf": [1, 2, 3, 4, 100, 100],
+        "eigenstrain_linf": [1, 2, 3, 4, 100, 100],
+        "interfacial_energy": [1, 2, 3, 4, 100, 100],
+        "elastic_energy": [1, 2, 3, 4, 100, 100],
+        "total_energy": [1, 2, 3, 4, 100, 100],
+    })
+
+    result = pre_extinction_precursor(frame)
+
+    assert result["first_extinction_step"] == 5
+    assert result["step_last"] == 4
+    assert result["source_increment_l2_median_change"] == 2.0

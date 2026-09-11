@@ -61,12 +61,18 @@ def capture_assessment(run: Path) -> dict[str, object]:
         "raw_capture_exists": capture.exists(),
         "raw_capture_path": str(capture.resolve()) if capture.exists() else "",
         "raw_capture_sha256": sha256(capture) if capture.exists() else "",
+        "raw_capture_step": None,
         "accepted_as_transition": capture.exists(),
         "assessment_path": "",
         "assessment_sha256": "",
         "assessment_reason": "",
         "scientific_transition_step": None,
     }
+    if capture.exists():
+        raw = json.loads(capture.read_text())
+        raw_step = raw.get("step")
+        if isinstance(raw_step, int) and not isinstance(raw_step, bool):
+            result["raw_capture_step"] = raw_step
     if not assessment_path.exists():
         return result
     assessment = json.loads(assessment_path.read_text())
@@ -91,6 +97,99 @@ def capture_assessment(run: Path) -> dict[str, object]:
         "assessment_reason": str(assessment["reason"]),
         "scientific_transition_step": transition_step,
     })
+    return result
+
+
+def _first_step(frame: pd.DataFrame, mask: np.ndarray) -> int | None:
+    matches = frame.loc[np.asarray(mask, dtype=bool), "step"]
+    return int(matches.iloc[0]) if not matches.empty else None
+
+
+def transition_timing(frame: pd.DataFrame) -> dict[str, object]:
+    """Locate each objective avalanche indicator without conflating them."""
+    ordered = frame.sort_values("step").reset_index(drop=True)
+    count = np.asarray(ordered["grain_count"], dtype=float)
+    loss100 = np.asarray(ordered["largest_100_step_population_loss"], dtype=float)
+    preceding_count = count + loss100
+    burst_fraction = np.divide(
+        loss100,
+        preceding_count,
+        out=np.zeros_like(loss100),
+        where=preceding_count > 0,
+    )
+    energy = np.asarray(ordered["total_energy"], dtype=float)
+    energy_scale = np.maximum(np.abs(energy[:-1]), 1.0)
+    increases = np.zeros(len(ordered), dtype=bool)
+    increases[1:] = np.diff(energy) > (1e-10 + 1e-10 * energy_scale)
+    nonfinite = np.zeros(len(ordered), dtype=bool)
+    for field in ("total_energy", "stress_linf", "eigenstrain_linf"):
+        nonfinite |= ~np.isfinite(np.asarray(ordered[field], dtype=float))
+    population_change = np.zeros(len(ordered), dtype=bool)
+    population_change[1:] = np.diff(count) < 0
+    timing = {
+        "first_population_decrease_step": _first_step(ordered, population_change),
+        "first_extinction_step": _first_step(
+            ordered, np.asarray(ordered["newly_extinct_phases"], dtype=float) > 0
+        ),
+        "first_100_step_population_loss_above_10pct_step": _first_step(
+            ordered, burst_fraction > 0.10
+        ),
+        "first_mean_compactness_above_2p5_step": _first_step(
+            ordered, np.asarray(ordered["compactness_mean"], dtype=float) > 2.5
+        ),
+        "first_max_compactness_above_6_step": _first_step(
+            ordered, np.asarray(ordered["compactness_max"], dtype=float) > 6.0
+        ),
+        "first_disconnected_grain_step": _first_step(
+            ordered, np.asarray(ordered["disconnected_grain_count"], dtype=float) > 0
+        ),
+        "first_complete_energy_increase_step": _first_step(ordered, increases),
+        "first_nonfinite_critical_field_step": _first_step(ordered, nonfinite),
+        "maximum_100_step_population_loss_fraction": float(np.max(burst_fraction)),
+    }
+    candidates = [
+        timing[key] for key in (
+            "first_100_step_population_loss_above_10pct_step",
+            "first_mean_compactness_above_2p5_step",
+            "first_max_compactness_above_6_step",
+            "first_nonfinite_critical_field_step",
+        ) if timing[key] is not None
+    ]
+    timing["first_objective_avalanche_indicator_step"] = (
+        min(candidates) if candidates else None
+    )
+    return timing
+
+
+def pre_extinction_precursor(frame: pd.DataFrame) -> dict[str, object]:
+    """Summarize feedback changes that precede the first extinction."""
+    ordered = frame.sort_values("step").reset_index(drop=True)
+    extinct = np.asarray(ordered["newly_extinct_phases"], dtype=float) > 0
+    first_extinction = _first_step(ordered, extinct)
+    pre = ordered if first_extinction is None else ordered.loc[ordered["step"] < first_extinction]
+    if pre.empty:
+        return {"available": False, "first_extinction_step": first_extinction}
+    window = min(20, max(1, len(pre) // 2))
+    first = pre.iloc[:window]
+    last = pre.iloc[-window:]
+    result: dict[str, object] = {
+        "available": True,
+        "first_extinction_step": first_extinction,
+        "step_first": int(pre.iloc[0]["step"]),
+        "step_last": int(pre.iloc[-1]["step"]),
+        "grain_count_change": int(pre.iloc[-1]["grain_count"] - pre.iloc[0]["grain_count"]),
+        "maximum_disconnected_grains": int(pre["disconnected_grain_count"].max()),
+        "maximum_compactness": float(pre["compactness_max"].max()),
+    }
+    for field in (
+        "source_increment_l2", "stress_linf", "eigenstrain_linf",
+        "interfacial_energy", "elastic_energy", "total_energy",
+    ):
+        initial = float(first[field].median())
+        final = float(last[field].median())
+        result[f"{field}_initial_20_step_median"] = initial
+        result[f"{field}_final_20_step_median"] = final
+        result[f"{field}_median_change"] = final - initial
     return result
 
 
@@ -230,6 +329,8 @@ def main() -> None:
     manifests: dict[str, dict[str, object]] = {}
     captures: dict[str, bool] = {}
     capture_assessments: dict[str, dict[str, object]] = {}
+    transition_timings: dict[str, dict[str, object]] = {}
+    precursors: dict[str, dict[str, object]] = {}
     matrix: list[dict[str, object]] = []
     for label, path in args.run:
         frame, manifest = load(label, path)
@@ -242,6 +343,21 @@ def main() -> None:
         assessment = capture_assessment(path)
         capture_assessments[label] = assessment
         captures[label] = bool(assessment["accepted_as_transition"])
+        timing = transition_timing(frame)
+        accepted_capture_step = (
+            assessment["raw_capture_step"] if captures[label] else None
+        )
+        explicit_transition_step = assessment["scientific_transition_step"]
+        candidates = [
+            value for value in (
+                timing["first_objective_avalanche_indicator_step"],
+                accepted_capture_step,
+                explicit_transition_step,
+            ) if value is not None
+        ]
+        timing["selected_transition_step"] = min(candidates) if candidates else None
+        transition_timings[label] = timing
+        precursors[label] = pre_extinction_precursor(frame)
         final = frame.iloc[-1]
         internal_source = str(manifest.get("git_sha", ""))
         verified_source = str(manifest.get("verified_source_commit", internal_source))
@@ -259,6 +375,7 @@ def main() -> None:
             "guard_accepted_as_transition": captures[label],
             "guard_assessment_reason": assessment["assessment_reason"],
             "scientific_transition_step": assessment["scientific_transition_step"],
+            "selected_transition_step": timing["selected_transition_step"],
             "guard": capture.read_text().strip() if capture.exists() else "",
             "maximum_equilibrium_residual": float(frame["mechanical_equilibrium_residual"].max()),
             "maximum_relative_work_residual": float(work_relative.max()),
@@ -360,6 +477,8 @@ def main() -> None:
     summary = {
         "schema_version": 1, "runs": matrix, "timestep_comparison": timestep,
         "capture_assessments": capture_assessments,
+        "transition_timings": transition_timings,
+        "pre_extinction_precursors": precursors,
         "plots": {path.name: str(path.resolve()) for path in sorted(plot_dir.glob("*.png"))},
         "scientific_status": (
             "complete_input_set" if timestep["available"] and len(frames) >= 4
