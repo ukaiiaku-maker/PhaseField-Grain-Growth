@@ -69,7 +69,10 @@ byte-identical to the canonical historical frames. That source revision still
 has the original absolute clipping marker, which is oversensitive to ordinary
 double-obstacle projection, but its wrapper explicitly continues after a
 marker. The first marker itself will be excluded while the per-step scalars and
-dense fields continue through 10,246. Prepared fallback
+dense fields continue through 10,246. The replay has now reached step 9,000;
+that frame is byte-identical to history, and the predicted clipping-only marker
+at step 9,001 has zero extinctions and compactness mean/max 1.337/1.448.
+Prepared fallback
 `20260911T101424Z-nogit-6bb2f0` can resume the exact step-8,000 checkpoint with
 the corrected warm-up/relative guard if the active replay fails; it is not to
 be submitted while that replay remains healthy.

@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-11 03:20 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; storage-bounded legacy fallback prepared but not submitted.
+Last update: 2026-09-11 04:04 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; legacy dense diagnostic window active after exact step 9000.
 
 ## Current source state
 
@@ -25,6 +25,7 @@ Last update: 2026-09-11 03:20 PDT; legacy and corrected seed-5101 full-size jobs
 - Matched-time/progress qualification analysis: `78da5ea`.
 - Actual factor-two refinement runner: `a173624`.
 - Bounded legacy-continuation/guard commit: `abde6e0`.
+- Curated transition-contact-sheet commit: `167c30c`.
 - Historical production source: `4761ef957715ba2faa84f015a0e4f4c4cd21c7aa`
 - Historical QIU run: canonical, read-only, all integration-manifest hashes verified
 - Current scientific decision: the historical QIU remains an unresolved non-self-similar transient and its backend is conclusively a legacy FFT eigenstrain surrogate, not the archived current-geometry Qiu reference formulation. The selected qualification backend is therefore honestly named `FFT_EIGENSTRAIN_V2`; production behavior remains pending.
@@ -241,6 +242,21 @@ Last update: 2026-09-11 03:20 PDT; legacy and corrected seed-5101 full-size jobs
   byte-identical to the canonical records through step 8000. This establishes
   exact deterministic historical reproduction before the critical window,
   while leaving terminal avalanche reproduction pending.
+- The replay reached the atomic step-9000/t=360 checkpoint, and its saved
+  step-9000 frame SHA-256
+  `7b5f88ab88daf286a5c8bd1cdd76de18965969c4aaecea7653d0a7af949bbaa8`
+  is byte-identical to the canonical historical frame. As predicted, the old
+  absolute clipping marker fired at step 9001 on clipped fraction 0.2414, with
+  zero extinctions, compactness mean/max 1.337/1.448, and all critical fields
+  finite. That marker is excluded from physical-transition inference; the
+  wrapper continues and is writing per-step scalars and fields.
+- A concurrency-safe recovery assembled from the atomic step-9000 checkpoint
+  plus explicitly closed step-9001 scalar/field files is durable under
+  `hpc_live/20260911T110245Z-legacy`. Its matching local/remote archive SHA-256
+  is `20861606468eb6be39ae4012d7872e31ffd1e092fa7a71893586050e13ab3cea`;
+  the step-9001 audit SHA-256 is
+  `56c46c69da1d53528f46eaa91292445e9fdabfe7c9281856d3289bef865a00bf`.
+  This snapshot remains nonterminal and nonpoolable.
 - The active legacy source commit `147141b` predates the relative clipping-guard
   correction and therefore still treats ordinary double-obstacle clipping
   (about 0.24 at a two-step step-8000 continuation smoke test) as a trigger at
@@ -306,6 +322,11 @@ Last update: 2026-09-11 03:20 PDT; legacy and corrected seed-5101 full-size jobs
   pre/transition/post contact-sheet panel metadata. Two focused tests and a
   two-frame 384x384 GIF/contact-sheet smoke render pass; FFmpeg is unavailable,
   so GIF is the retained animation format unless it is installed later.
+- Commit `167c30c` adds an explicit, metadata-recorded transition-step override
+  for legacy contact sheets. It preserves the raw diagnostic-capture path,
+  step, and reasons while centering pre/transition/post panels on the onset
+  selected from the completed per-step scientific analysis. Five focused tests
+  and a full-size seven-frame renderer smoke test pass.
 - A step-500 live render exposed that sparse-cadence ordinary coarsening could
   be mislabeled as a transition by the contact-sheet selector. The selector now
   centers pre/transition/post panels only on the recorded diagnostic-capture

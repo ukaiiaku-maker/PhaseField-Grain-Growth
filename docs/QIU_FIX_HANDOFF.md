@@ -63,16 +63,20 @@ legacy step-1500 recovery archive, including checkpoint and evolution frames,
 is at `hpc_live/20260911T013800Z-legacy` with SHA-256
 `b8ae0b4205a1074dacef9cef7633442ea7b6a6ba743145662952bdb34a5e182a`.
 The newest legacy recovery archive is
-`hpc_live/20260911T100125Z-legacy`: checkpoint step 8000/t=320, 17 retained
-evolution frames through step 8000, and SHA-256
-`d0b093ec1d3e3a4f5656d9009c381609c61925fb70a9061fff76b25dbf1dbbe5`.
+`hpc_live/20260911T110245Z-legacy`: atomic checkpoint step 9000/t=360, 18
+retained evolution frames through step 9000, the explicitly closed step-9001
+scalar/field capture, and SHA-256
+`20861606468eb6be39ae4012d7872e31ffd1e092fa7a71893586050e13ab3cea`.
 It is nonterminal and must not be pooled as production evidence.
-All 17 common frames through step 8000 are byte-identical to the canonical
+All 18 common frames through step 9000 are byte-identical to the canonical
 historical files, with a second array-level bitwise comparison also passing.
-The checkpoint-bounded grain and boundary tracks are likewise byte-identical
-after dropping only the intentionally different run-ID column.
-The evidence JSON beside the archive has SHA-256
+The checkpoint-bounded grain and boundary tracks through step 8000 are likewise
+byte-identical after dropping only the intentionally different run-ID column.
+The step-8000 equivalence JSON has SHA-256
 `7277391fdd27816802a7ec4c86ab2578988024531ee80583c890d89ea9aa962d`.
+The step-9001 audit explicitly classifies its zero-extinction clipping marker as
+oversensitive and has SHA-256
+`56c46c69da1d53528f46eaa91292445e9fdabfe7c9281856d3289bef865a00bf`.
 
 The corrected step-1000 recovery has also been exercised through the final
 renderer. Its seven-frame preview animation, SHA-indexed frame CSV, metadata,
@@ -154,3 +158,6 @@ initial/midpoint/terminal roles, avoiding false event labels from ordinary
 population loss between sparse frames.
 The complete post-correction suite passes 229/229 tests; durable JUnit SHA-256
 is `29a634fcaddb3f2a341a434d803f3e9ea8e25547d72c453b70616c748505eab5`.
+For the legacy replay, use the renderer's `--transition-step` override added at
+commit `167c30c`; this keeps the oversensitive raw step-9001 capture provenance
+but centers the final contact sheet on the onset selected from per-step data.
