@@ -1401,9 +1401,15 @@ class EventResolvedSimulation:
                     if energy_interval is not None
                     else (self.solver.step_number + 1) % energy_cadence == 0
                 )
-                diag = self.solver.step(
-                    dt=requested_dt, compute_energy=energy_due
-                )
+                if requested_dt == self.config.pf.time_step and energy_due:
+                    # Preserve the historical call contract as well as its
+                    # arithmetic when no physical-horizon truncation or sparse
+                    # diagnostic was requested.
+                    diag = self.solver.step()
+                else:
+                    diag = self.solver.step(
+                        dt=requested_dt, compute_energy=energy_due
+                    )
                 self._accepted_step_dt = float(diag.dt)
                 self._accepted_step_start_time = float(diag.time - diag.dt)
                 output_due = (
