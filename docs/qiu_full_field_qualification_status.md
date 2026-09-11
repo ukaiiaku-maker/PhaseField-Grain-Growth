@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-11 01:45 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; legacy recovery advanced to step 7000.
+Last update: 2026-09-11 03:01 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; legacy recovery advanced to step 8000.
 
 ## Current source state
 
@@ -187,6 +187,14 @@ Last update: 2026-09-11 01:45 PDT; legacy and corrected seed-5101 full-size jobs
   `hpc_live/20260911T082618Z-corrected`; matching local/remote archive SHA-256
   `f1fdd7f98987a2e8373e4ef6c6ad7932d788234e19e3b53cb28f9eec089b5bfc`.
   This snapshot remains explicitly nonterminal and nonpoolable.
+- The recovered corrected step-1000 fields were passed through the final movie
+  pipeline. The resulting seven-frame GIF, SHA-indexed frame table, JSON
+  metadata, and contact sheet are retained beside the snapshot as
+  `corrected-step1000-preview.*`. The selector correctly used neutral
+  initial/midpoint/terminal roles because no diagnostic capture exists; visual
+  inspection shows smooth coarsening and spatially resolved, finite stress and
+  eigenstrain fields. This is a renderer/data-retention check, not a terminal
+  production movie or scientific endpoint.
 - The legacy step-1500 checkpoint plus all then-available movie frames were
   copied without pausing the solver to local recovery archive
   `hpc_live/20260911T013800Z-legacy`, SHA-256
@@ -214,6 +222,12 @@ Last update: 2026-09-11 01:45 PDT; legacy and corrected seed-5101 full-size jobs
   rehashed on HPC3 and locally under `hpc_live/20260911T083849Z-legacy`.
   Matching archive SHA-256 is
   `89e04dcd7b0f95b2e950b52f001b6dcf8d922ffa148f1be100d4f6462703bf6e`;
+  this recovery copy remains explicitly nonterminal and nonpoolable.
+- At 03:01 PDT, legacy reached step 8000/t=320. A further complete checkpoint
+  and all 17 saved evolution frames through step 8000 were copied, independently
+  rehashed on HPC3 and locally, and retained under
+  `hpc_live/20260911T100125Z-legacy`. Matching archive SHA-256 is
+  `d0b093ec1d3e3a4f5656d9009c381609c61925fb70a9061fff76b25dbf1dbbe5`;
   this recovery copy remains explicitly nonterminal and nonpoolable.
 - The active HPC application manifests say `UNCOMMITTED` because their scripts
   queried Git from the parent stage directory. This does not make their source

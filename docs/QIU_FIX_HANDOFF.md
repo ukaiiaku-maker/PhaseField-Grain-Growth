@@ -63,10 +63,16 @@ legacy step-1500 recovery archive, including checkpoint and evolution frames,
 is at `hpc_live/20260911T013800Z-legacy` with SHA-256
 `b8ae0b4205a1074dacef9cef7633442ea7b6a6ba743145662952bdb34a5e182a`.
 The newest legacy recovery archive is
-`hpc_live/20260911T083849Z-legacy`: checkpoint step 7000/t=280, 16 retained
-evolution frames through step 7000, and SHA-256
-`89e04dcd7b0f95b2e950b52f001b6dcf8d922ffa148f1be100d4f6462703bf6e`.
+`hpc_live/20260911T100125Z-legacy`: checkpoint step 8000/t=320, 17 retained
+evolution frames through step 8000, and SHA-256
+`d0b093ec1d3e3a4f5656d9009c381609c61925fb70a9061fff76b25dbf1dbbe5`.
 It is nonterminal and must not be pooled as production evidence.
+
+The corrected step-1000 recovery has also been exercised through the final
+renderer. Its seven-frame preview animation, SHA-indexed frame CSV, metadata,
+and neutral initial/midpoint/terminal contact sheet are retained as
+`hpc_live/20260911T082618Z-corrected/corrected-step1000-preview.*`. These prove
+movie reconstruction from the retained cadence but are not terminal products.
 
 The refinement and seed-5102/5103 job directories are staged but unplanned and
 unsubmitted. All three now contain the verified `a173624` bundle with SHA-256
