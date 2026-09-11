@@ -161,6 +161,10 @@ Last update: 2026-09-10 18:30 PDT; legacy and corrected seed-5101 full-size jobs
   norms, checks avalanche-class consistency, honors explicit source
   attestations, and creates dedicated timestep, legacy/corrected, and seed
   comparison plots. Its three focused tests pass.
+- The complete latest branch suite passes 218/218 tests in 73.43 s with zero
+  failures/errors/skips. The durable JUnit is
+  `results/validation/qiu_fix_provenance_analysis_tests.xml`, SHA-256
+  `c43697f80a640194da43ce6cb40410f334e604ec6afd821a9fce67cb3df8f28b`.
 - The accepted fixed-physical-domain reduced spatial study is
   `20260911T013000Z-spatial-convergence-r2` at dx=1, 0.5, and 0.25. At matched
   t=4 every grid gives N=17 and the same physical population grain size. From

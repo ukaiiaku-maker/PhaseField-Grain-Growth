@@ -32,6 +32,12 @@ The current qualification branch, including analysis and movie-index tooling,
 passes **216/216 tests in 76.82 s**. Its JUnit SHA-256 is
 `33cc6789dc661d66bc58ac76fcde7e003ef27daf536a38ebd81dda9046e82b8a`.
 
+After the staged-repository provenance correction and matched-time/matched-
+progress production comparison additions, the complete suite passes
+**218/218 tests in 73.43 s** with zero failures, errors, or skips. The retained
+JUnit is `results/validation/qiu_fix_provenance_analysis_tests.xml`, SHA-256
+`c43697f80a640194da43ce6cb40410f334e604ec6afd821a9fce67cb3df8f28b`.
+
 Production-scale analysis of 31,255,548 primitive rows is numerically equivalent
 after switching event diagnostics to bounded-memory checkpoint-part streaming: the
 summary CSV is byte-identical and diagnostic differences are limited to provenance
