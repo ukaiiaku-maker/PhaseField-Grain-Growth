@@ -177,6 +177,9 @@ class QiuForensicRecorder:
         self.clip_spike_additive = float(parameters.get("qiu_guard_clip_additive", 0.05))
         self.clip_warmup = int(parameters.get("qiu_guard_clip_warmup_steps", 20))
         self.extinction_spike = int(parameters.get("qiu_guard_extinction_count", 10))
+        self.population_loss_fraction = float(
+            parameters.get("qiu_guard_population_loss_fraction", 0.10)
+        )
         self.terminate_on_guard = bool(parameters.get("qiu_guard_terminate", True))
         self.scalar_rows: list[dict[str, Any]] = []
         self.boundary_rows: list[dict[str, Any]] = []
@@ -340,7 +343,7 @@ class QiuForensicRecorder:
 
     def _evaluate_guard(self, row: dict[str, Any], simulation: Any) -> None:
         reasons: list[str] = []
-        if row["largest_100_step_population_loss"] > 0.10 * max(
+        if row["largest_100_step_population_loss"] > self.population_loss_fraction * max(
             row["grain_count"] + row["largest_100_step_population_loss"], 1
         ):
             reasons.append("grain_count_drop_gt_10pct_in_100_steps")

@@ -15,6 +15,8 @@ Last update: 2026-09-10, 384x384 corrected preflight accepted; legacy replay run
 - Worktree: `/private/tmp/qiu-full-field-qualification-v1`
 - Reduced-matrix commit: `9edbd0f32625604e0d43334842a7ad024dbbe7a3`.
 - Scalable production runner commits: `6eb5977`, `8bb7837`.
+- Spatial-convergence commit: `c9813b5`.
+- Qualification-movie renderer commit: `847eb06`.
 - Historical production source: `4761ef957715ba2faa84f015a0e4f4c4cd21c7aa`
 - Historical QIU run: canonical, read-only, all integration-manifest hashes verified
 - Current scientific decision: the historical QIU remains an unresolved non-self-similar transient and its backend is conclusively a legacy FFT eigenstrain surrogate, not the archived current-geometry Qiu reference formulation. The selected qualification backend is therefore honestly named `FFT_EIGENSTRAIN_V2`; production behavior remains pending.
@@ -134,6 +136,16 @@ Last update: 2026-09-10, 384x384 corrected preflight accepted; legacy replay run
   difference. Elastic energy density differs by 3.73% (a failed 2% gate) while
   remaining about 4e-6 in absolute density; this is retained as a narrow
   spatial-convergence limitation rather than hidden.
+- The long reduced target study at
+  `20260911T011000Z-reduced-timestep-convergence-r2` carries both target=0.02
+  and target=0.01 from N=18 to N=5 at step 2405/t=96.2. The trajectories are
+  bitwise identical, all observable tolerances pass, equilibrium residual stays
+  below `4.6e-13`, and no guard or energy rejection occurs. This is explicitly
+  *not* counted as exercised target convergence: the minimum external limits
+  are 6.91 and 3.45, both far above dt=0.04. Full production refinement remains
+  mandatory. Superseded attempt `20260911T010000Z-reduced-timestep-convergence`
+  is excluded because the production 10% population guard is inappropriate in
+  an 18-grain cell and stopped ordinary two-grain loss at step 167.
 
 ## Decisions recorded
 
