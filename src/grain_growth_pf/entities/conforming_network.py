@@ -75,14 +75,27 @@ def reconstruct_periodic(eta, dx=1.):
     _, height, width = eta.shape
     box = np.array([width, height])*dx
     node_index, vertices, edge_map = {}, [], {}
+    tolerance = 1e-10*dx
+    bucket_period = np.rint(box/tolerance).astype(np.int64)
     def node(point):
         point = np.mod(point, box)
-        point[np.isclose(point, box, atol=1e-10, rtol=0)] = 0
-        key = tuple(np.round(point/dx, 9))
-        if key not in node_index:
-            node_index[key] = len(vertices)
-            vertices.append(point)
-        return node_index[key]
+        key_array = np.floor(point/tolerance).astype(np.int64) % bucket_period
+        # Equality of rounded coordinates is not a tolerance predicate:
+        # two roundoff-separated evaluations can straddle a rounding bin.
+        # Check neighboring periodic buckets and actual minimum-image distance.
+        for offset_x in (-1, 0, 1):
+            for offset_y in (-1, 0, 1):
+                nearby = tuple((key_array+[offset_x, offset_y]) % bucket_period)
+                for index in node_index.get(nearby, ()):
+                    delta = point-vertices[index]
+                    delta -= np.round(delta/box)*box
+                    if np.linalg.norm(delta) <= tolerance:
+                        return index
+        key = tuple(key_array)
+        index = len(vertices)
+        node_index.setdefault(key, []).append(index)
+        vertices.append(point)
+        return index
     for y in range(height):
         for x in range(width):
             coords = np.array([[x, y], [x+1, y], [x+1, y+1], [x, y+1]], float)*dx
@@ -114,7 +127,7 @@ def reconstruct_periodic(eta, dx=1.):
             if len(ps) != 3 or len(set(ps)) != 3 or len(grains) != 3:
                 raise ValueError("unresolved higher-order junction")
         elif len(ps) != 2:
-            raise ValueError("unclosed periodic boundary")
+            raise ValueError(f"unclosed periodic boundary at {vertices[v].tolist()}: incident pairs {ps}")
     vertices = np.asarray(vertices)
     edges = np.asarray(list(edge_map), int)
     pairs = np.asarray(list(edge_map.values()), int)
