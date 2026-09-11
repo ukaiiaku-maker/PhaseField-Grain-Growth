@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-10 23:05 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; legacy recovery advanced to step 5000.
+Last update: 2026-09-11 01:30 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; corrected recovery advanced to step 1000.
 
 ## Current source state
 
@@ -176,6 +176,17 @@ Last update: 2026-09-10 23:05 PDT; legacy and corrected seed-5101 full-size jobs
   `hpc_live/20260911T044539Z-corrected`; matching local/remote archive SHA-256
   `9ec285d7213768c446ccc34b5996f352b510160c3f049b4cc5cf43c1b50d40fe`.
   This snapshot is explicitly nonterminal and nonpoolable.
+- Corrected seed 5101 later reached step 1000/t=40/N=460. Its durable recovery
+  archive contains all 1000 contiguous scalar rows in 64 closed parts, six
+  compact frames through step 1000, and dense full fields at steps 500 and
+  1000. The formal audit still finds zero complete-energy increases and coupled
+  rejections, no diagnostic capture, finite critical fields, maximum
+  equilibrium residual `3.42e-12`, maximum absolute source-work error
+  `1.42e-7`, maximum compactness 1.795, and zero disconnected grains. The
+  minimum external limit is 4.28 versus used dt 0.04. Durable path:
+  `hpc_live/20260911T082618Z-corrected`; matching local/remote archive SHA-256
+  `f1fdd7f98987a2e8373e4ef6c6ad7932d788234e19e3b53cb28f9eec089b5bfc`.
+  This snapshot remains explicitly nonterminal and nonpoolable.
 - The legacy step-1500 checkpoint plus all then-available movie frames were
   copied without pausing the solver to local recovery archive
   `hpc_live/20260911T013800Z-legacy`, SHA-256

@@ -46,8 +46,8 @@ acknowledgement; Slurm confirmed the original job before any duplicate launch.
 - First corrected live snapshot:
   `hpc_live/20260911T012000Z-corrected` under the durable root.
 - Latest corrected restart snapshot:
-  `hpc_live/20260911T044539Z-corrected`, step 500/t=20/N=587, archive
-  SHA-256 `9ec285d7213768c446ccc34b5996f352b510160c3f049b4cc5cf43c1b50d40fe`.
+  `hpc_live/20260911T082618Z-corrected`, step 1000/t=40/N=460, archive
+  SHA-256 `f1fdd7f98987a2e8373e4ef6c6ad7932d788234e19e3b53cb28f9eec089b5bfc`.
 
 Live snapshots contain only atomically closed Parquet parts and are marked
 `pooling_allowed=false`. The active jobs retain checkpoint cadence <=500 and
