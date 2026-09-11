@@ -90,21 +90,24 @@ Its immutable wrapper does request continuation after a capture, so it should
 continue to the historical endpoint; exclude only that oversensitive first
 marker, not the continued trajectory. The old recorder will save one compressed
 guard field per subsequent step, so monitor its 100-GB scratch allocation.
-Prepared fallback plan `20260911T101424Z-nogit-6bb2f0` resumes the exact step-8000 archive
-with source `abde6e0eb5af3b50425856602f5a0d15300a63bc`, source-bundle SHA-256
-`f9fc6f7ab9d5097d444b3202cd11d34b28425de44e1317f9980e85bdcf08e632`,
-and recovery SHA-256
-`d0b093ec1d3e3a4f5656d9009c381609c61925fb70a9061fff76b25dbf1dbbe5`.
-It uses the corrected warm-up/relative guard, continues through the historical
-endpoint, and returns to ten-step dense-field cadence after saving one guard
-field. It is prepared only and must not be submitted unless the active legacy
-replay fails before producing a checksummed terminal result. A matched
-full-size two-step smoke from the step-8000 archive found all seven checkpoint
-arrays bitwise identical and the nondiagnostic checkpoint state identical
-between active source `147141b` and fallback source `abde6e0`; only the
-read-only guard decision differed. The evidence JSON beside the recovery
-archive has SHA-256
-`5c5543ecbc51201cecbfe4e01ffcbb2c6cc97c835e265d319a735c46b2e5204c`.
+The first 16 dense-window rows show that this same active source also misses
+closure-specific source/work hooks: those two columns are undefined and the
+per-boundary diagnostic stream is empty. Its exact trajectory/fields remain
+usable, but a second continuation is required for this gate.
+
+Prepared plan `20260911T101424Z-nogit-6bb2f0` is superseded before submission
+and must never be launched. Its replacement is immutable plan
+`20260911T111913Z-nogit-06fc67`, which resumes the clean atomic step-9000 state
+using source `bebd53b8706301715c216dafe224f2e0c4180aaa`, source-bundle SHA-256
+`d024b52083f7f1c4042d4d8a99987cff8c5c17160499c8d2bbbc2d4d1f8cffb5`,
+and clean recovery SHA-256
+`bb7d4bdbd23c336f388ee28872155aea0ef280835bc87588edc8bae0b8c76e20`.
+Its immutable HPC input SHA-256 is
+`55e7d13a136b7876eb198ba382f285e34036847dcbb8008644d1b58ca4374108`.
+A paired full-size two-step smoke is bitwise trajectory-identical to active
+source `147141b`, while producing finite source energy/work and 4,078 finite
+per-boundary records. Evidence JSON SHA-256:
+`1a8b4b7d8a553e2984f5739170c773ef83bc633a28e10484c8f5aa0ab0763fa7`.
 
 The refinement is prepared as immutable, unsubmitted plan
 `20260911T110924Z-nogit-6b926f`; its HPC input archive SHA-256 is
@@ -130,11 +133,10 @@ source SHAs, and missing gate groups.
 ## Next execution order
 
 1. Retrieve and audit the first terminal active job; retain remote data.
-2. If the original legacy replay completed through the endpoint, exclude only
-   its oversensitive first marker and launch seed-5101 target=0.01. If it failed,
-   launch the prepared corrected-guard continuation from step 8000 instead.
-3. When the next slot frees, launch whichever comes next in the queue:
-   seed-5101 refinement first, then corrected seeds 5102 and 5103.
+2. When the original legacy replay frees its slot, launch source/work
+   continuation `20260911T111913Z-nogit-06fc67` from the exact step-9000 state.
+3. When the next slot frees, launch seed-5101 refinement, then corrected seeds
+   5102 and 5103 in that order.
 4. Prepare/hash the two additional 384x384 initial states with the same
    1068-to-800 equilibration/compaction protocol, then run the corrected model.
 5. Run `scripts/analyze_qiu_full_field_qualification.py` on terminal paths.

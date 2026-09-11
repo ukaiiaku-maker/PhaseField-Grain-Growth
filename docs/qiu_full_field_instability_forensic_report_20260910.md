@@ -72,10 +72,14 @@ marker. The first marker itself will be excluded while the per-step scalars and
 dense fields continue through 10,246. The replay has now reached step 9,000;
 that frame is byte-identical to history, and the predicted clipping-only marker
 at step 9,001 has zero extinctions and compactness mean/max 1.337/1.448.
-Prepared fallback
-`20260911T101424Z-nogit-6bb2f0` can resume the exact step-8,000 checkpoint with
-the corrected warm-up/relative guard if the active replay fails; it is not to
-be submitted while that replay remains healthy.
+The first 16 scalar rows also reveal a read-only instrumentation omission in
+the production closure override: source-energy/work values are undefined and
+no per-boundary rows are emitted, although trajectory fields remain valid.
+Commit `bebd53b` adds those recorder hooks without changing any numerical array;
+a paired full-size two-step smoke is bitwise trajectory-identical and produces
+finite source/work plus 4,078 boundary rows. Immutable prepared continuation
+`20260911T111913Z-nogit-06fc67` resumes the clean exact step-9,000 checkpoint
+and will provide the required terminal source/work record after a slot frees.
 
 ## Corrected model
 

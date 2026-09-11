@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-11 04:04 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; legacy dense diagnostic window active after exact step 9000.
+Last update: 2026-09-11 04:20 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; closure-specific source/work continuation prepared after a read-only instrumentation audit.
 
 ## Current source state
 
@@ -26,6 +26,7 @@ Last update: 2026-09-11 04:04 PDT; legacy and corrected seed-5101 full-size jobs
 - Actual factor-two refinement runner: `a173624`.
 - Bounded legacy-continuation/guard commit: `abde6e0`.
 - Curated transition-contact-sheet commit: `167c30c`.
+- Closure-specific source/work instrumentation commit: `bebd53b`.
 - Historical production source: `4761ef957715ba2faa84f015a0e4f4c4cd21c7aa`
 - Historical QIU run: canonical, read-only, all integration-manifest hashes verified
 - Current scientific decision: the historical QIU remains an unresolved non-self-similar transient and its backend is conclusively a legacy FFT eigenstrain surrogate, not the archived current-geometry Qiu reference formulation. The selected qualification backend is therefore honestly named `FFT_EIGENSTRAIN_V2`; production behavior remains pending.
@@ -257,6 +258,27 @@ Last update: 2026-09-11 04:04 PDT; legacy and corrected seed-5101 full-size jobs
   the step-9001 audit SHA-256 is
   `56c46c69da1d53528f46eaa91292445e9fdabfe7c9281856d3289bef865a00bf`.
   This snapshot remains nonterminal and nonpoolable.
+- The first 16 active-replay rows (steps 9001--9016) have finite morphology,
+  stress, eigenstrain, and energy, with N fixed at 495 and no extinction. They
+  also exposed that `MigrationClosureSimulation._update_physics` overrides the
+  instrumented base method: its active source revision never seeds the
+  per-source energy baseline or per-boundary recorder, leaving
+  `source_elastic_energy_change`/`source_work_error` undefined and the boundary
+  stream empty. This is a read-only evidence defect, not a trajectory change.
+  The active replay remains authoritative for exact trajectory/dense fields but
+  is insufficient by itself for the source/work gate.
+- Commit `bebd53b` adds the missing closure-specific recorder hooks: it resets
+  only the read-only per-step source accumulator, seeds the pre-source energy,
+  and records the unchanged midpoint source event and old-stress work. A paired
+  full-size step-9000-to-9002 smoke test is bitwise identical in all seven
+  numerical checkpoint arrays and identical in all nondiagnostic state. The
+  corrected stream has finite per-step source energy/work and 4,078 finite
+  per-boundary rows; its large work mismatch is exposed rather than corrected.
+  Evidence JSON SHA-256:
+  `1a8b4b7d8a553e2984f5739170c773ef83bc633a28e10484c8f5aa0ab0763fa7`.
+- The complete suite after this read-only correction passes 233/233 in 38.76 s
+  with zero failures/errors/skips. JUnit SHA-256 is
+  `c6d732402d0fab27fd9dfdfbbceae370be7e19fe6ec82dd7b005f08f441da2dd`.
 - The active legacy source commit `147141b` predates the relative clipping-guard
   correction and therefore still treats ordinary double-obstacle clipping
   (about 0.24 at a two-step step-8000 continuation smoke test) as a trigger at
@@ -281,14 +303,19 @@ Last update: 2026-09-11 04:04 PDT; legacy and corrected seed-5101 full-size jobs
   The complete suite
   passes 231/231 in 39.25 s; JUnit SHA-256 is
   `7ec04ae5216a61d2a8887238241964f8a0d91672f22aacaacabe942950871c38`.
-- Immutable fallback plan `20260911T101424Z-nogit-6bb2f0` is prepared but
-  intentionally unsubmitted while the original replay remains healthy. It asserts source
-  `abde6e0eb5af3b50425856602f5a0d15300a63bc`, source-bundle SHA-256
-  `f9fc6f7ab9d5097d444b3202cd11d34b28425de44e1317f9980e85bdcf08e632`,
-  and step-8000 recovery SHA-256
-  `d0b093ec1d3e3a4f5656d9009c381609c61925fb70a9061fff76b25dbf1dbbe5`.
-  Submit it only if the active replay fails before a checksummed terminal result;
-  otherwise retain it as an unused contingency and launch the refinement next.
+- Prepared plan `20260911T101424Z-nogit-6bb2f0` is superseded before submission
+  because it corrected guard/storage semantics but did not yet add the missing
+  closure-specific source/work recorder hooks. It remains `PREPARED` with no
+  Slurm job and must never be submitted.
+- Immutable source/work continuation plan `20260911T111913Z-nogit-06fc67` is
+  prepared but not submitted while two workers remain active. It resumes the
+  clean, canonical-matching atomic step-9000 checkpoint and asserts source
+  `bebd53b8706301715c216dafe224f2e0c4180aaa`, source-bundle SHA-256
+  `d024b52083f7f1c4042d4d8a99987cff8c5c17160499c8d2bbbc2d4d1f8cffb5`,
+  clean recovery SHA-256
+  `bb7d4bdbd23c336f388ee28872155aea0ef280835bc87588edc8bae0b8c76e20`,
+  and immutable HPC input SHA-256
+  `55e7d13a136b7876eb198ba382f285e34036847dcbb8008644d1b58ca4374108`.
 - The active HPC application manifests say `UNCOMMITTED` because their scripts
   queried Git from the parent stage directory. This does not make their source
   ambiguous: both immutable wrappers assert the detached commit and verify the
@@ -403,7 +430,7 @@ Last update: 2026-09-11 04:04 PDT; legacy and corrected seed-5101 full-size jobs
 
 Continue monitoring both immutable HPC jobs without adding a third full worker.
 Retrieve and checksum each terminal result. If the legacy replay completes
-through its endpoint, exclude only the oversensitive first marker and launch the
-factor-two target refinement when that slot is verified free. Submit the
-step-8000 corrected-guard continuation only if the active replay fails before a
-checksummed terminal result.
+through its endpoint, retain it for exact trajectory/dense-field evidence but
+launch prepared source/work continuation `20260911T111913Z-nogit-06fc67` when
+that slot is verified free. The factor-two refinement follows after the
+source/work continuation or another active worker reaches terminal state.
