@@ -82,6 +82,7 @@ def main() -> None:
     parser.add_argument("initial_state", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--max-steps", type=int)
+    parser.add_argument("--seed", type=int)
     parser.add_argument("--target", type=float)
     parser.add_argument("--field-cadence", type=int)
     parser.add_argument("--expected-initial-sha256")
@@ -101,6 +102,7 @@ def main() -> None:
         parameters["qiu_diagnostic_field_cadence"] = args.field_cadence
     config = replace(
         config, parameters=parameters,
+        seed=config.seed if args.seed is None else args.seed,
         max_steps=config.max_steps if args.max_steps is None else args.max_steps,
     )
     resume = (args.output / "checkpoint.npz").exists()
