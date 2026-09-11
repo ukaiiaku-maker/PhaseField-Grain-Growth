@@ -133,13 +133,15 @@ Last update: 2026-09-10, 384x384 corrected preflight accepted; legacy replay run
   two-full-worker ceiling. A delayed acknowledgement was reconciled against
   Slurm before retry; unused plan `20260911T004157Z-nogit-7dd0b1` remains only
   `PREPARED` and was never submitted.
-- A fixed-physical-domain reduced spatial study at dx=1 and dx=0.5 is under
-  `20260911T004500Z-spatial-convergence`. At matched t=4 it gives identical
-  N=17 and population grain size, 0.78% interfacial/total-energy-density
-  differences, 2.24% stress-p95 difference, and 1.40% mean-compactness
-  difference. Elastic energy density differs by 3.73% (a failed 2% gate) while
-  remaining about 4e-6 in absolute density; this is retained as a narrow
-  spatial-convergence limitation rather than hidden.
+- The accepted fixed-physical-domain reduced spatial study is
+  `20260911T013000Z-spatial-convergence-r2` at dx=1, 0.5, and 0.25. At matched
+  t=4 every grid gives N=17 and the same physical population grain size. From
+  dx=0.5 to 0.25, differences are 0.22% in interfacial/total-energy density,
+  2.77% in stress p95, 0.14% in mean compactness, and 1.48% in compactness p95.
+  Elastic-energy density improves from a 3.73% coarse-pair difference to 2.59%
+  on the finest pair but still fails the requested 2% sensitivity threshold;
+  it remains about 4e-6 in absolute density. The convergence trend and narrow
+  failed gate are retained honestly. The earlier two-grid study is superseded.
 - The long reduced target study at
   `20260911T011000Z-reduced-timestep-convergence-r2` carries both target=0.02
   and target=0.01 from N=18 to N=5 at step 2405/t=96.2. The trajectories are

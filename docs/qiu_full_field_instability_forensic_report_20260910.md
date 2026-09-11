@@ -132,13 +132,15 @@ inconclusive as target-refinement evidence; production refinement is required.
 
 ## Spatial evidence
 
-The fixed-physical-domain dx=1 versus dx=0.5 comparison preserves domain size,
-interface width, initial grain density, and normalized seed coordinates. At
-matched t=4 it has identical N=17 and G; differences are 0.78% for
-interfacial/total energy density, 2.24% for stress p95, and 1.40% for mean
-compactness. Elastic energy density differs by 3.73%, failing the requested 2%
-sensitivity threshold despite its small absolute value (~4e-6). This narrow
-limitation remains open.
+The accepted fixed-physical-domain dx=1, 0.5, and 0.25 comparison preserves
+domain size, interface width, initial grain density, and normalized seed
+coordinates. At matched t=4 all grids have N=17 and identical physical G. For
+dx=0.5 versus 0.25, differences are 0.22% for interfacial/total energy density,
+2.77% for stress p95, 0.14% for mean compactness, and 1.48% for compactness p95.
+Elastic-energy density improves from a 3.73% coarse-pair difference to 2.59%
+on the finest pair, still narrowly failing the requested 2% sensitivity
+threshold despite its small absolute value (~4e-6). The trend is convergent,
+but the narrow limitation remains open rather than being rounded into a pass.
 
 ## Full-scale campaign state
 

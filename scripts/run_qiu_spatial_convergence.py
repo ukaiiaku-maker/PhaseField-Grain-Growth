@@ -34,13 +34,20 @@ def main() -> None:
     parser.add_argument("--physical-time", type=float, default=4.0)
     parser.add_argument("--grains", type=int, default=18)
     parser.add_argument("--seed", type=int, default=5101)
+    parser.add_argument(
+        "--dxs", default="1,0.5,0.25",
+        help="Comma-separated grid spacings, ordered coarse to fine.",
+    )
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
     source_sha = git_sha()
     histories: dict[str, object] = {}
     rows: list[dict[str, object]] = []
 
-    for dx in (1.0, 0.5):
+    spacings = tuple(float(value) for value in args.dxs.split(","))
+    if len(spacings) < 2 or any(dx <= 0.0 for dx in spacings):
+        raise SystemExit("--dxs requires at least two positive grid spacings")
+    for dx in spacings:
         label = f"dx-{dx:g}"
         pixels = int(round(args.physical_size / dx))
         dt = 0.04 * dx * dx
@@ -115,16 +122,22 @@ def main() -> None:
             "initial_state_sha256": sha256(initial), "run_path": str(run.resolve()),
         })
 
-    coarse, fine = rows
-    relative = {
-        key: abs(float(fine[key]) - float(coarse[key])) /
-        max(abs(float(fine[key])), np.finfo(float).eps)
-        for key in (
-            "G_population", "interfacial_energy_density", "elastic_energy_density",
-            "total_energy_density", "stress_p95", "compactness_mean",
-            "compactness_p95",
-        )
-    }
+    comparison_keys = (
+        "G_population", "interfacial_energy_density", "elastic_energy_density",
+        "total_energy_density", "stress_p95", "compactness_mean",
+        "compactness_p95",
+    )
+    adjacent = []
+    for coarse, fine in zip(rows[:-1], rows[1:]):
+        adjacent.append({
+            "coarse": coarse["label"], "fine": fine["label"],
+            "relative_differences": {
+                key: abs(float(fine[key]) - float(coarse[key])) /
+                max(abs(float(fine[key])), np.finfo(float).eps)
+                for key in comparison_keys
+            },
+        })
+    relative = adjacent[-1]["relative_differences"]
     gates = {
         "G_within_1pct": relative["G_population"] <= 0.01,
         "interfacial_energy_within_2pct": relative["interfacial_energy_density"] <= 0.02,
@@ -157,7 +170,9 @@ def main() -> None:
         "study": "fixed physical domain, interface width, grain density, and normalized seeds",
         "physical_size": args.physical_size, "physical_time": args.physical_time,
         "initial_grains": args.grains, "runs": rows,
-        "fine_relative_to_coarse": relative, "production_threshold_gates": gates,
+        "adjacent_grid_comparisons": adjacent,
+        "finest_pair_relative_differences": relative,
+        "production_threshold_gates": gates,
         "scope": "reduced-domain spatial convergence; not a full production trajectory",
     }
     atomic_write_text(args.output / "spatial_convergence_summary.json", json.dumps(summary, indent=2) + "\n")
