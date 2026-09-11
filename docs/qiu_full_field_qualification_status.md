@@ -235,9 +235,12 @@ Last update: 2026-09-11 03:20 PDT; legacy and corrected seed-5101 full-size jobs
   identical key sets and bitwise-identical arrays in every frame. The durable
   machine-readable comparison is
   `hpc_live/20260911T100125Z-legacy/legacy_replay_equivalence_through_step8000.json`,
-  SHA-256 `8c3778638b555838d2d90524b0d54fc01a99d6aa3ff09db6ade98faa21c86fc8`.
-  This establishes exact deterministic historical reproduction before the
-  critical window, while leaving terminal avalanche reproduction pending.
+  SHA-256 `7277391fdd27816802a7ec4c86ab2578988024531ee80583c890d89ea9aa962d`.
+  After removing only the intentionally different run-ID column, all 22,416
+  checkpoint-bounded grain-track lines and 89,187 boundary-track lines are also
+  byte-identical to the canonical records through step 8000. This establishes
+  exact deterministic historical reproduction before the critical window,
+  while leaving terminal avalanche reproduction pending.
 - The active legacy source commit `147141b` predates the relative clipping-guard
   correction and therefore still treats ordinary double-obstacle clipping
   (about 0.24 at a two-step step-8000 continuation smoke test) as a trigger at

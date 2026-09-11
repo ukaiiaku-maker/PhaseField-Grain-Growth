@@ -69,8 +69,10 @@ evolution frames through step 8000, and SHA-256
 It is nonterminal and must not be pooled as production evidence.
 All 17 common frames through step 8000 are byte-identical to the canonical
 historical files, with a second array-level bitwise comparison also passing.
+The checkpoint-bounded grain and boundary tracks are likewise byte-identical
+after dropping only the intentionally different run-ID column.
 The evidence JSON beside the archive has SHA-256
-`8c3778638b555838d2d90524b0d54fc01a99d6aa3ff09db6ade98faa21c86fc8`.
+`7277391fdd27816802a7ec4c86ab2578988024531ee80583c890d89ea9aa962d`.
 
 The corrected step-1000 recovery has also been exercised through the final
 renderer. Its seven-frame preview animation, SHA-indexed frame CSV, metadata,
