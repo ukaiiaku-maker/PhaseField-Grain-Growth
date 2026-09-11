@@ -46,8 +46,13 @@ acknowledgement; Slurm confirmed the original job before any duplicate launch.
 - First corrected live snapshot:
   `hpc_live/20260911T012000Z-corrected` under the durable root.
 - Latest corrected restart snapshot:
-  `hpc_live/20260911T082618Z-corrected`, step 1000/t=40/N=460, archive
-  SHA-256 `f1fdd7f98987a2e8373e4ef6c6ad7932d788234e19e3b53cb28f9eec089b5bfc`.
+  `hpc_live/20260911T115520Z-corrected`, step 1500/t=60/N=364, range-verified
+  v2 archive SHA-256
+  `fbf755562df4f866eb80f7eadae6bcc4271d4009940b4de2cbad515e03dc17a5`.
+  It contains 1,500 contiguous scalar rows, eight compact frames, and dense
+  fields through step 1500. The first archive in that directory is retained
+  with an exclusion manifest because its scalar fragments stopped at step
+  1480; use only the `-v2` archive for recovery.
 
 Live snapshots contain only atomically closed Parquet parts and are marked
 `pooling_allowed=false`. The active jobs retain checkpoint cadence <=500 and
@@ -123,7 +128,7 @@ contain the verified `a173624` source bundle with SHA-256
 `c0ba9161a8f519436deec75c7017f03614fa04de43328221996b9efd0dd545b3`.
 The authoritative machine-readable execution queue is
 `hpc_execution_queue_20260911.json` under the durable qualification root,
-SHA-256 `cf8b949e90ed3e6f3387a5daea5cac6e9dd2dbf5daf1cdf804536eb01066f5b6`.
+SHA-256 `817f517efe52e7bcf471e17c09bea5d8d8a94a068aa7de5c3a544df5a20540fe`.
 The refinement changes both the external-increment target from 0.02 to 0.01
 and the actual configured PF timestep from 0.04 to 0.02; it therefore remains
 a factor-two test even if the external limiter is inactive.

@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-11 04:20 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; closure-specific source/work continuation prepared after a read-only instrumentation audit.
+Last update: 2026-09-11 05:02 PDT; legacy and corrected seed-5101 full-size jobs running on HPC3; corrected recovery audited through atomic checkpoint 1500; closure-specific source/work continuation remains first in the prepared queue.
 
 ## Current source state
 
@@ -198,6 +198,23 @@ Last update: 2026-09-11 04:20 PDT; legacy and corrected seed-5101 full-size jobs
   inspection shows smooth coarsening and spatially resolved, finite stress and
   eigenstrain fields. This is a renderer/data-retention check, not a terminal
   production movie or scientific endpoint.
+- Corrected seed 5101 has now reached atomic checkpoint step 1500/t=60/N=364.
+  Its durable v2 recovery contains all 1,500 contiguous, unique scalar rows in
+  96 closed Parquet parts, eight compact frames through step 1400, three dense
+  fields through step 1500, and the exact tracker byte offsets from the restart
+  record. The local and remote archive SHA-256 is
+  `fbf755562df4f866eb80f7eadae6bcc4271d4009940b4de2cbad515e03dc17a5`.
+  The audit still finds zero complete-energy increases, zero coupled
+  rejections, no capture, finite critical fields, equilibrium residual at most
+  `3.42e-12`, absolute source-work error at most `1.42e-7`, maximum
+  compactness 1.954, and no disconnected grain. The minimum external limit is
+  4.28 versus used dt 0.04. Durable path:
+  `hpc_live/20260911T115520Z-corrected`; the snapshot remains explicitly
+  nonterminal and nonpoolable.
+- The first archive assembled at that milestone is preserved but excluded: its
+  filename-based Parquet bound stopped at step 1480 while the checkpoint was
+  1500. `superseded_archive_manifest.json` records the mismatch and points to
+  the range-verified v2 archive; no trajectory or live output was affected.
 - The legacy step-1500 checkpoint plus all then-available movie frames were
   copied without pausing the solver to local recovery archive
   `hpc_live/20260911T013800Z-legacy`, SHA-256
@@ -345,7 +362,7 @@ Last update: 2026-09-11 04:20 PDT; legacy and corrected seed-5101 full-size jobs
   immutable job before starting the same attested `a173624` production model.
 - The complete active/prepared/superseded queue is machine-readable at
   `hpc_execution_queue_20260911.json`, SHA-256
-  `cf8b949e90ed3e6f3387a5daea5cac6e9dd2dbf5daf1cdf804536eb01066f5b6`.
+  `817f517efe52e7bcf471e17c09bea5d8d8a94a068aa7de5c3a544df5a20540fe`.
   It records the two-worker rule and explicitly marks both unused plans as
   never-submit entries.
 - `production_revision_equivalence.json` records that corrected seed-5101
