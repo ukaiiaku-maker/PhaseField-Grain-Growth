@@ -38,6 +38,13 @@ progress production comparison additions, the complete suite passes
 JUnit is `results/validation/qiu_fix_provenance_analysis_tests.xml`, SHA-256
 `c43697f80a640194da43ce6cb40410f334e604ec6afd821a9fce67cb3df8f28b`.
 
+The complete current branch, now also including true factor-two timestep
+override tests, merged dense/compact movie discovery, HPC source attestation,
+and terminal-decision validation, passes **227/227 tests in 61.95 s** with zero
+failures, errors, or skips. The retained JUnit is
+`results/validation/qiu_fix_current_branch_tests.xml`, SHA-256
+`2564dc2f130a26c4139a40343e06276f810e42db640f2ae4b3f13b3f764336a6`.
+
 Production-scale analysis of 31,255,548 primitive rows is numerically equivalent
 after switching event diagnostics to bounded-memory checkpoint-part streaming: the
 summary CSV is byte-identical and diagnostic differences are limited to provenance

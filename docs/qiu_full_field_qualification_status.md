@@ -185,6 +185,13 @@ Last update: 2026-09-10 18:30 PDT; legacy and corrected seed-5101 full-size jobs
   explicit backend identity/classification, full source SHA, poolable terminal
   records, nonempty gate groups, and a zero-failure/error/skip final suite
   before `qualification_decision.json` can be accepted.
+- The complete current branch passes 227/227 tests in 61.95 s with zero
+  failures/errors/skips. Durable JUnit:
+  `results/validation/qiu_fix_current_branch_tests.xml`; SHA-256
+  `2564dc2f130a26c4139a40343e06276f810e42db640f2ae4b3f13b3f764336a6`.
+- GitHub CLI authentication for `ukaiiaku-maker` is valid and no PR currently
+  exists for this branch; the final report/decision commit can therefore be
+  handed off as a new unmerged pull request once terminal evidence is complete.
 - The accepted fixed-physical-domain reduced spatial study is
   `20260911T013000Z-spatial-convergence-r2` at dx=1, 0.5, and 0.25. At matched
   t=4 every grid gives N=17 and the same physical population grain size. From
