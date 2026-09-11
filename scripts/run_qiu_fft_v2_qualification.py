@@ -50,6 +50,12 @@ class FFTEigenstrainFrameSimulation(EventResolvedSimulation):
     def _write_tracks(self) -> None:
         super()._write_tracks()
         self._write_frame()
+        print(json.dumps({
+            "heartbeat": "FFT_EIGENSTRAIN_V2",
+            "step": self.solver.step_number,
+            "time": self.solver.time,
+            "grain_count": len(self.snapshot.grains),
+        }), flush=True)
 
     def _save_checkpoint(self) -> None:
         super()._save_checkpoint()
