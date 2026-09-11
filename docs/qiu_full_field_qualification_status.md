@@ -23,6 +23,7 @@ Last update: 2026-09-10 18:30 PDT; legacy and corrected seed-5101 full-size jobs
 - Three-grid spatial-convergence commit: `ae99d34`.
 - Staged-source provenance fix: `a236192`.
 - Matched-time/progress qualification analysis: `78da5ea`.
+- Actual factor-two refinement runner: `a173624`.
 - Historical production source: `4761ef957715ba2faa84f015a0e4f4c4cd21c7aa`
 - Historical QIU run: canonical, read-only, all integration-manifest hashes verified
 - Current scientific decision: the historical QIU remains an unresolved non-self-similar transient and its backend is conclusively a legacy FFT eigenstrain surrogate, not the archived current-geometry Qiu reference formulation. The selected qualification backend is therefore honestly named `FFT_EIGENSTRAIN_V2`; production behavior remains pending.
@@ -153,9 +154,13 @@ Last update: 2026-09-10 18:30 PDT; legacy and corrected seed-5101 full-size jobs
   queried Git from the parent stage directory. This does not make their source
   ambiguous: both immutable wrappers assert the detached commit and verify the
   source-bundle hash. `active_hpc_provenance_attestations.json` records those
-  independent identities. Commit `a236192` corrects the lookup for all queued
-  runs, whose shared verified bundle SHA-256 is
-  `836b36f8f0077d4d9daa00b6645522316b116ae4b78c3bfc5d9267e39739e84a`.
+  independent identities. Commit `a236192` corrects the lookup for queued runs.
+  The final staged jobs use commit `a173624`, shared verified bundle SHA-256
+  `c0ba9161a8f519436deec75c7017f03614fa04de43328221996b9efd0dd545b3`.
+- The staged seed-5101 refinement now halves both the external phase-increment
+  target (0.02 to 0.01) and the actual configured PF timestep (0.04 to 0.02).
+  Thus the required refinement is exercised even if the external limiter never
+  binds. Seven focused runner/movie/analyzer tests pass.
 - The production analyzer now reports timestep agreement at matched physical
   time and matched grain-size progress, evaluates interpolated energy-history
   norms, checks avalanche-class consistency, honors explicit source

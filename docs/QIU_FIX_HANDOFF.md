@@ -61,8 +61,11 @@ is at `hpc_live/20260911T013800Z-legacy` with SHA-256
 `b8ae0b4205a1074dacef9cef7633442ea7b6a6ba743145662952bdb34a5e182a`.
 
 The refinement and seed-5102/5103 job directories are staged but unplanned and
-unsubmitted. All three now contain the verified `a236192` bundle with SHA-256
-`836b36f8f0077d4d9daa00b6645522316b116ae4b78c3bfc5d9267e39739e84a`.
+unsubmitted. All three now contain the verified `a173624` bundle with SHA-256
+`c0ba9161a8f519436deec75c7017f03614fa04de43328221996b9efd0dd545b3`.
+The refinement changes both the external-increment target from 0.02 to 0.01
+and the actual configured PF timestep from 0.04 to 0.02; it therefore remains
+a factor-two test even if the external limiter is inactive.
 
 ## Next execution order
 
