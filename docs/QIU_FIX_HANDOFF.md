@@ -106,8 +106,11 @@ read-only guard decision differed. The evidence JSON beside the recovery
 archive has SHA-256
 `5c5543ecbc51201cecbfe4e01ffcbb2c6cc97c835e265d319a735c46b2e5204c`.
 
-The refinement and seed-5102/5103 job directories are staged but unplanned and
-unsubmitted. All three now contain the verified `a173624` bundle with SHA-256
+The refinement is prepared as immutable, unsubmitted plan
+`20260911T110924Z-nogit-6b926f`; its HPC input archive SHA-256 is
+`dfe68bb909d310bab479d328b3e76f9d1235a6b08d59c499d526f18a78d87583`.
+Seed-5102/5103 remain staged but unplanned and unsubmitted. All three directories
+contain the verified `a173624` source bundle with SHA-256
 `c0ba9161a8f519436deec75c7017f03614fa04de43328221996b9efd0dd545b3`.
 The refinement changes both the external-increment target from 0.02 to 0.01
 and the actual configured PF timestep from 0.04 to 0.02; it therefore remains

@@ -300,6 +300,15 @@ Last update: 2026-09-11 04:04 PDT; legacy and corrected seed-5101 full-size jobs
   target (0.02 to 0.01) and the actual configured PF timestep (0.04 to 0.02).
   Thus the required refinement is exercised even if the external limiter never
   binds. Seven focused runner/movie/analyzer tests pass.
+- The factor-two refinement is now immutable prepared plan
+  `20260911T110924Z-nogit-6b926f`, with no Slurm job ID and state `PREPARED`.
+  Its HPC input archive SHA-256 is
+  `dfe68bb909d310bab479d328b3e76f9d1235a6b08d59c499d526f18a78d87583`;
+  it asserts source `a173624e4a0b3b3e5074166a2fe0229ed2f34398` and the already
+  attested source-bundle SHA-256
+  `c0ba9161a8f519436deec75c7017f03614fa04de43328221996b9efd0dd545b3`.
+  It is ready for submission when either active worker reaches a verified
+  terminal state, and has not been submitted early.
 - `production_revision_equivalence.json` records that corrected seed-5101
   commit `8bb7837` and the staged refinement/paired-seed commit `a173624` have
   byte-identical FFT mechanics, PF solver, kernels, kinematics, and production
