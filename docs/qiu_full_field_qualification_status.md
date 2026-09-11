@@ -158,6 +158,12 @@ Last update: 2026-09-10 18:30 PDT; legacy and corrected seed-5101 full-size jobs
   copied without pausing the solver to local recovery archive
   `hpc_live/20260911T013800Z-legacy`, SHA-256
   `b8ae0b4205a1074dacef9cef7633442ea7b6a6ba743145662952bdb34a5e182a`.
+- After `/pub` metadata service recovered, a newer complete recovery archive
+  was copied and independently rehashed at legacy checkpoint step 2500/t=100,
+  with movie frames through step 2400. Durable path:
+  `hpc_live/20260911T030100Z-legacy`; archive SHA-256
+  `7b2c7ddb7481e7ca63c20134242368bd8a709f3fa35451f2cc30bb97dfcbf5d8`.
+  Its manifest remains `pooling_allowed=false` until terminal retrieval.
 - The active HPC application manifests say `UNCOMMITTED` because their scripts
   queried Git from the parent stage directory. This does not make their source
   ambiguous: both immutable wrappers assert the detached commit and verify the
