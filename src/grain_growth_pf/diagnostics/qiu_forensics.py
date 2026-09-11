@@ -330,13 +330,17 @@ class QiuForensicRecorder:
         self.previous_ids = current_ids
         self.previous_centroids = centroids
         self.previous_interfacial = interfacial
+        previous_guard = self.guard_reason
         self._evaluate_guard(row, simulation)
+        guard_started = previous_guard is None and self.guard_reason is not None
         self.clipping_history.append(float(row["clipped_fraction"]))
-        if diag.step >= self.field_start and diag.step % self.field_cadence == 0:
-            self.save_fields(simulation, "cadence")
-        if self.guard_reason is not None:
+        if guard_started:
             self.save_fields(simulation, "guard")
             self.flush()
+        elif diag.step >= self.field_start and diag.step % self.field_cadence == 0:
+            self.save_fields(simulation, "cadence")
+            if len(self.scalar_rows) >= self.flush_rows:
+                self.flush()
         elif len(self.scalar_rows) >= self.flush_rows:
             self.flush()
         return self.guard_reason if self.terminate_on_guard else None

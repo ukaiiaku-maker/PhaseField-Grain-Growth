@@ -113,6 +113,26 @@ def test_qiu_guard_saves_full_state_and_terminates_as_diagnostic_capture(tmp_pat
     assert (output / "diagnostic_fields" / "step-0000001-guard.npz").exists()
 
 
+def test_qiu_guard_continue_saves_one_guard_field_then_returns_to_cadence(tmp_path):
+    config = _config(diagnostics=True)
+    config = replace(config, max_steps=4, parameters={
+        **config.parameters, "qiu_guard_clip_fraction": -1.0,
+        "qiu_guard_clip_warmup_steps": 0, "qiu_guard_terminate": False,
+    })
+    output = tmp_path / "guard-continue"
+    EventResolvedSimulation(config, output, code_sha="same").run()
+
+    manifest = json.loads((output / "manifest.json").read_text())
+    fields = sorted(path.name for path in (output / "diagnostic_fields").glob("*.npz"))
+    assert manifest["status"] == "completed"
+    assert manifest["steps_completed"] == 4
+    assert fields == [
+        "step-0000001-guard.npz",
+        "step-0000002-cadence.npz",
+        "step-0000004-cadence.npz",
+    ]
+
+
 def _fft_v2_config(max_steps=4):
     return ModelConfig(
         regime="FFT_EIGENSTRAIN_V2", seed=97,
