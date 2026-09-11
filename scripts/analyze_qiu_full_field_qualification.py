@@ -45,6 +45,11 @@ def load(label: str, run: Path) -> tuple[pd.DataFrame, dict[str, object]]:
     frame = frame.sort_values(["step", "time"]).drop_duplicates("step", keep="last")
     frame.insert(0, "qualification_run", label)
     manifest = json.loads((run / "manifest.json").read_text())
+    attestation = run / "source_attestation.json"
+    if attestation.exists():
+        verified = json.loads(attestation.read_text())
+        manifest["source_attestation"] = verified
+        manifest["verified_source_commit"] = verified["verified_source_commit"]
     return frame, manifest
 
 
@@ -55,6 +60,111 @@ def relative_series(frame: pd.DataFrame) -> pd.Series:
         + np.finfo(float).eps
     )
     return frame["source_work_error"].abs() / denominator
+
+
+def interpolate(frame: pd.DataFrame, coordinate: str, fields: tuple[str, ...], value: float) -> dict[str, float]:
+    """Interpolate observables after collapsing repeated event coordinates."""
+    selected = frame[[coordinate, *fields]].replace([np.inf, -np.inf], np.nan).dropna()
+    selected = selected.groupby(coordinate, as_index=False).last().sort_values(coordinate)
+    x = np.asarray(selected[coordinate], dtype=float)
+    return {
+        field: float(np.interp(value, x, np.asarray(selected[field], dtype=float)))
+        for field in fields
+    }
+
+
+def relative_values(first: dict[str, float], second: dict[str, float]) -> dict[str, float]:
+    return {
+        field: abs(first[field] - second[field]) /
+        max(abs(second[field]), np.finfo(float).eps)
+        for field in first
+    }
+
+
+def avalanche_indicator(frame: pd.DataFrame, capture_exists: bool = False) -> dict[str, object]:
+    initial = max(float(frame.iloc[0]["grain_count"]), 1.0)
+    burst_fraction = float(frame["largest_100_step_population_loss"].max()) / initial
+    triggered = bool(
+        capture_exists or burst_fraction > 0.10 or
+        frame["compactness_mean"].max() > 2.5 or
+        frame["compactness_max"].max() > 6.0
+    )
+    return {"detected": triggered, "maximum_100_step_loss_fraction": burst_fraction}
+
+
+def compare_timestep_runs(base: pd.DataFrame, fine: pd.DataFrame) -> dict[str, object]:
+    observables = (
+        "G_population", "interfacial_energy", "elastic_energy",
+        "compactness_mean", "compactness_p95", "stress_p95",
+    )
+    matched_time = min(float(base["time"].max()), float(fine["time"].max()))
+    by_time = {
+        label: interpolate(frame, "time", observables, matched_time)
+        for label, frame in (("corrected", base), ("refined", fine))
+    }
+    time_relative = relative_values(by_time["corrected"], by_time["refined"])
+
+    matched_g = min(float(base["G_population"].max()), float(fine["G_population"].max()))
+    progress_fields = ("time",) + tuple(field for field in observables if field != "G_population")
+    by_progress = {
+        label: interpolate(frame, "G_population", progress_fields, matched_g)
+        for label, frame in (("corrected", base), ("refined", fine))
+    }
+    progress_relative = relative_values(by_progress["corrected"], by_progress["refined"])
+
+    overlap_start = max(float(base["time"].min()), float(fine["time"].min()))
+    overlap_end = matched_time
+    grid = np.unique(np.concatenate((
+        np.asarray(base.loc[base["time"].between(overlap_start, overlap_end), "time"], dtype=float),
+        np.asarray(fine.loc[fine["time"].between(overlap_start, overlap_end), "time"], dtype=float),
+    )))
+    history: dict[str, dict[str, float]] = {}
+    for field in ("interfacial_energy", "elastic_energy"):
+        base_series = base[["time", field]].replace([np.inf, -np.inf], np.nan).dropna()
+        base_series = base_series.groupby("time", as_index=False).last().sort_values("time")
+        fine_series = fine[["time", field]].replace([np.inf, -np.inf], np.nan).dropna()
+        fine_series = fine_series.groupby("time", as_index=False).last().sort_values("time")
+        left = np.interp(grid, base_series["time"], base_series[field])
+        right = np.interp(grid, fine_series["time"], fine_series[field])
+        scale = max(float(np.max(np.abs(right))), np.finfo(float).eps)
+        normalized = np.abs(left - right) / scale
+        history[field] = {
+            "normalized_linf": float(np.max(normalized)),
+            "normalized_p95": float(np.quantile(normalized, 0.95)),
+        }
+
+    base_avalanche = avalanche_indicator(base)
+    fine_avalanche = avalanche_indicator(fine)
+    gates = {
+        "matched_time_G_within_1pct": time_relative["G_population"] <= 0.01,
+        "matched_time_interfacial_energy_within_2pct": time_relative["interfacial_energy"] <= 0.02,
+        "matched_time_elastic_energy_within_2pct": time_relative["elastic_energy"] <= 0.02,
+        "matched_time_compactness_within_5pct": max(
+            time_relative["compactness_mean"], time_relative["compactness_p95"]
+        ) <= 0.05,
+        "matched_time_stress_p95_within_5pct": time_relative["stress_p95"] <= 0.05,
+        "matched_progress_interfacial_energy_within_2pct": progress_relative["interfacial_energy"] <= 0.02,
+        "matched_progress_elastic_energy_within_2pct": progress_relative["elastic_energy"] <= 0.02,
+        "matched_progress_compactness_within_5pct": max(
+            progress_relative["compactness_mean"], progress_relative["compactness_p95"]
+        ) <= 0.05,
+        "matched_progress_stress_p95_within_5pct": progress_relative["stress_p95"] <= 0.05,
+        "interfacial_energy_history_within_2pct": history["interfacial_energy"]["normalized_linf"] <= 0.02,
+        "elastic_energy_history_within_2pct": history["elastic_energy"]["normalized_linf"] <= 0.02,
+        "same_avalanche_classification": base_avalanche["detected"] == fine_avalanche["detected"],
+    }
+    return {
+        "available": True,
+        "matched_time": {"time": matched_time, "observables": by_time, "relative_differences": time_relative},
+        "matched_grain_size_progress": {
+            "G_population": matched_g, "observables": by_progress,
+            "relative_differences": progress_relative,
+        },
+        "interpolated_energy_history": history,
+        "avalanche_indicators": {"corrected": base_avalanche, "refined": fine_avalanche},
+        "gates": gates,
+        "all_gates_pass": all(gates.values()),
+    }
 
 
 def main() -> None:
@@ -75,9 +185,14 @@ def main() -> None:
         increases = np.diff(energy) > (1e-10 + 1e-10 * scale)
         capture = path / "diagnostic_capture.json"
         final = frame.iloc[-1]
+        internal_source = str(manifest.get("git_sha", ""))
+        verified_source = str(manifest.get("verified_source_commit", internal_source))
         matrix.append({
             "label": label, "run_path": str(path),
-            "source_commit": manifest.get("git_sha", ""),
+            "source_commit": verified_source,
+            "internal_manifest_source_commit": internal_source,
+            "source_attestation": str(path / "source_attestation.json")
+            if "source_attestation" in manifest else "",
             "manifest_status": manifest.get("status", ""),
             "terminal_step": int(final["step"]), "terminal_time": float(final["time"]),
             "terminal_grains": int(final["grain_count"]),
@@ -143,35 +258,40 @@ def main() -> None:
 
     timestep: dict[str, object] = {"available": False}
     if "corrected" in frames and "refined" in frames:
-        base, fine = frames["corrected"], frames["refined"]
-        matched_time = min(float(base["time"].max()), float(fine["time"].max()))
-        observables = (
-            "G_population", "interfacial_energy", "elastic_energy",
-            "compactness_mean", "stress_p95",
-        )
-        values = {
-            label: {
-                field: float(np.interp(matched_time, frame["time"], frame[field]))
-                for field in observables
-            }
-            for label, frame in (("corrected", base), ("refined", fine))
-        }
-        relative = {
-            field: abs(values["corrected"][field] - values["refined"][field]) /
-            max(abs(values["refined"][field]), np.finfo(float).eps)
-            for field in observables
-        }
-        timestep = {
-            "available": True, "matched_time": matched_time,
-            "observables": values, "relative_differences": relative,
-            "gates": {
-                "G_within_1pct": relative["G_population"] <= 0.01,
-                "interfacial_energy_within_2pct": relative["interfacial_energy"] <= 0.02,
-                "elastic_energy_within_2pct": relative["elastic_energy"] <= 0.02,
-                "compactness_within_5pct": relative["compactness_mean"] <= 0.05,
-                "stress_p95_within_5pct": relative["stress_p95"] <= 0.05,
-            },
-        }
+        timestep = compare_timestep_runs(frames["corrected"], frames["refined"])
+
+        figure, axes = plt.subplots(2, 3, figsize=(12.0, 7.0), sharex=True)
+        for axis, field in zip(axes.flat, (
+            "grain_count", "G_population", "interfacial_energy",
+            "elastic_energy", "compactness_p95", "stress_p95",
+        )):
+            for label in ("corrected", "refined"):
+                axis.plot(frames[label]["time"], frames[label][field], label=label, linewidth=1.0)
+            axis.set_title(field); axis.set_xlabel("physical time")
+        axes[0, 0].legend(); figure.tight_layout()
+        figure.savefig(plot_dir / "timestep_convergence_overlay.png", dpi=180)
+        plt.close(figure)
+
+    if "legacy" in frames and "corrected" in frames:
+        figure, axes = plt.subplots(1, 2, figsize=(10.0, 4.2))
+        for axis, field in zip(axes, ("grain_count", "G_population")):
+            for label in ("legacy", "corrected"):
+                axis.plot(frames[label]["time"], frames[label][field], label=label, linewidth=1.0)
+            axis.set_xlabel("physical time"); axis.set_ylabel(field); axis.legend()
+        figure.tight_layout(); figure.savefig(plot_dir / "legacy_vs_corrected.png", dpi=180)
+        plt.close(figure)
+
+    seed_labels = [label for label in frames if label == "corrected" or label.startswith("seed")]
+    if len(seed_labels) >= 2:
+        figure, axes = plt.subplots(2, 2, figsize=(10.0, 7.0), sharex=True)
+        for axis, field in zip(axes.flat, (
+            "grain_count", "G_population", "compactness_p95", "stress_p95",
+        )):
+            for label in seed_labels:
+                axis.plot(frames[label]["time"], frames[label][field], label=label, linewidth=1.0)
+            axis.set_title(field); axis.set_xlabel("physical time")
+        axes[0, 0].legend(); figure.tight_layout()
+        figure.savefig(plot_dir / "seed_comparison.png", dpi=180); plt.close(figure)
 
     summary = {
         "schema_version": 1, "runs": matrix, "timestep_comparison": timestep,
