@@ -398,6 +398,23 @@ Last update: 2026-09-11 16:15 PDT; the first legacy replay completed cleanly and
   with corrected seed-5101 job `55932457`. Corrected seed 5101 has advanced to
   atomic checkpoint 3000; its latest locally verified safety snapshot remains
   step 2000 until the next archive is copied and checked.
+- The corrected step-3000/t=120/N=230 checkpoint now also has a remotely
+  verified safety archive containing 3,000 contiguous scalar rows, 16 compact
+  evolution frames through step 3000, and full tensor fields at steps 500,
+  1000, 1500, 2000, 2500, and 3000. Remote archive SHA-256 is
+  `3a69a914d69419fcbb634cba30358ccf5b5ac0864c8a3828e5db2ec2f9cea2b0`;
+  local transfer/audit remain pending behind the terminal legacy download.
+- The source/work continuation reached field step 9050. SHA-256 digests of its
+  `eta`, labels, eigenstrain, stress, and driving-field arrays are individually
+  identical to the first replay at that step. This extends the local two-step
+  invariance test to 50 full-size HPC3 continuation steps and confirms that the
+  recorder-hook revision has not perturbed the trajectory before the critical
+  window.
+- The complete branch suite after the transition-fragment audit, strengthened
+  final-decision validator, and compact-frame renderer changes passes 245/245
+  tests in 68.06 s with zero failures, errors, or skips. Durable JUnit:
+  `results/validation/qiu_fix_transition_audit_tests.xml`; SHA-256
+  `969e0141e8e36456041309c6c0dcbb15aa72bdb486f6cffbebfc973337b192ba`.
 - The reconciled two-worker queue is
   `hpc_execution_queue_20260911.json`, SHA-256
   `e9119c26cc09f5da29ac0c46f4ee2a98f2d42defc0651b34ac12abd4ec10e2c7`.
