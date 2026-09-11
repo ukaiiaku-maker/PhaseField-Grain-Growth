@@ -417,7 +417,7 @@ Last update: 2026-09-11 16:15 PDT; the first legacy replay completed cleanly and
   `969e0141e8e36456041309c6c0dcbb15aa72bdb486f6cffbebfc973337b192ba`.
 - The reconciled two-worker queue is
   `hpc_execution_queue_20260911.json`, SHA-256
-  `e9119c26cc09f5da29ac0c46f4ee2a98f2d42defc0651b34ac12abd4ec10e2c7`.
+  `5b0e0b7cf12ece8539dd6c7656bad127d6552450d17620498dd497f5728dabc8`.
   The completed replay is authoritative for dense-field evidence and exact
   reconstruction of its own post-9000 failure, but it is exact against the
   canonical historical trajectory only through step 9000 and is insufficient
@@ -501,7 +501,7 @@ Last update: 2026-09-11 16:15 PDT; the first legacy replay completed cleanly and
   immutable job before starting the same attested `a173624` production model.
 - The complete active/prepared/superseded queue is machine-readable at
   `hpc_execution_queue_20260911.json`, SHA-256
-  `e9119c26cc09f5da29ac0c46f4ee2a98f2d42defc0651b34ac12abd4ec10e2c7`.
+  `5b0e0b7cf12ece8539dd6c7656bad127d6552450d17620498dd497f5728dabc8`.
   It records the two-worker rule and explicitly marks both unused plans as
   never-submit entries.
 - `production_revision_equivalence.json` records that corrected seed-5101
