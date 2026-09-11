@@ -40,7 +40,7 @@ def main() -> None:
     )
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
-    source_sha = git_sha()
+    source_sha = git_sha(Path(__file__).resolve().parents[1])
     histories: dict[str, object] = {}
     rows: list[dict[str, object]] = []
 

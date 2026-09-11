@@ -50,7 +50,8 @@ def main() -> None:
         config, parameters=parameters, max_steps=args.diagnostic_start,
         termination_grains=1,
     )
-    sha = git_sha()
+    # HPC3 invokes this script from a parent staging directory.
+    sha = git_sha(Path(__file__).resolve().parents[1])
     args.output.mkdir(parents=True, exist_ok=False)
     run = args.output / "QIU_LEGACY_FORENSIC-T900-s5101"
     ClosureFrameSimulation(config, run, code_sha=sha).run()

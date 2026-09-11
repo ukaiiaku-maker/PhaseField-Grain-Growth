@@ -40,7 +40,7 @@ def main() -> None:
     parser.add_argument("--grains", type=int, default=18)
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=False)
-    sha = git_sha()
+    sha = git_sha(Path(__file__).resolve().parents[1])
     pf = PFConfig(
         shape=(args.shape, args.shape), grid_spacing=1.0,
         interface_width=4.0, time_step=0.04, gb_energy=1.0,

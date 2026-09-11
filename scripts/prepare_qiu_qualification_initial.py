@@ -37,7 +37,7 @@ def main() -> None:
     config = replace(ModelConfig.load(args.config), seed=args.seed)
     if config.regime != "FFT_EIGENSTRAIN_V2":
         raise SystemExit("initial-state preparation requires an FFT_EIGENSTRAIN_V2 config")
-    source_sha = git_sha()
+    source_sha = git_sha(Path(__file__).resolve().parents[1])
     parameters = dict(config.parameters)
     parameters.pop("initial_state_file", None)
     identity = initial_condition_identity(config.pf, args.seed, parameters, source_sha)

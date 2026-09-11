@@ -105,7 +105,7 @@ def _matched_pair(name: str, shape: tuple[int, int], grains: int, steps: int,
 
 
 def main() -> None:
-    code_sha = git_sha()
+    code_sha = git_sha(Path(__file__).resolve().parents[1])
     stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     raw_root = Path("results/runs") / f"qiu-regressions-{stamp}-{code_sha[:8]}"
     raw_root.mkdir(parents=True, exist_ok=False)

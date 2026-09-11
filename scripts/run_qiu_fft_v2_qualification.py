@@ -106,7 +106,9 @@ def main() -> None:
         max_steps=config.max_steps if args.max_steps is None else args.max_steps,
     )
     resume = (args.output / "checkpoint.npz").exists()
-    source_commit = git_sha()
+    # HPC3 stages the checked-out repository below its job working directory.
+    # Resolve provenance from the script's repository, not the caller's cwd.
+    source_commit = git_sha(Path(__file__).resolve().parents[1])
     if resume:
         prior_manifest = json.loads((args.output / "manifest.json").read_text())
         if prior_manifest.get("git_sha") != source_commit:
