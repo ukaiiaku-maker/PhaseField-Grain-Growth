@@ -84,15 +84,27 @@ def relative_values(first: dict[str, float], second: dict[str, float]) -> dict[s
 def avalanche_indicator(frame: pd.DataFrame, capture_exists: bool = False) -> dict[str, object]:
     initial = max(float(frame.iloc[0]["grain_count"]), 1.0)
     burst_fraction = float(frame["largest_100_step_population_loss"].max()) / initial
+    nonfinite = any(
+        field in frame and not np.all(np.isfinite(np.asarray(frame[field], dtype=float)))
+        for field in ("total_energy", "stress_linf", "eigenstrain_linf")
+    )
     triggered = bool(
         capture_exists or burst_fraction > 0.10 or
         frame["compactness_mean"].max() > 2.5 or
-        frame["compactness_max"].max() > 6.0
+        frame["compactness_max"].max() > 6.0 or nonfinite
     )
-    return {"detected": triggered, "maximum_100_step_loss_fraction": burst_fraction}
+    return {
+        "detected": triggered,
+        "diagnostic_capture_exists": capture_exists,
+        "nonfinite_fields": nonfinite,
+        "maximum_100_step_loss_fraction": burst_fraction,
+    }
 
 
-def compare_timestep_runs(base: pd.DataFrame, fine: pd.DataFrame) -> dict[str, object]:
+def compare_timestep_runs(
+    base: pd.DataFrame, fine: pd.DataFrame, *,
+    base_capture: bool = False, fine_capture: bool = False,
+) -> dict[str, object]:
     observables = (
         "G_population", "interfacial_energy", "elastic_energy",
         "compactness_mean", "compactness_p95", "stress_p95",
@@ -133,8 +145,8 @@ def compare_timestep_runs(base: pd.DataFrame, fine: pd.DataFrame) -> dict[str, o
             "normalized_p95": float(np.quantile(normalized, 0.95)),
         }
 
-    base_avalanche = avalanche_indicator(base)
-    fine_avalanche = avalanche_indicator(fine)
+    base_avalanche = avalanche_indicator(base, base_capture)
+    fine_avalanche = avalanche_indicator(fine, fine_capture)
     gates = {
         "matched_time_G_within_1pct": time_relative["G_population"] <= 0.01,
         "matched_time_interfacial_energy_within_2pct": time_relative["interfacial_energy"] <= 0.02,
@@ -175,6 +187,7 @@ def main() -> None:
     args.output.mkdir(parents=True, exist_ok=False)
     frames: dict[str, pd.DataFrame] = {}
     manifests: dict[str, dict[str, object]] = {}
+    captures: dict[str, bool] = {}
     matrix: list[dict[str, object]] = []
     for label, path in args.run:
         frame, manifest = load(label, path)
@@ -184,6 +197,7 @@ def main() -> None:
         scale = np.maximum(np.abs(energy[:-1]), 1.0)
         increases = np.diff(energy) > (1e-10 + 1e-10 * scale)
         capture = path / "diagnostic_capture.json"
+        captures[label] = capture.exists()
         final = frame.iloc[-1]
         internal_source = str(manifest.get("git_sha", ""))
         verified_source = str(manifest.get("verified_source_commit", internal_source))
@@ -258,7 +272,10 @@ def main() -> None:
 
     timestep: dict[str, object] = {"available": False}
     if "corrected" in frames and "refined" in frames:
-        timestep = compare_timestep_runs(frames["corrected"], frames["refined"])
+        timestep = compare_timestep_runs(
+            frames["corrected"], frames["refined"],
+            base_capture=captures["corrected"], fine_capture=captures["refined"],
+        )
 
         figure, axes = plt.subplots(2, 3, figsize=(12.0, 7.0), sharex=True)
         for axis, field in zip(axes.flat, (

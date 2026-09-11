@@ -36,6 +36,18 @@ def test_timestep_comparison_uses_time_progress_and_interpolated_histories():
     assert result["all_gates_pass"]
 
 
+def test_timestep_comparison_propagates_capture_classification():
+    trajectory = _trajectory(np.asarray([0.0, 1.0, 2.0]))
+
+    result = compare_timestep_runs(
+        trajectory, trajectory.copy(), base_capture=True, fine_capture=False,
+    )
+
+    assert result["avalanche_indicators"]["corrected"]["detected"]
+    assert not result["gates"]["same_avalanche_classification"]
+    assert not result["all_gates_pass"]
+
+
 def test_load_applies_external_source_attestation(tmp_path):
     diagnostic = tmp_path / "per_step_diagnostics.parquet"
     diagnostic.mkdir()
