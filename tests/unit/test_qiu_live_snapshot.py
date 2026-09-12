@@ -43,6 +43,7 @@ def test_live_snapshot_uses_checkpoint_counters_and_offsets(tmp_path: Path) -> N
     (source / "frames" / "frame-0000000.npz").write_bytes(b"0")
     (source / "frames" / "frame-0000100.npz").write_bytes(b"100")
     (source / "frames" / "frame-0000200.npz").write_bytes(b"200")
+    (source / "frames" / "._frame-0000100.npz").write_bytes(b"appledouble")
     (source / "diagnostic_fields").mkdir()
     (source / "diagnostic_fields" / "step-0000100-cadence.npz").write_bytes(b"100")
     (source / "diagnostic_fields" / "step-0000101-cadence.npz").write_bytes(b"101")
@@ -60,12 +61,13 @@ def test_live_snapshot_uses_checkpoint_counters_and_offsets(tmp_path: Path) -> N
 
     assert result["closed_scalar_parts"] == 2
     assert result["last_grain_count"] == 42
+    assert result["frame_steps"] == [0, 100]
     with tarfile.open(tmp_path / "durable" / "snapshot.tar.gz") as archive:
         names = set(archive.getnames())
         assert "qualification/per_step_diagnostics.parquet/part-000001.parquet" in names
         assert "qualification/per_step_diagnostics.parquet/part-000002.parquet" not in names
         assert "qualification/frames/frame-0000100.npz" in names
+        assert "qualification/frames/._frame-0000100.npz" not in names
         assert "qualification/frames/frame-0000200.npz" not in names
         assert archive.extractfile("qualification/grain_tracks.csv").read() == b"abc"
         assert archive.extractfile("qualification/boundary_tracks.csv").read() == b"abcd"
-

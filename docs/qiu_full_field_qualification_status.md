@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-11 17:14 PDT; the first legacy replay is retrieved, checksum-verified, source-attested, extracted, formally audited, and rendered through its N=100 endpoint; corrected seed 5101 is running beyond a locally verified atomic checkpoint 3000; the clean step-9000 source/work continuation remains in the second HPC3 slot and is trajectory-identical through the checked pre-transition fields.
+Last update: 2026-09-11 17:54 PDT; the first legacy replay is retrieved, checksum-verified, source-attested, extracted, formally audited, and rendered through its N=100 endpoint; corrected seed 5101 is running beyond a locally verified atomic checkpoint 3000; the clean source/work continuation is running beyond its locally verified atomic checkpoint 9500.
 
 ## Current source state
 
@@ -443,6 +443,30 @@ Last update: 2026-09-11 17:14 PDT; the first legacy replay is retrieved, checksu
   invariance test through 50 checked full-size HPC3 continuation steps and
   confirms that the recorder-hook revision has not perturbed the trajectory
   before the critical window.
+- The clean source/work continuation subsequently reached atomic checkpoint
+  9500/t=380/N=495. Its corrected recovery archive is verified remotely and
+  locally with SHA-256
+  `690bc453b9dba17a3d6168b620462e77df39b1368d729d3e2eaa658a76de50cb`.
+  It contains the exact restart state, 500 scalar rows in 32 closed parts,
+  1,020,174 boundary rows in 32 closed parts, 50 ten-step full fields through
+  9500, and 18 historical compact frames. Durable path:
+  `hpc_live/20260912T005100Z-sourcework-step9500-v2`.
+- The clean recorder proves that the replay's source accumulator now resets
+  once per step: source-increment L2 remains 0.131--0.607 rather than carrying
+  the accumulated field norm. The sum of all per-boundary predicted-work rows
+  agrees with the scalar predicted source work within `2.62e-12`. Nevertheless,
+  the legacy source/work mismatch is already disqualifying before morphology
+  changes: median relative residual 0.805, p95 0.975, and 311 complete-energy
+  increases in steps 9001--9500, while all grains remain connected and maximum
+  compactness is only 1.495. This localizes the mismatch to the legacy
+  source/operator coupling rather than diagnostic contamination. Audit SHA-256:
+  `ebd13e29bad87a9390eb4da7495f7638ec837c5f81fe7754116925123d41dc39`.
+- The first step-9500 safety archive is preserved remotely and excluded, not
+  overwritten. Its numerical data were valid, but inherited AppleDouble
+  metadata sidecars produced duplicate frame-step entries in its assembly
+  manifest. The tested snapshot utility now ignores those sidecars and the v2
+  archive has 18 unique frame entries; the analogous transition-fragment
+  utility now also retains the closed per-boundary diagnostic stream.
 - The complete branch suite after the transition-fragment audit, strengthened
   final-decision validator, and compact-frame renderer changes passes 245/245
   tests in 68.06 s with zero failures, errors, or skips. Durable JUnit:
@@ -455,7 +479,7 @@ Last update: 2026-09-11 17:14 PDT; the first legacy replay is retrieved, checksu
   `6d0524bd801bba68d558449a2faa02e1c5d4aed9aa5a857b3c79d91a32ace906`.
 - The reconciled two-worker queue is
   `hpc_execution_queue_20260911.json`, SHA-256
-  `7937dd4ae4fea7fb2cd43d539804334e97657aefefc45377ae65dbd82a6bac97`.
+  `7dd0ca9be1cc4c0e79903b2c66d929aafc33a5398da98eb076caefb2a58d9e62`.
   The completed replay is authoritative for dense-field evidence and exact
   reconstruction of its own post-9000 failure, but it is exact against the
   canonical historical trajectory only through step 9000 and is insufficient

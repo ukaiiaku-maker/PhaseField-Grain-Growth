@@ -65,6 +65,11 @@ def _copy_step_files(
     for path in sorted(source.iterdir()):
         if not path.is_file():
             continue
+        # macOS archive extraction can materialize AppleDouble sidecars such
+        # as ``._frame-0001000.npz``. They are metadata, not restart/movie
+        # fields, and their embedded filename must not make them look valid.
+        if path.name.startswith("._"):
+            continue
         match = STEP_RE.search(path.name)
         if not match:
             continue
