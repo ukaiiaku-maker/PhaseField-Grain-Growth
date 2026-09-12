@@ -378,3 +378,32 @@ the original TJ horizon, coarse/fine energies changed from 245.04446 to
 2.22e-16. These development checks do not release Gate 2. The next action is one
 HPC3 job containing the complete repository suite and the consolidated A0,
 force, planar, inclusion, TJ, accepted-timestep, restart and topology checks.
+
+## Phase 11: consolidated Gate 2 passed; reduced pilot preregistered
+
+HPC3 job **55965236**, runner `20260912T180218Z-nogit-221594`, tested the exact
+Gate-1 source commit `37c09cb2044a6f9eb821e713a0b519b702bac629`. The scheduler
+completed with exit 0. The result was fetched twice, and its independent result
+archive SHA-256 is
+`412130123ca3e692c13979c06920b2d7be2e54eb591bcecdfc29d896c460fd7c`.
+
+All **203 repository tests passed**. The consolidated report passed every
+declared gate. The force-gradient relative error is `1.14204e-8`; A0 is exact
+through 80 steps. Four planar orientations, the inclusion, and the diffuse
+three-grain junction are energy decreasing at both accepted timesteps. The TJ
+has zero positive-energy steps at each timestep and changes from `245.04446` to
+`179.47903`/`179.48004`. All states are finite and nonnegative, the maximum
+phase-sum error is `2.22e-16`, and restart state and time are exact. Gate 2 is
+therefore **PASSED**.
+
+The only runtime incident was a BeeGFS wait during the unchanged test suite.
+It cleared within the original allocation, so it is recorded as operational;
+no cancellation or replacement submission occurred.
+
+Before any reduced-pilot result was observed, Gate 3 was preregistered as one
+matched 192x192, 200-grain calculation with A0, A2 energy-only, A2
+mobility-only, and combined A2 cases. It records every unforced energy
+transition, exact midpoint restart, phase and topology invariants, morphology
+stability, and four global responses. If all A2 cases are valid but every
+combined response differs from A0 by less than 10%, the same job evaluates the
+combined A3 case exactly once.

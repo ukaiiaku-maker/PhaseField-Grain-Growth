@@ -85,6 +85,7 @@ class MultiphaseFieldSolver:
         ):
             raise ValueError("anisotropic PF evolution requires one orientation per phase")
         self._last_capillary_potential: Array | None = None
+        self._last_pre_step_energy = float("nan")
         self.mobility_scale = np.ones(config.shape, dtype=float)
         self.time = 0.0
         self.step_number = 0
@@ -150,7 +151,7 @@ class MultiphaseFieldSolver:
                 raise ValueError("driving callback returned the wrong shape")
         if self.anisotropic:
             strength = LADDER[str(cfg.anisotropy_strength)]
-            self.eta, _, self._last_capillary_potential = anisotropic_pairwise_step(
+            self.eta, self._last_pre_step_energy, self._last_capillary_potential = anisotropic_pairwise_step(
                 self.eta, self.active_phases, self.orientations,
                 self.mobility_scale, external, use_external, used_dt,
                 cfg.gb_energy, cfg.intrinsic_mobility, cfg.interface_width,
@@ -194,7 +195,8 @@ class MultiphaseFieldSolver:
             self.time, self.step_number, used_dt,
             (
                 self._anisotropic_energy()
-                if self.anisotropic else free_energy(
+                if compute_energy and self.anisotropic
+                else free_energy(
                     self.eta, cfg.gb_energy, cfg.interface_width, cfg.grid_spacing,
                     boundary=cfg.boundary_conditions,
                 )

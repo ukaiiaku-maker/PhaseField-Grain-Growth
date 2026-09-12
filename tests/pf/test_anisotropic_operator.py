@@ -192,3 +192,24 @@ def test_anisotropic_restart_preserves_orientation_and_path():
     assert np.array_equal(continuous.eta, restored.eta)
     assert np.array_equal(continuous.orientations, restored.orientations)
     assert continuous.time == restored.time
+
+
+def test_disabling_energy_diagnostic_does_not_change_anisotropic_update():
+    rng = np.random.default_rng(14)
+    eta = rng.uniform(0.2, 1.0, (3, 5, 5))
+    eta /= eta.sum(axis=0)
+    cfg = PFConfig(
+        shape=(5, 5), interface_width=4, time_step=1e-6,
+        intrinsic_mobility=0.2, anisotropy_strength="A2_STRONG",
+    )
+    orientations = np.array([0.1, 0.5, 1.0])
+    with_energy = MultiphaseFieldSolver(eta.copy(), cfg, orientations=orientations)
+    without_energy = MultiphaseFieldSolver(eta.copy(), cfg, orientations=orientations)
+
+    measured = with_energy.step(compute_energy=True)
+    skipped = without_energy.step(compute_energy=False)
+
+    assert np.array_equal(with_energy.eta, without_energy.eta)
+    assert np.isfinite(measured.interfacial_energy)
+    assert np.isnan(skipped.interfacial_energy)
+    assert with_energy._last_pre_step_energy == without_energy._last_pre_step_energy

@@ -83,5 +83,13 @@ historical extinction arithmetic for exact nesting.
 
 Focused local Gate-1 checks pass. The original TJ horizon is strictly energy
 decreasing at both `dt=6.36493e-5` and `dt=3.18247e-5`, with zero positive
-increments and maximum phase-sum error `2.22e-16`. Production remains closed
-until the single consolidated HPC3 qualification accepts this correction.
+increments and maximum phase-sum error `2.22e-16`.
+
+The single consolidated HPC3 qualification accepted the correction. Job
+55965236 passed all 203 repository tests and every A0, derivative, planar,
+inclusion, TJ, timestep, restart, topology, finiteness, nonnegativity, and
+phase-sum gate. The TJ had zero positive energy increments at both accepted
+timesteps. The verified result archive is
+`412130123ca3e692c13979c06920b2d7be2e54eb591bcecdfc29d896c460fd7c`.
+Production remains closed until the preregistered reduced polycrystal pilot
+passes.
