@@ -105,6 +105,16 @@ def qiu_native_capillary(phi_i: Array, phi_j: Array, lap_i: Array, lap_j: Array,
     return phi_j * lap_i - phi_i * lap_j + coefficient * (phi_i - phi_j)
 
 
+def qiu_native_accept(phi: Array, delta_eta_pre: Array) -> tuple[Array, Array]:
+    """Apply the archived clip-then-renormalize acceptance operation."""
+    trial = np.clip(np.asarray(phi, dtype=float) + delta_eta_pre, 0.0, 1.0)
+    denominator = np.sum(trial, axis=0)
+    if np.any(~np.isfinite(denominator)) or np.any(denominator <= 0.0):
+        raise FloatingPointError("native Qiu renormalization denominator is nonpositive")
+    accepted = trial / denominator
+    return accepted, accepted - phi
+
+
 def qiu_pair_anisotropy_correction(
     phi_i: Array,
     phi_j: Array,

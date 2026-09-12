@@ -6,6 +6,7 @@ from grain_growth_pf.pf.qiu_si import (
     QiuSIControl,
     qiu_native_beta,
     qiu_native_capillary,
+    qiu_native_accept,
     qiu_native_laplacian,
     qiu_pair_anisotropy_correction,
     qiu_si_pairwise_rate,
@@ -120,6 +121,17 @@ def test_pair_exchange_is_antisymmetric_and_mobility_scales_complete_drive():
     np.testing.assert_allclose(np.sum(mobile, axis=0), 0.0, atol=1e-15)
     ratio = audit["mobility_min"] / p.native_mobility
     np.testing.assert_allclose(mobile, a0 * ratio, rtol=2e-15, atol=1e-15)
+
+
+def test_native_accept_records_pre_and_post_renormalization_deltas():
+    phi = np.array([[[0.2, 0.9]], [[0.8, 0.1]]])
+    delta_pre = np.array([[[-0.4, 0.3]], [[0.4, -0.3]]])
+    accepted, delta_accepted = qiu_native_accept(phi, delta_pre)
+    trial = np.clip(phi + delta_pre, 0.0, 1.0)
+    expected = trial / trial.sum(axis=0)
+    np.testing.assert_array_equal(accepted, expected)
+    np.testing.assert_array_equal(delta_accepted, expected - phi)
+    np.testing.assert_allclose(accepted.sum(axis=0), 1.0)
 
 
 def test_rejects_nonantisymmetric_native_pair_inputs():
