@@ -33,6 +33,21 @@ The sole native plan is owned outside this worktree as
 | crystallographic references | four, spacing `pi/4` |
 | beta | archived orientation-pair function |
 | line/disconnection density | archived current-geometry reconstruction |
+
+## Pair-energy correspondence
+
+For each ordered native pair, define `s=phi_i+phi_j` and
+`d=phi_i-phi_j`. Holding `s` fixed under conservative pair exchange, the
+archived nine-point capillary expression satisfies
+`capillary_ij = -s delta(E_native_ij)/delta(d)`. The factor `s` is therefore
+part of the native Onsager operator.
+
+The A2 port adds `E_A2-E_A0` to this pair energy and adds its force with the
+same factor `s`; pair-specific mobility then multiplies the complete
+capillary, elastic, and antisymmetric barrier drive. Both energy/force
+identities pass central finite differences locally. A0 still executes the
+archived algebra directly, so nesting does not depend on cancellation in a
+rewritten formula.
 | stress and elastic force | archived `sigma11`, `sigma12`, `sigma22` kernels and signed pair force |
 | barrier term | archived antisymmetric `eij`, `eee=20` |
 | boundary conditions and cadence | periodic; GB/stress output every 250 steps |

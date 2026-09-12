@@ -514,11 +514,12 @@ translation exactly in a local test. Pair exchanges conserve the phase sum,
 non-antisymmetric native inputs are rejected, and A2 mobility multiplies the
 complete capillary-plus-elastic-plus-barrier drive.
 
-The A2 capillary addition is represented as the discrete variational
-correction `E_A2-E_A0`, which vanishes at A0 and passes finite-difference force
-correspondence. The native TJ capillary expression is not yet shown to be the
-gradient of that pair energy for three or more coexisting phases, so the
-variational correspondence gate remains open. The immutable control template,
-normalization freezer, and matched-state comparator are prepared; normalization
-values remain unset until the promoted native initial network is available.
-The complete local repository suite passes **213/213** tests.
+Writing `s=phi_i+phi_j` and `d=phi_i-phi_j` exposes archived pair
+capillarity exactly as `-s delta(E_native_ij)/delta(d)` for fixed-sum pair
+exchange. The port now uses that native Onsager factor for the discrete
+variational `E_A2-E_A0` correction. Both the native energy identity and the A2
+correction pass independent finite-difference tests, including multiphase
+values. The immutable control template, normalization freezer, and
+matched-state comparator are prepared; normalization values remain unset until
+the promoted native initial network is available. The complete local
+repository suite passes **215/215** tests.

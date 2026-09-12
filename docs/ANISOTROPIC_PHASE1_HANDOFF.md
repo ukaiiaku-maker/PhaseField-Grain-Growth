@@ -184,13 +184,14 @@ to the complete drive. Do not treat these local tests as native promotion: the
 required beta/reference/line/stress/force/increment checkpoint comparison is
 still waiting for the owning Qiu session's verified result.
 
-The unresolved mathematical item is explicit. Native capillarity contains
-`phi_j laplacian(phi_i) - phi_i laplacian(phi_j)` at TJ pixels; this is not yet
-derived as the chemical-potential difference of the new pair energy for more
-than two coexisting phases. The current A2 implementation adds a variational
-`E_A2-E_A0` correction that is exactly zero in A0. Do not release a full Qiu
-anisotropic trajectory until the complete variational correspondence is
-derived and the matched-state, normalization, reduced-control, convergence,
-and HPC3 gates pass. The control template is
+The pairwise mathematical item is now derived. With
+`s=phi_i+phi_j` and `d=phi_i-phi_j`, native capillarity is exactly
+`-s delta(E_native_ij)/delta(d)` under fixed-sum pair exchange. The A2
+implementation applies the same native Onsager factor to a variational
+`E_A2-E_A0` correction that is exactly zero in A0. Independent
+finite-difference tests cover both identities. Do not release a full Qiu
+anisotropic trajectory until accepted-step energy descent and the
+matched-state, normalization, reduced-control, convergence, and HPC3 gates
+pass. The control template is
 `configs/production/qiu_si_4ref_controls.json` and deliberately retains null
 normalizations and false release flags.
