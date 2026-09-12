@@ -1,6 +1,6 @@
 # Anisotropic Phase-1 status
 
-Current classification: **ANISOTROPIC_PF_TJ_ENERGY_GATE_FAILED**.
+Current classification: **ANISOTROPIC_REDUCED_PILOT_ENERGY_GATE_FAILED**.
 Reduced and production release are closed.
 
 Branch: `codex/anisotropic-cahn-hoffman-phase1-v1`.
@@ -422,3 +422,33 @@ accepted timestep, four cases, responses, checks, and conditional one-time A3
 policy. Its reduced horizon is preregistered at 64 accepted steps, with exact
 restart after step 32. This horizon was selected solely from pre-result runtime
 measurements so the single serial reduced matrix can complete on HPC3.
+
+## Phase 12: reduced pilot found hard energy failure
+
+The repaired reduced matrix ran on HPC3 as job **55966549**, runner
+`20260912T191209Z-nogit-212a63`, using source `583bb0b`. A0 completed with all
+validity checks true: energy decreased from `5210.11226` to `5191.60617`, no
+positive increments occurred, restart state and time were exact, and the state
+remained finite, nonnegative, conservative, and morphologically stable.
+
+The A2 energy-only case then completed its continuous and restart paths. It was
+finite, nonnegative, conservative, exactly restartable, and passed the declared
+morphology checks, but its unforced energy increased from `5172.43154` to
+`5220.17837`. Fourteen observed transitions were positive and the maximum
+one-step increase was `24.70799`. Because anisotropic mobility was disabled,
+this isolates the failure to the anisotropic energy/update path rather than the
+inverse-correlated mobility law.
+
+This is a **HARD SCIENTIFIC FAILURE** under the simplified policy: unresolved
+energy injection in the reduced polycrystal. The running mobility-only and
+combined cases were stopped immediately, A3 was not evaluated, and no
+production trajectory was released. The preserved failure archive SHA-256 is
+`3bd6906e05663c4ad0b8ede7ebe46ccc1e4eb3fbad99c9e8dad5af5088b3b2da`;
+it was fetched twice and independently verified.
+
+The split-loop reporter omitted the single midpoint energy state, so it stored
+64 rather than 65 energy states. That operational defect is corrected for
+future diagnosis. It does not alter the result: the stored trace contains 14
+positive transitions, and the independently stored final energy exceeds the
+initial energy by `47.74683`. Gate 3 is failed, production remains closed, and
+the Gate-2 manufactured pass must not be generalized to dense polycrystals.

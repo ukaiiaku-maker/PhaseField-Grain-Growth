@@ -1,7 +1,7 @@
 # Anisotropic campaign handoff
 
 This is an incomplete campaign with implemented and tested geometry foundations.
-Classification: `ANISOTROPIC_PF_TJ_ENERGY_GATE_FAILED`. Do not release reduced
+Classification: `ANISOTROPIC_REDUCED_PILOT_ENERGY_GATE_FAILED`. Do not release reduced
 or production trajectories with the current diffuse operator.
 
 ## Locations and ownership
@@ -138,3 +138,15 @@ All ten production rows remain `PREPARED_NOT_RELEASED`; reconstruction
 normalization remains provisional. A future continuation must replace or
 derive a continuous work-conjugate multiphase constraint treatment and repeat
 the full diffuse/convergence gates before any reduced or production release.
+
+## Latest continuation
+
+Commit `37c09cb` corrected the diffuse active-set formulation and HPC3 job
+55965236 passed all 203 tests plus the complete consolidated manufactured gate.
+The corrected operator nevertheless failed the reduced polycrystal. In job
+55966549, A0 passed but A2 energy-only increased from 5172.43154 to 5220.17837,
+with 14 observed positive transitions and maximum increase 24.70799. Restart,
+finiteness, nonnegativity, phase sum, and morphology remained valid. The failure
+archive SHA-256 is
+`3bd6906e05663c4ad0b8ede7ebe46ccc1e4eb3fbad99c9e8dad5af5088b3b2da`.
+The remaining pilot cases were stopped. No A3 or production job was released.

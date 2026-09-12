@@ -93,3 +93,13 @@ timesteps. The verified result archive is
 `412130123ca3e692c13979c06920b2d7be2e54eb591bcecdfc29d896c460fd7c`.
 Production remains closed until the preregistered reduced polycrystal pilot
 passes.
+
+The reduced pilot subsequently rejected this operator. In job 55966549 the A2
+energy-only polycrystal increased from `5172.43154` to `5220.17837`, with 14
+observed positive transitions and a maximum increase of `24.70799`. The state
+remained finite, conservative, nonnegative, morphologically stable, and exactly
+restartable. A0 passed the same checks. Because the failing control used
+isotropic mobility, the defect lies in the anisotropic energy/update path and
+cannot be attributed to inverse-correlated mobility. The remaining pilot and
+all production work are closed pending a new thermodynamically consistent
+polycrystal operator correction.

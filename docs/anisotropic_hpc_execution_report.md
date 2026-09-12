@@ -1,6 +1,6 @@
 # Anisotropic HPC3 execution evidence
 
-Classification: **ANISOTROPIC_PF_TJ_ENERGY_GATE_FAILED**. These are qualification jobs, not production PF trajectories. No reduced arrays or array task IDs exist; each job is one task. No full production or continuation IDs exist.
+Classification: **ANISOTROPIC_REDUCED_PILOT_ENERGY_GATE_FAILED**. These are qualification and reduced-pilot jobs, not production PF trajectories. Each job is one task; no full production or continuation IDs exist.
 
 All submitted jobs use **SDILLON1 / standard**, one node and one task, no GPU, no high QOS, and one numerical-library thread. Requests respect the 6 GiB/core partition limit. The latest preflight recorded 547 SU available, remote usage 6.42 GiB/1 TiB and 43.75k/8m inodes, and local free space 197 GiB. The other account SDILLON1_LAB was not used by this session.
 
@@ -163,3 +163,29 @@ upload or Slurm assignment. An immutable-comment scheduler query found no job;
 the same prepared run was retried and received exactly one Slurm ID, 55949331.
 No anisotropy job remains active. This failure closed reduced and production
 release; no production resource exposure was incurred.
+
+## Corrected operator and reduced-pilot jobs
+
+Job **55965236**, runner `20260912T180218Z-nogit-221594`, tested source
+`37c09cb2044a6f9eb821e713a0b519b702bac629`. All 203 tests and every consolidated
+manufactured gate passed, including strict diffuse TJ energy descent at both
+accepted timesteps. It used 102 CPU-s, elapsed 1301 s, and peaked at 677.14 MiB.
+The twice-fetched verified archive SHA-256 is
+`412130123ca3e692c13979c06920b2d7be2e54eb591bcecdfc29d896c460fd7c`.
+
+Reduced-pilot job **55965862** was an operational sizing failure: no A2 case
+completed before it was stopped, and no scientific result was read. It used
+2321 CPU-s over 2335 s and peaked at 785.40 MiB. Its preserved progress-log
+SHA-256 is
+`5c61b04d3f9e26456f25c1c3bcfa84553a66f38fdc63241048a65492d4b220ed`.
+
+The repaired pilot job **55966549**, runner
+`20260912T191209Z-nogit-212a63`, tested source `583bb0b`. A0 passed. A2
+energy-only remained finite, nonnegative, conservative, morphologically stable,
+and exactly restartable, but its unforced energy rose from 5172.43154 to
+5220.17837 with 14 observed positive transitions and a maximum increase of
+24.70799. The remaining cases were stopped under the hard-failure policy. It
+used 1623 CPU-s over 1631 s and peaked at 953.68 MiB. The preserved archive was
+fetched twice and independently verified as
+`3bd6906e05663c4ad0b8ede7ebe46ccc1e4eb3fbad99c9e8dad5af5088b3b2da`.
+No anisotropy job or production trajectory remains active.

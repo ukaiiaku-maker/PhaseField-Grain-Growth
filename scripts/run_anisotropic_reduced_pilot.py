@@ -103,7 +103,8 @@ def advance(
         diagnostic = solver.step(compute_energy=not solver.anisotropic)
         if energies is not None:
             if solver.anisotropic:
-                if index:
+                pre_step_state_index = solver.step_number - 1
+                if len(energies) == pre_step_state_index:
                     energies.append(float(solver._last_pre_step_energy))
             else:
                 energies.append(float(diagnostic.interfacial_energy))
@@ -190,6 +191,7 @@ def run_case(
         "maximum_energy_increase": maximum_increase,
         "positive_energy_steps": int(np.count_nonzero(deltas > energy_tolerance)),
         "complete_energy_states": len(energies),
+        "expected_energy_states": steps + 1,
         "minimum_phase_value": minimum,
         "maximum_phase_sum_error": phase_sum_error,
         "initial_morphology": initial_morphology,

@@ -1,6 +1,6 @@
 # Anisotropic Phase-1 scientific report
 
-Classification: **ANISOTROPIC_PF_TJ_ENERGY_GATE_FAILED**.
+Classification: **ANISOTROPIC_REDUCED_PILOT_ENERGY_GATE_FAILED**.
 
 The implemented constitutive candidate is the preregistered A2 strong rounded
 fourfold law: g_min=0.65, lambda=0.85, support power=16, mobility exponent=2.
@@ -87,3 +87,15 @@ error was 2.22e-16. This is a structural failure of the current diffuse
 active-set/projection formulation. It cannot support scientific attribution or
 production. The A2 normalization remains provisional, and the >=10% effect
 gate remains unmeasured.
+
+## Corrected small-system pass and polycrystal rejection
+
+The later constrained pair-flux correction removed the manufactured TJ defect:
+job 55965236 passed all 203 tests and every consolidated small-system gate, with
+zero positive TJ steps at two accepted timesteps. The matched reduced pilot
+then exposed a broader failure. A0 decreased energy, but A2 energy-only rose
+from 5172.43154 to 5220.17837 and contained 14 observed positive transitions,
+the largest 24.70799. Since this control disables anisotropic mobility, the
+failure is in the anisotropic energy/update path. The state remained finite,
+conservative, morphologically stable, and exactly restartable, so those checks
+do not mitigate the energy violation. Attribution and production remain closed.

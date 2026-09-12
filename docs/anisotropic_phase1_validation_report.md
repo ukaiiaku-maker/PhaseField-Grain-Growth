@@ -1,6 +1,6 @@
 # Anisotropic Phase-1 validation report
 
-Current classification: **ANISOTROPIC_PF_TJ_ENERGY_GATE_FAILED**.
+Current classification: **ANISOTROPIC_REDUCED_PILOT_ENERGY_GATE_FAILED**.
 This report distinguishes completed checks from missing campaign gates.
 
 ## Provenance and isolation
@@ -176,3 +176,18 @@ formulation fails the work-conjugate diffuse TJ gate structurally.
 The grid, interface-width, cadence, topology and reduced-polycrystal matrices
 were not run after this prerequisite failed. Normalization was not frozen and
 the ten production rows were not released.
+
+## Corrected operator qualification and reduced result
+
+The smallest constrained pair-flux correction subsequently passed the single
+consolidated HPC3 qualification in job 55965236: all 203 tests passed, the
+force-gradient error was 1.14204e-8, and every A0, planar, inclusion, diffuse
+TJ, timestep, restart, topology, finiteness, nonnegativity, and phase-sum gate
+passed. This supersedes the TJ failure for the small manufactured suite.
+
+It does not qualify the reduced polycrystal. In job 55966549 the matched A0
+case passed, while A2 energy-only increased from 5172.43154 to 5220.17837 with
+14 observed positive transitions and a maximum increase of 24.70799. Restart
+was exact and the state stayed finite and conservative. This is a hard
+scientific energy failure. Mobility-only, combined A2, conditional A3, and all
+production trajectories were stopped and remain unreleased.
