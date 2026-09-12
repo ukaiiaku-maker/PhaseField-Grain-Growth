@@ -1,9 +1,14 @@
 # QIU full-field qualification: Phase-0 baseline audit
 
+> **Naming correction (2026-09-12).** This historical filename is retained for
+> provenance, but the audited trajectory is a Qiu-labeled in-house surrogate,
+> not a Qiu baseline. The only true-baseline candidate is the still-unreproduced
+> archived implementation now named `QIU_SI_REFERENCE`.
+
 ## Scope and immutable provenance
 
 This audit is read-only with respect to the canonical Phase-1 campaign and its
-historical QIU result. The qualification worktree was created from audited HEAD
+historical Qiu-labeled surrogate result. The qualification worktree was created from audited HEAD
 `9f66c8d7a5a266687284d8da35aefbc6062808f7` on branch
 `codex/qiu-full-field-qualification-v1`. The historical production source is
 `4761ef957715ba2faa84f015a0e4f4c4cd21c7aa`.
@@ -115,10 +120,11 @@ backend is a faithful port of the archived Qiu implementation:
   whereas the archived Qiu code works with in-plane stress kernels and does not
   establish equivalence to that accumulated-eigenstrain closure.
 
-Until the Fourier equilibrium, energy-gradient, source-integral, and discrete
-work gates are run, the historical model remains an unqualified FFT
-eigenstrain surrogate. Its Phase-1 result remains an unresolved
-non-self-similar transient.
+At Phase 0, before the Fourier equilibrium, energy-gradient, source-integral,
+and discrete-work gates were run, the historical model remained an unqualified
+FFT eigenstrain surrogate and its Phase-1 transient was unresolved. The later
+terminal source/work audit now rejects the surrogate and closes its initiating
+numerical singularity; see the live forensic report.
 
 ## Durable artifacts
 

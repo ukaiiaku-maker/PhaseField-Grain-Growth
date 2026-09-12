@@ -33,7 +33,21 @@ Audited artifact: Zenodo 15120372 `PF_Codes.zip`, exact local MD5 `6cd49ca72eba8
 
 ## Regression policy
 
-The original drivers depend on seed data not included in `PF_Codes.zip` and on legacy `numba`/`sparse` combinations. Immutable regression inputs are therefore the published scripts plus recorded hashes. Reproductions use independently specified small geometries with the audited equations. Curvature-only, idealized shear, and polycrystal shear cases are written to `results/validation/qiu_*`; they are not considered passed until their manifests contain quantitative observables and `validation_passed=true`.
+The archived cases do not share one readiness state. The `[100]` four-reference
+driver is self-contained and has now been staged byte-for-byte for a native
+500x500, 200,000-step reproduction. The `[111]` drivers import absent module
+names (`functions_6ref_new2_1` and `functions_6ref_new2_2`); the continuation
+also requires an absent `OP_t142500.npz`. The polycrystal driver requires the
+absent published `PolycrystalSeeds_1000Grains_25_250_1.txt`. Its included
+generator is unseeded and cannot reconstruct that realization exactly. These
+are archive-level reproducibility limitations, not defects in the legacy
+surrogate or in `FFT_EIGENSTRAIN_V2`.
+
+The pristine archive and every staged source remain immutable and checksummed.
+The exact audit and promotion gates are in
+`docs/qiu_si_reference_reproduction_status.md`. Earlier independently
+specified small-geometry regressions remain formula/implementation tests only;
+they are not a completed `QIU_SI_REFERENCE` reproduction.
 
 The 2026-09-10 identity tests extract the undecorated `beta` function directly
 from the pristine archived abstract syntax tree and compare eight synthetic

@@ -1,6 +1,12 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-11 19:33 PDT; both legacy replays are retrieved, checksum-verified, source-attested, extracted, formally audited, and rendered through their identical N=100 endpoint; corrected seed 5101 is running beyond closed step 3352 and a locally verified atomic checkpoint 3000; the factor-two seed-5101 refinement is running as Slurm job 55950433.
+Last update: 2026-09-12 11:05 PDT; both legacy replays are retrieved,
+checksum-verified, source-attested, extracted, formally audited, and rendered
+through their identical N=100 endpoint. Their deterministic failure mechanism
+is closed and rejected. Corrected seed 5101 is running beyond closed step 5740
+with atomic checkpoint 5500; the factor-two refinement is running beyond closed
+step 1820 with atomic checkpoint 1500. The `QIU_SI_REFERENCE` archive is audited
+and its native four-reference HPC3 job is prepared but not submitted.
 
 ## Current source state
 
@@ -36,7 +42,11 @@ Last update: 2026-09-11 19:33 PDT; both legacy replays are retrieved, checksum-v
 - Clean source/work transition audit commit: `60daacc`.
 - Historical production source: `4761ef957715ba2faa84f015a0e4f4c4cd21c7aa`
 - Historical QIU run: canonical, read-only, all integration-manifest hashes verified
-- Current scientific decision: the historical QIU remains an unresolved non-self-similar transient and its backend is conclusively a legacy FFT eigenstrain surrogate, not the archived current-geometry Qiu reference formulation. The selected qualification backend is therefore honestly named `FFT_EIGENSTRAIN_V2`; production behavior remains pending.
+- Current scientific decision: the historical Qiu-labeled trajectory is a
+  diagnosed and rejected non-self-similar legacy-surrogate transient, not the
+  archived current-geometry Qiu reference formulation. The selected independent
+  qualification backend is therefore honestly named `FFT_EIGENSTRAIN_V2`;
+  its production behavior remains pending.
 
 ## Commands completed
 
@@ -727,7 +737,7 @@ Last update: 2026-09-11 19:33 PDT; both legacy replays are retrieved, checksum-v
   t=134.08, N=213: zero coupled rejection, equilibrium residual `4.32e-14`,
   source-work error `-1.35e-8`, stress 0.0665, compactness 1.493, and zero
   disconnected grains. The current reconciled queue SHA-256 is
-  `c6eff07d03afcce17857232bdecc3bc79795850d38219403fccd79cf16e5fb11`.
+  `37d95dd44d77797fb9c6257d90f48774918b71a12f28fe60d94da08f50195801`.
 
 ## Decisions recorded
 
@@ -750,8 +760,22 @@ Last update: 2026-09-11 19:33 PDT; both legacy replays are retrieved, checksum-v
 ## Next automatic action
 
 Continue monitoring corrected seed 5101 (`55932457`) and factor-two refinement
-seed 5101 (`55950433`) without adding a third campaign worker. Capture verified
-checkpoint snapshots and audit each terminal result. When either reaches a
-verified terminal state, submit corrected seed 5102 next; seed 5103 follows in
-queue order. Continue terminal retrievals, analysis, and movie generation
-without exceeding two full-size workers.
+seed 5101 (`55950433`) without adding a third campaign worker. At the
+2026-09-12 live audit, their newest closed rows were respectively step 5740,
+t=229.6, N=133 and step 1820, t=36.4, N=480. Both had zero coupled rejection,
+mechanical-equilibrium residuals below `2.2e-13`, negative complete-energy
+increments, maximum compactness below 1.56, and zero disconnected grains.
+The durable nonterminal audit SHA-256 is
+`4eb206f50edb2b5c76d81b433e922bcaa6fa07fa83e32702a193c19247c650ab`.
+
+Capture verified checkpoint snapshots and audit each terminal result. Hold
+corrected seeds 5102 and 5103 until **both** seed-5101 jobs are terminal,
+locally retrieved, and the mechanics, work-conjugacy, complete-energy, and
+timestep-comparison gates pass. A free Slurm slot alone is no longer sufficient
+to submit either seed. Continue terminal retrievals, analysis, and movie
+generation without exceeding two full-size workers.
+
+The separately tracked `QIU_SI_REFERENCE` workstream is defined in
+`docs/qiu_si_reference_reproduction_status.md`. It is the only candidate for a
+true Qiu baseline. The corrected workstream remains `FFT_EIGENSTRAIN_V2`; the
+completed legacy replay remains rejected forensic evidence.

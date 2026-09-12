@@ -1,16 +1,16 @@
 # QIU full-field instability forensic report
 
-Status: live qualification report; mathematical and reduced-system gates are
-complete, while the full-scale production matrix is still running. This file
-must not be cited as a final production qualification until its status is
-changed and `qualification_decision.json` is issued.
+Status: the legacy-forensic mechanism is closed; the independent corrected
+full-scale production matrix is still running. This file must not be cited as
+a final `FFT_EIGENSTRAIN_V2` production qualification until
+`qualification_decision.json` is issued.
 
 ## Executive finding
 
-The historical Phase-1 `QIU-T900-s5101` trajectory remains an unresolved,
-non-self-similar transient. Its 494-to-99 grain transition occurred from solver
-step 9,800 to 10,246: 446 steps, not 246. Nothing in this work modifies or
-supersedes that canonical artifact.
+The historical Phase-1 `QIU-T900-s5101` trajectory is a rejected,
+non-self-similar legacy-surrogate transient. Its 494-to-99 grain transition
+occurred from solver step 9,800 to 10,246: 446 steps, not 246. Nothing in this
+work modifies or supersedes that canonical artifact.
 
 The old backend is not the archived Qiu reference model. The archive rebuilds
 orientation-dependent line-disconnection sources from the current GB geometry;
@@ -20,6 +20,16 @@ model-identity classification is therefore `QIU_REFERENCE_MODEL_MISIDENTIFIED`.
 The corrected model selected for qualification is explicitly
 `FFT_EIGENSTRAIN_V2`, a periodic accumulated-eigenstrain surrogate, not a
 faithful Qiu port.
+
+The terminal replay and clean source/work continuation close the immediate
+mechanism: boundary `gb:343-357:1` encounters an exactly zero radius-one
+velocity-stencil denominator; the `1e-14` hard floor produces displacement
+`2.5367e13`, source norm `6.2781e12`, and an elastic-energy jump of
+`1.9707e25`. Stress explosion follows, the first disconnection occurs at step
+9673, and the visible morphology/population avalanche occurs later. No further
+production replay of this legacy failure is warranted. The separately defined
+`QIU_SI_REFERENCE` reproduction is documented in
+`docs/qiu_si_reference_reproduction_status.md`.
 
 Three concrete defects are independently demonstrated in the old surrogate:
 
@@ -32,9 +42,10 @@ Three concrete defects are independently demonstrated in the old surrogate:
 3. The accumulated legacy source is timestep-sensitive: halving dt changes
    matched-time maximum stress by about 50% in the reduced causal matrix.
 
-These establish defects regardless of whether the historical late avalanche
-also contains a physical instability. Only full corrected/refined trajectories
-can close that latter question.
+These establish defects, and the source/work continuation now identifies the
+numerical source singularity that initiates the historical late avalanche.
+Full corrected/refined trajectories answer the separate question of whether
+the independent `FFT_EIGENSTRAIN_V2` model has any qualified transition.
 
 ## Immutable provenance
 
@@ -55,6 +66,12 @@ collected tests in 60.67 s, with no failure, error, or skip; JUnit SHA-256 is
 The subsequent raw-capture/transition-classification analyzer change passes 12
 focused analyzer and renderer tests; the final complete suite remains reserved
 for the terminal evidence revision.
+
+The latest split-workstream revision passes the complete 251-test suite in
+51.26 seconds with zero failure, error, or skip. Its JUnit SHA-256 is
+`3e970b0a4220c5a9da20f7fe0c1da72ccfad77f142a1b1718a52d0ea393eadff`.
+This software result does not promote either running corrected trajectory to a
+terminal scientific result.
 
 ## Historical transition
 
@@ -187,16 +204,17 @@ local/remote recovery-archive SHA-256 is
 This snapshot is recovery/status evidence only and is not pooled as a completed
 run.
 
-The two active Slurm jobs are the only full-scale workers. Corrected target
-refinement, two additional paired seeds, terminal movies, final comparison
-plots, and the decision JSON will start or be issued only as slots/results
-become available.
+The two active Slurm jobs are the only full-scale workers. The corrected target
+refinement is running. The two additional seeds remain prepared but will not
+start until both seed-5101 jobs are terminal, locally retrieved, and pass the
+combined mechanics/work/energy/timestep gate. Terminal movies, final comparison
+plots, and the decision JSON remain pending terminal evidence.
 
 ## Current decision boundary
 
 The reference-identity decision is closed: the historical backend was
 misidentified, and future inference from the corrected surrogate must use the
-`FFT_EIGENSTRAIN_V2` name and production config. The numerical/coupling defect
-evidence is also closed at operator/source level. Whether the historical
-avalanche disappears or survives a converged corrected full-scale calculation
-remains open and will not be inferred from small systems or partial runs.
+`FFT_EIGENSTRAIN_V2` name and production config. The legacy numerical trigger
+and downstream causal ordering are also closed. Whether the independent
+corrected model develops any qualified analogous transition remains open and
+will not be inferred from small systems or partial runs.

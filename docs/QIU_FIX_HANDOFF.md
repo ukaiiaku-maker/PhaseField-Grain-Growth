@@ -24,8 +24,8 @@ Project directory:
 
 | Purpose | HPC3 run | Slurm | Source | State at handoff |
 |---|---|---:|---|---|
-| Corrected seed 5101 | `20260911T003946Z-nogit-c53868` | 55932457 | `8bb7837` | running beyond closed step 3352 |
-| Refined seed 5101 | `20260911T110924Z-nogit-6b926f` | 55950433 | `a173624` | running from dt=0.02/target=0.01 |
+| Corrected seed 5101 | `20260911T003946Z-nogit-c53868` | 55932457 | `8bb7837` | running; checkpoint 5500, latest closed step 5740/t=229.6/N=133 |
+| Refined seed 5101 | `20260911T110924Z-nogit-6b926f` | 55950433 | `a173624` | running; checkpoint 1500, latest closed step 1820/t=36.4/N=480 |
 
 Use `hpc3 status`, then `hpc3 fetch` only when terminal. Verify the runner's
 archive checksum and `output/all-files.sha256`, then copy the unpacked result
@@ -56,9 +56,9 @@ acknowledgement; Slurm confirmed the original job before any duplicate launch.
 - Working-copy root:
   `/private/tmp/qiu-full-field-qualification-v1/results/qiu_full_field_qualification_20260910`
 - Latest full JUnit:
-  `/Users/sdillon/PF-graingrowth/results/validation/qiu_fix_step2000_tests.xml`,
-  234/234 passed in 60.67 s, SHA-256
-  `f959e6452185a76ac34e44dd6703c370f48bb09822a9619c6b3d18b953c9a93b`.
+  `/Users/sdillon/PF-graingrowth/results/validation/qiu_si_reference_split_tests_20260912.xml`,
+  251/251 passed in 51.26 s, SHA-256
+  `3e970b0a4220c5a9da20f7fe0c1da72ccfad77f142a1b1718a52d0ea393eadff`.
 - First corrected live snapshot:
   `hpc_live/20260911T012000Z-corrected` under the durable root.
 - Latest corrected restart snapshot:
@@ -151,7 +151,7 @@ contain the verified `a173624` source bundle with SHA-256
 `c0ba9161a8f519436deec75c7017f03614fa04de43328221996b9efd0dd545b3`.
 The authoritative machine-readable execution queue is
 `hpc_execution_queue_20260911.json` under the durable qualification root,
-SHA-256 `2d2380a8eca2f150bf9d15e58907da61ee89c3730ce74736538a05b30b363bf2`.
+SHA-256 `37d95dd44d77797fb9c6257d90f48774918b71a12f28fe60d94da08f50195801`.
 The refinement changes both the external-increment target from 0.02 to 0.01
 and the actual configured PF timestep from 0.04 to 0.02; it therefore remains
 a factor-two test even if the external limiter is inactive.
@@ -171,8 +171,11 @@ source SHAs, and missing gate groups.
 
 1. Continue monitoring corrected and refined seed 5101 without exceeding two
    full-size campaign workers; retain remote data and verified snapshots.
-2. When either active worker reaches a verified terminal state, launch corrected
-   seed 5102, then seed 5103 at the following verified slot opening.
+2. Do not launch corrected seed 5102 or 5103 merely because a slot opens. Wait
+   until both seed-5101 trajectories are terminal and locally retrieved, then
+   require passing mechanics, work-conjugacy, complete-energy, and timestep
+   comparison gates. Launch seed 5102 first only if that combined gate passes;
+   seed 5103 follows only while the same gates remain satisfied.
 3. Run `scripts/analyze_qiu_full_field_qualification.py` on terminal paths.
 4. Render legacy, corrected seed-5101, and at least one additional seed with
    `scripts/render_qiu_qualification_movie.py`; retain each `.frames.csv`.
@@ -182,6 +185,13 @@ source SHAs, and missing gate groups.
 
 The final avalanche conclusion remains deliberately unset until the full
 corrected/refined evidence exists.
+
+The legacy trajectory is not a Qiu baseline. Its deterministic singularity is
+closed forensic evidence and receives no further production allocation. The
+true archived-code workstream is `QIU_SI_REFERENCE`; its source/input audit,
+native-case blockers, staging hashes, and promotion gate are recorded in
+`docs/qiu_si_reference_reproduction_status.md`. It must remain separate from
+the independent corrected `FFT_EIGENSTRAIN_V2` qualification.
 
 The renderer at commit `cc1461e` merges compact cadence frames with dense
 diagnostic fields, prefers the dense archive at duplicate steps, streams data
