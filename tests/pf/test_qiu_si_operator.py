@@ -8,6 +8,7 @@ from grain_growth_pf.pf.qiu_si import (
     qiu_native_capillary,
     qiu_native_accept,
     qiu_native_laplacian,
+    qiu_native_pair_energy,
     qiu_pair_anisotropy_correction,
     qiu_si_pairwise_rate,
 )
@@ -95,11 +96,60 @@ def test_anisotropic_correction_force_is_its_discrete_energy_derivative():
     arguments = (0.1, 0.7, 1.0, 0.65, 0.85, 16, 1.0, 1.0)
     energy, drive = qiu_pair_anisotropy_correction(first, second, *arguments)
     epsilon = 1e-7
-    plus = qiu_pair_anisotropy_correction(first + epsilon * direction, second, *arguments)[0]
-    minus = qiu_pair_anisotropy_correction(first - epsilon * direction, second, *arguments)[0]
+    plus = qiu_pair_anisotropy_correction(first + epsilon * direction, second - epsilon * direction, *arguments)[0]
+    minus = qiu_pair_anisotropy_correction(first - epsilon * direction, second + epsilon * direction, *arguments)[0]
     measured = (plus - minus) / (2 * epsilon)
-    assert measured == pytest.approx(-np.sum(drive * direction), rel=2e-7, abs=2e-7)
+    assert measured == pytest.approx(-2 * np.sum(drive * direction), rel=2e-7, abs=2e-7)
     assert np.isfinite(energy)
+
+
+def test_native_capillary_is_pair_energy_derivative_with_native_onsager_factor():
+    rng = np.random.default_rng(33)
+    first = rng.uniform(0.15, 0.7, (4, 5))
+    second = rng.uniform(0.15, 0.7, (4, 5))
+    direction = rng.normal(size=(4, 5))
+    width, dx, epsilon = 5.0, 1.0, 1e-7
+    lap_first = qiu_native_laplacian(first, dx)
+    lap_second = qiu_native_laplacian(second, dx)
+    force = qiu_native_capillary(first, second, lap_first, lap_second, width)
+    plus = qiu_native_pair_energy(
+        first + epsilon * direction, second - epsilon * direction, dx, width
+    )
+    minus = qiu_native_pair_energy(
+        first - epsilon * direction, second + epsilon * direction, dx, width
+    )
+    measured = (plus - minus) / (2 * epsilon)
+    expected = -2 * dx * dx * np.sum(force / (first + second) * direction)
+    assert measured == pytest.approx(expected, rel=2e-7, abs=2e-7)
+
+
+def test_anisotropic_rate_uses_native_pair_onsager_factor_at_multiphase_pixels():
+    rng = np.random.default_rng(34)
+    phi = rng.uniform(0.1, 0.8, (3, 4, 5))
+    phi /= phi.sum(axis=0)
+    orientations = np.array([0.0, -0.3, 0.45])
+    elastic = np.zeros((3, 3, 4, 5))
+    eij = np.zeros((3, 3))
+    p = QiuSI4RefParameters(shape=(4, 5), phases=3, dt=2e-4)
+    a0, _ = qiu_si_pairwise_rate(
+        phi, orientations, elastic, eij, QiuSIControl.A0_PORT, p,
+        angular_scale=1.0,
+    )
+    anisotropic, _ = qiu_si_pairwise_rate(
+        phi, orientations, elastic, eij, QiuSIControl.ANISO_E, p,
+        angular_scale=1.0,
+    )
+    expected = np.zeros_like(phi)
+    for i in range(2):
+        for j in range(i + 1, 3):
+            _, force = qiu_pair_anisotropy_correction(
+                phi[i], phi[j], orientations[i], orientations[j], p.dx,
+                p.g_min, p.inclination_weight, p.support_power, 1.0, 1.0,
+            )
+            exchange = p.native_mobility * (phi[i] + phi[j]) * force
+            expected[i] += p.dt * exchange
+            expected[j] -= p.dt * exchange
+    np.testing.assert_allclose(anisotropic - a0, expected, rtol=2e-13, atol=2e-15)
 
 
 def test_pair_exchange_is_antisymmetric_and_mobility_scales_complete_drive():

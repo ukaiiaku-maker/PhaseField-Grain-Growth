@@ -105,6 +105,30 @@ def qiu_native_capillary(phi_i: Array, phi_j: Array, lap_i: Array, lap_j: Array,
     return phi_j * lap_i - phi_i * lap_j + coefficient * (phi_i - phi_j)
 
 
+def qiu_native_pair_energy(phi_i: Array, phi_j: Array, dx: float,
+                           interface_width: float) -> float:
+    """Pair energy whose fixed-sum derivative generates native capillarity.
+
+    With ``s=phi_i+phi_j`` and ``d=phi_i-phi_j``, the native force is
+    ``-s * delta(E)/delta(d)``.  Exact zero-support cells have ``s=d=0`` and
+    contribute zero; no denominator floor is introduced.
+    """
+    total = phi_i + phi_j
+    difference = phi_i - phi_j
+    lap_total = qiu_native_laplacian(total, dx)
+    lap_difference = qiu_native_laplacian(difference, dx)
+    supported = total > 0.0
+    density = np.zeros_like(total)
+    coefficient = np.pi**2 / (2.0 * interface_width**2)
+    density[supported] = (
+        -0.25 * difference[supported] * lap_difference[supported]
+        + 0.25 * lap_total[supported] / total[supported]
+        * difference[supported] ** 2
+        - 0.5 * coefficient * difference[supported] ** 2 / total[supported]
+    )
+    return float(np.sum(density) * dx * dx)
+
+
 def qiu_native_accept(phi: Array, delta_eta_pre: Array) -> tuple[Array, Array]:
     """Apply the archived clip-then-renormalize acceptance operation."""
     trial = np.clip(np.asarray(phi, dtype=float) + delta_eta_pre, 0.0, 1.0)
@@ -127,11 +151,12 @@ def qiu_pair_anisotropy_correction(
     angular_scale: float,
     energy_normalization: float,
 ) -> tuple[float, Array]:
-    """Return ``E_A2-E_A0`` and the corresponding drive on phase ``i``.
+    """Return ``E_A2-E_A0`` and ``-delta(E)/delta(phi_i-phi_j)``.
 
     Forward bonds are counted once.  The returned drive is the negative
     derivative with respect to ``phi_i`` divided by cell area; its opposite is
-    applied to ``phi_j``.  Support is held fixed during differentiation.
+    applied to ``phi_j`` after multiplication by the native pair Onsager
+    factor ``phi_i+phi_j``. Support is held fixed during differentiation.
     """
     difference = phi_i - phi_j
     derivative = np.zeros_like(difference)
@@ -221,7 +246,7 @@ def qiu_si_pairwise_rate(
                     parameters.inclination_weight, parameters.support_power,
                     angular_scale, energy_normalization,
                 )
-                capillary = capillary + correction
+                capillary = capillary + (phi[i] + phi[j]) * correction
                 capillary_correction_energy += correction_energy
 
             mobility = np.full((height, width), parameters.native_mobility)

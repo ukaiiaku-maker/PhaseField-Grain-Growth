@@ -93,16 +93,22 @@ increment are tested directly. The implementation rejects non-antisymmetric
 `eij` or elastic pair inputs and applies a pair mobility to the complete
 capillary-plus-elastic-plus-barrier drive.
 
-The A2 energy term is presently an explicit discrete variational correction
-`E_A2 - E_A0`; it vanishes identically when anisotropy is disabled, counts
-forward bonds once, and its force passes a finite-difference derivative test.
-This does not yet close the full energy correspondence gate: the archived
-native TJ capillary expression
-`phi_j laplacian(phi_i) - phi_i laplacian(phi_j)` is not the same as the
-chemical-potential difference of the port's pair energy when more than two
-phases coexist. That distinction must be resolved or formally derived before
-qualification. It is recorded here rather than silently replacing the native
-TJ algebra.
+The pairwise variational structure is now explicit. For
+`s=phi_i+phi_j` and `d=phi_i-phi_j`, direct differentiation of the discrete
+native pair energy implemented by `qiu_native_pair_energy` gives
+`native_capillary_ij = -s delta(E_native_ij)/delta(d)`. Thus `s` is the
+native pair Onsager factor during an antisymmetric exchange that holds `s`
+fixed. The A2 term is a discrete variational correction `E_A2-E_A0`; it
+vanishes identically when anisotropy is disabled, counts forward bonds once,
+and enters the update as `-s delta(E_A2-E_A0)/delta(d)`. Independent
+finite-difference tests cover both the archived native energy identity and the
+anisotropic correction. This preserves the native TJ algebra without an
+averaged scalar mobility.
+
+The derivation closes the local force/energy formula, but it does not promote
+the subcampaign. Accepted-step energy descent, exact matched native states,
+normalization on the promoted initial network, and numerical/HPC3 gates remain
+outstanding.
 
 The immutable control manifest is
 `configs/production/qiu_si_4ref_controls.json`. Its normalizations and release
