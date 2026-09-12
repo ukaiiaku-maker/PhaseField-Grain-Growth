@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-11 16:42 PDT; the first legacy replay is retrieved, checksum-verified, source-attested, extracted, and formally audited through its N=100 endpoint; corrected seed 5101 is running beyond a locally verified atomic checkpoint 3000; the clean step-9000 source/work continuation remains in the second HPC3 slot and is trajectory-identical through the checked pre-transition fields.
+Last update: 2026-09-11 17:08 PDT; the first legacy replay is retrieved, checksum-verified, source-attested, extracted, formally audited, and rendered through its N=100 endpoint; corrected seed 5101 is running beyond a locally verified atomic checkpoint 3000; the clean step-9000 source/work continuation remains in the second HPC3 slot and is trajectory-identical through the checked pre-transition fields.
 
 ## Current source state
 
@@ -32,6 +32,7 @@ Last update: 2026-09-11 16:42 PDT; the first legacy replay is retrieved, checksu
   `b2c435f`.
 - Live-fragment, causal-reconstruction, and historical-frame renderer commits:
   `cf5a094`, `f1f4f28`, `b667763`.
+- Terminal legacy audit and strict-JSON analysis commit: `b8e12a1`.
 - Historical production source: `4761ef957715ba2faa84f015a0e4f4c4cd21c7aa`
 - Historical QIU run: canonical, read-only, all integration-manifest hashes verified
 - Current scientific decision: the historical QIU remains an unresolved non-self-similar transient and its backend is conclusively a legacy FFT eigenstrain surrogate, not the archived current-geometry Qiu reference formulation. The selected qualification backend is therefore honestly named `FFT_EIGENSTRAIN_V2`; production behavior remains pending.
@@ -408,6 +409,16 @@ Last update: 2026-09-11 16:42 PDT; the first legacy replay is retrieved, checksu
   because its unavailable legacy work residuals were emitted as nonstandard
   IEEE `NaN` tokens; the analyzer now records such unavailable values as JSON
   `null` without changing numerical results.
+- The terminal legacy renderer consumed all 1,002 unique retained steps from 0
+  through 9984: 18 historical compact resolved-shear frames plus 984 full-tensor
+  forensic fields. The 122-MB GIF SHA-256 is
+  `f9aa7823f5cb6274a7b62e01d2a1591718d49def23139a0231f27de0faa07606`;
+  its frame-index SHA-256 is
+  `cd64f2c6c8275cc2bb116b1446b14cea5971945fc962e5634d60e9c467fb7511`.
+  The transition-centered contact sheet selects exact steps 9670/9671/9672;
+  visual inspection confirms that the morphology is still coherent when the
+  single-point source/stress singularity appears. All movie artifacts are under
+  `movies/legacy-terminal-seed5101.*`.
 - After the first submission attempt met a transient `/pub` metadata timeout,
   Slurm confirmed no duplicate job. The prepared source/work continuation was
   retried safely and submitted as Slurm `55948258`; it is running concurrently
