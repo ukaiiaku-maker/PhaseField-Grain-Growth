@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-11 17:08 PDT; the first legacy replay is retrieved, checksum-verified, source-attested, extracted, formally audited, and rendered through its N=100 endpoint; corrected seed 5101 is running beyond a locally verified atomic checkpoint 3000; the clean step-9000 source/work continuation remains in the second HPC3 slot and is trajectory-identical through the checked pre-transition fields.
+Last update: 2026-09-11 17:14 PDT; the first legacy replay is retrieved, checksum-verified, source-attested, extracted, formally audited, and rendered through its N=100 endpoint; corrected seed 5101 is running beyond a locally verified atomic checkpoint 3000; the clean step-9000 source/work continuation remains in the second HPC3 slot and is trajectory-identical through the checked pre-transition fields.
 
 ## Current source state
 
@@ -448,6 +448,11 @@ Last update: 2026-09-11 17:08 PDT; the first legacy replay is retrieved, checksu
   tests in 68.06 s with zero failures, errors, or skips. Durable JUnit:
   `results/validation/qiu_fix_transition_audit_tests.xml`; SHA-256
   `969e0141e8e36456041309c6c0dcbb15aa72bdb486f6cffbebfc973337b192ba`.
+- The post-retrieval suite, including strict serialization of unavailable
+  legacy work residuals, passes 246/246 tests in 76.43 s with zero failures,
+  errors, or skips. Durable JUnit:
+  `results/validation/qiu_fix_terminal_legacy_tests.xml`; SHA-256
+  `6d0524bd801bba68d558449a2faa02e1c5d4aed9aa5a857b3c79d91a32ace906`.
 - The reconciled two-worker queue is
   `hpc_execution_queue_20260911.json`, SHA-256
   `7937dd4ae4fea7fb2cd43d539804334e97657aefefc45377ae65dbd82a6bac97`.
