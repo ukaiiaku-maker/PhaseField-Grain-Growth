@@ -1,0 +1,11 @@
+{
+  "job_id": "55933300",
+  "observed_block": "pytest in BeeGFS IBV receive wait after 86 tests",
+  "recovered_before_cancellation": true,
+  "cancellation_issued": false,
+  "replacement_submitted": false,
+  "full_suite_passed": 193,
+  "full_suite_seconds": 1219.61,
+  "diagnostic_archive_sha256": "f2e66cdeab1d23a600f4ca964fee650e4ee93a3a5684d77729d68f753c5b3a65",
+  "fallback_bundle": "geometry-v7/NOT_SUBMITTED.md"
+}
