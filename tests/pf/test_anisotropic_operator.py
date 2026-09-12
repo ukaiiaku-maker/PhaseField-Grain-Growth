@@ -52,6 +52,27 @@ def test_discrete_anisotropic_force_is_energy_derivative():
     assert abs(derivative[index] - finite_difference) <= 1e-7
 
 
+def test_anisotropic_force_is_directional_derivative_at_zero_pair_gradient():
+    eta = np.empty((3, 4, 5))
+    eta[0] = 0.2
+    eta[1] = 0.3
+    eta[2] = 0.5
+    rng = np.random.default_rng(19)
+    direction = rng.normal(size=eta.shape)
+    direction -= direction.mean(axis=0)
+    energy, derivative = anisotropic_energy_gradient(*_gradient_arguments(eta))
+    analytic = float(np.sum(derivative * direction))
+    quotients = []
+    for epsilon in (1e-5, 1e-6, 1e-7, 2.5e-8):
+        perturbed = eta + epsilon * direction
+        perturbed_energy = anisotropic_energy_gradient(
+            *_gradient_arguments(perturbed)
+        )[0]
+        quotients.append((perturbed_energy - energy) / epsilon)
+    assert np.isclose(quotients[-1], analytic, rtol=1e-5, atol=1e-6)
+    assert abs(quotients[-1] - analytic) < abs(quotients[0] - analytic)
+
+
 def test_pair_energy_is_continuous_when_third_phase_leaves_local_support():
     profile = np.array([0.05, 0.3, 0.7, 0.95])
     two_phase = np.empty((3, 3, 4))

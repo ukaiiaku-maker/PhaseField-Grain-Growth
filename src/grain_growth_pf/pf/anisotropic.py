@@ -60,6 +60,61 @@ def _pair_law(
 
 
 @njit(cache=True)
+def _rotated_support_norm_and_gradient(
+    px: float, py: float, phi: float, power: int,
+) -> tuple[float, float, float]:
+    """Return a rotated even p-norm and its Cartesian gradient."""
+    c = np.cos(phi)
+    s = np.sin(phi)
+    a = c * px + s * py
+    b = -s * px + c * py
+    total = a ** power + b ** power
+    if total == 0.0:
+        return 0.0, 0.0, 0.0
+    scale = total ** (1.0 / power - 1.0)
+    da = scale * a ** (power - 1)
+    db = scale * b ** (power - 1)
+    return total ** (1.0 / power), c * da - s * db, s * da + c * db
+
+
+@njit(cache=True)
+def _pair_homogeneous_norm_and_gradient(
+    px: float,
+    py: float,
+    phi_i: float,
+    phi_j: float,
+    gamma0: float,
+    g_min: float,
+    inclination_weight: float,
+    support_power: int,
+    angular_scale: float,
+    energy_normalization: float,
+) -> tuple[float, float, float]:
+    """Return the one-homogeneous pair tension and Cahn--Hoffman vector."""
+    delta = abs((phi_i - phi_j + np.pi / 4.0) % (np.pi / 2.0) - np.pi / 4.0)
+    misorientation = g_min + (1.0 - g_min) * np.sin(2.0 * delta) ** 2
+    prefactor = gamma0 * energy_normalization * misorientation * angular_scale
+    radius = np.sqrt(px * px + py * py)
+    radial_x = px / radius if radius > 0.0 else 0.0
+    radial_y = py / radius if radius > 0.0 else 0.0
+    hi, hix, hiy = _rotated_support_norm_and_gradient(px, py, phi_i, support_power)
+    hj, hjx, hjy = _rotated_support_norm_and_gradient(px, py, phi_j, support_power)
+    value = prefactor * (
+        (1.0 - inclination_weight) * radius
+        + 0.5 * inclination_weight * (hi + hj)
+    )
+    first_x = prefactor * (
+        (1.0 - inclination_weight) * radial_x
+        + 0.5 * inclination_weight * (hix + hjx)
+    )
+    first_y = prefactor * (
+        (1.0 - inclination_weight) * radial_y
+        + 0.5 * inclination_weight * (hiy + hjy)
+    )
+    return value, first_x, first_y
+
+
+@njit(cache=True)
 def anisotropic_energy_gradient(
     eta: Array,
     active: NDArray[np.bool_],
@@ -122,38 +177,43 @@ def anisotropic_energy_gradient(
                     gjy = (eta[j, yp, x] - uj) / dx
                     px = gix - gjx
                     py = giy - gjy
-                    magnitude = np.sqrt(px * px + py * py)
-                    theta = np.arctan2(py, px) if magnitude > tolerance else 0.0
-                    law_gamma, law_first, _ = _pair_law(
-                        theta, orientations[i], orientations[j], gamma0, mobility0,
-                        g_min, inclination_weight, support_power, mobility_exponent,
-                        angular_scale, energy_normalization, mobility_normalization,
-                    )
-                    gamma = law_gamma if anisotropic_energy else gamma0
-                    gamma_first = law_first if anisotropic_energy else 0.0
-                    cross = gix * gjx + giy * gjy
-                    base = ui * uj - pair_gradient_scale * cross
-                    energy += density_scale * gamma * base * dx * dx
-
-                    dgamma_x = 0.0
-                    dgamma_y = 0.0
-                    if magnitude > tolerance:
-                        dgamma_x = -gamma_first * py / (magnitude * magnitude)
-                        dgamma_y = gamma_first * px / (magnitude * magnitude)
-                    flux_ix = density_scale * (
-                        -gamma * pair_gradient_scale * gjx + base * dgamma_x
-                    )
-                    flux_iy = density_scale * (
-                        -gamma * pair_gradient_scale * gjy + base * dgamma_y
-                    )
-                    flux_jx = density_scale * (
-                        -gamma * pair_gradient_scale * gix - base * dgamma_x
-                    )
-                    flux_jy = density_scale * (
-                        -gamma * pair_gradient_scale * giy - base * dgamma_y
-                    )
-                    derivative[i, y, x] += density_scale * gamma * uj * dx * dx
-                    derivative[j, y, x] += density_scale * gamma * ui * dx * dx
+                    if anisotropic_energy:
+                        norm, norm_x, norm_y = _pair_homogeneous_norm_and_gradient(
+                            px, py, orientations[i], orientations[j], gamma0,
+                            g_min, inclination_weight, support_power, angular_scale,
+                            energy_normalization,
+                        )
+                        sx = gix + gjx
+                        sy = giy + gjy
+                        sum_norm, sum_norm_x, sum_norm_y = _pair_homogeneous_norm_and_gradient(
+                            sx, sy, orientations[i], orientations[j], gamma0,
+                            g_min, inclination_weight, support_power, angular_scale,
+                            energy_normalization,
+                        )
+                        potential = gamma0 * ui * uj
+                        gradient = pair_gradient_scale * (
+                            norm * norm - sum_norm * sum_norm
+                        ) / (4.0 * gamma0)
+                        common_x = pair_gradient_scale * sum_norm * sum_norm_x / (2.0 * gamma0)
+                        common_y = pair_gradient_scale * sum_norm * sum_norm_y / (2.0 * gamma0)
+                        anisotropic_x = pair_gradient_scale * norm * norm_x / (2.0 * gamma0)
+                        anisotropic_y = pair_gradient_scale * norm * norm_y / (2.0 * gamma0)
+                        flux_ix = density_scale * (anisotropic_x - common_x)
+                        flux_iy = density_scale * (anisotropic_y - common_y)
+                        flux_jx = density_scale * (-anisotropic_x - common_x)
+                        flux_jy = density_scale * (-anisotropic_y - common_y)
+                    else:
+                        potential = gamma0 * ui * uj
+                        gradient = -gamma0 * pair_gradient_scale * (
+                            gix * gjx + giy * gjy
+                        )
+                        flux_ix = -density_scale * gamma0 * pair_gradient_scale * gjx
+                        flux_iy = -density_scale * gamma0 * pair_gradient_scale * gjy
+                        flux_jx = -density_scale * gamma0 * pair_gradient_scale * gix
+                        flux_jy = -density_scale * gamma0 * pair_gradient_scale * giy
+                    energy += density_scale * (potential + gradient) * dx * dx
+                    derivative[i, y, x] += density_scale * gamma0 * uj * dx * dx
+                    derivative[j, y, x] += density_scale * gamma0 * ui * dx * dx
                     derivative[i, y, x] -= (flux_ix + flux_iy) * dx
                     derivative[i, y, xp] += flux_ix * dx
                     derivative[i, yp, x] += flux_iy * dx
@@ -513,16 +573,26 @@ def anisotropic_energy_components(
                     gjy = (eta[j, yp, x] - uj) / dx
                     px = gix - gjx
                     py = giy - gjy
-                    magnitude = np.sqrt(px * px + py * py)
-                    theta = np.arctan2(py, px) if magnitude > tolerance else 0.0
-                    law_gamma, _, _ = _pair_law(
-                        theta, orientations[i], orientations[j], gamma0, mobility0,
-                        g_min, inclination_weight, support_power, mobility_exponent,
-                        angular_scale, energy_normalization, mobility_normalization,
-                    )
-                    gamma = law_gamma if anisotropic_energy else gamma0
-                    potential[y, x] += density_scale * gamma * ui * uj * dx * dx
-                    gradient[y, x] += density_scale * gamma * (
-                        -gradient_scale * (gix * gjx + giy * gjy)
-                    ) * dx * dx
+                    if anisotropic_energy:
+                        norm, _, _ = _pair_homogeneous_norm_and_gradient(
+                            px, py, orientations[i], orientations[j], gamma0,
+                            g_min, inclination_weight, support_power, angular_scale,
+                            energy_normalization,
+                        )
+                        sx = gix + gjx
+                        sy = giy + gjy
+                        sum_norm, _, _ = _pair_homogeneous_norm_and_gradient(
+                            sx, sy, orientations[i], orientations[j], gamma0,
+                            g_min, inclination_weight, support_power, angular_scale,
+                            energy_normalization,
+                        )
+                        gradient_term = gradient_scale * (
+                            norm * norm - sum_norm * sum_norm
+                        ) / (4.0 * gamma0)
+                    else:
+                        gradient_term = -gamma0 * gradient_scale * (
+                            gix * gjx + giy * gjy
+                        )
+                    potential[y, x] += density_scale * gamma0 * ui * uj * dx * dx
+                    gradient[y, x] += density_scale * gradient_term * dx * dx
     return potential, gradient, potential + gradient

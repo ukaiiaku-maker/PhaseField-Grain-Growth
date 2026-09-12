@@ -14,7 +14,6 @@ from numba import njit
 from grain_growth_pf.config import PFConfig
 from grain_growth_pf.mechanics.anisotropy import LADDER, angular_normalization
 from grain_growth_pf.pf.anisotropic import (
-    _pair_law,
     anisotropic_energy_components,
     anisotropic_energy_gradient,
     anisotropic_pairwise_audit,
@@ -142,6 +141,40 @@ def energy_support_entries(support):
 
 
 @njit(cache=True)
+def oracle_rotated_norm_gradient(px, py, phi, power):
+    c = np.cos(phi)
+    s = np.sin(phi)
+    a = c * px + s * py
+    b = -s * px + c * py
+    total = a**power + b**power
+    if total == 0.0:
+        return 0.0, 0.0, 0.0
+    scale = total ** (1.0 / power - 1.0)
+    da = scale * a ** (power - 1)
+    db = scale * b ** (power - 1)
+    return total ** (1.0 / power), c * da - s * db, s * da + c * db
+
+
+@njit(cache=True)
+def oracle_pair_norm_gradient(
+    px, py, phi_i, phi_j, gamma0, g_min, inclination_weight,
+    support_power, angular_scale, energy_normalization,
+):
+    delta = abs((phi_i - phi_j + np.pi / 4.0) % (np.pi / 2.0) - np.pi / 4.0)
+    misorientation = g_min + (1.0 - g_min) * np.sin(2.0 * delta) ** 2
+    prefactor = gamma0 * energy_normalization * misorientation * angular_scale
+    radius = np.sqrt(px * px + py * py)
+    rx = px / radius if radius > 0.0 else 0.0
+    ry = py / radius if radius > 0.0 else 0.0
+    hi, hix, hiy = oracle_rotated_norm_gradient(px, py, phi_i, support_power)
+    hj, hjx, hjy = oracle_rotated_norm_gradient(px, py, phi_j, support_power)
+    value = prefactor * ((1.0 - inclination_weight) * radius + 0.5 * inclination_weight * (hi + hj))
+    first_x = prefactor * ((1.0 - inclination_weight) * rx + 0.5 * inclination_weight * (hix + hjx))
+    first_y = prefactor * ((1.0 - inclination_weight) * ry + 0.5 * inclination_weight * (hiy + hjy))
+    return value, first_x, first_y
+
+
+@njit(cache=True)
 def frozen_energy_gradient(
     eta, orientations, cell, phase_i, phase_j, gamma0, mobility0, width_value,
     dx, periodic, g_min, inclination_weight, support_power,
@@ -169,27 +202,30 @@ def frozen_energy_gradient(
         gjy = (eta[j, yp, x] - uj) / dx
         px = gix - gjx
         py = giy - gjy
-        magnitude = np.sqrt(px * px + py * py)
-        theta = np.arctan2(py, px) if magnitude > tolerance else 0.0
-        gamma, gamma_first, _ = _pair_law(
-            theta, orientations[i], orientations[j], gamma0, mobility0,
-            g_min, inclination_weight, support_power, mobility_exponent,
-            angular_scale, energy_normalization, mobility_normalization,
+        norm, nx, ny = oracle_pair_norm_gradient(
+            px, py, orientations[i], orientations[j], gamma0, g_min,
+            inclination_weight, support_power, angular_scale, energy_normalization,
         )
-        cross = gix * gjx + giy * gjy
-        base = ui * uj - gradient_scale * cross
-        energy += density_scale * gamma * base * dx * dx
-        dgamma_x = 0.0
-        dgamma_y = 0.0
-        if magnitude > tolerance:
-            dgamma_x = -gamma_first * py / (magnitude * magnitude)
-            dgamma_y = gamma_first * px / (magnitude * magnitude)
-        flux_ix = density_scale * (-gamma * gradient_scale * gjx + base * dgamma_x)
-        flux_iy = density_scale * (-gamma * gradient_scale * gjy + base * dgamma_y)
-        flux_jx = density_scale * (-gamma * gradient_scale * gix - base * dgamma_x)
-        flux_jy = density_scale * (-gamma * gradient_scale * giy - base * dgamma_y)
-        derivative[i, y, x] += density_scale * gamma * uj * dx * dx
-        derivative[j, y, x] += density_scale * gamma * ui * dx * dx
+        sx = gix + gjx
+        sy = giy + gjy
+        sum_norm, snx, sny = oracle_pair_norm_gradient(
+            sx, sy, orientations[i], orientations[j], gamma0, g_min,
+            inclination_weight, support_power, angular_scale, energy_normalization,
+        )
+        energy += density_scale * (
+            gamma0 * ui * uj
+            + gradient_scale * (norm * norm - sum_norm * sum_norm) / (4.0 * gamma0)
+        ) * dx * dx
+        ax = gradient_scale * norm * nx / (2.0 * gamma0)
+        ay = gradient_scale * norm * ny / (2.0 * gamma0)
+        cx = gradient_scale * sum_norm * snx / (2.0 * gamma0)
+        cy = gradient_scale * sum_norm * sny / (2.0 * gamma0)
+        flux_ix = density_scale * (ax - cx)
+        flux_iy = density_scale * (ay - cy)
+        flux_jx = density_scale * (-ax - cx)
+        flux_jy = density_scale * (-ay - cy)
+        derivative[i, y, x] += density_scale * gamma0 * uj * dx * dx
+        derivative[j, y, x] += density_scale * gamma0 * ui * dx * dx
         derivative[i, y, x] -= (flux_ix + flux_iy) * dx
         derivative[i, y, xp] += flux_ix * dx
         derivative[i, yp, x] += flux_iy * dx
@@ -235,27 +271,33 @@ def dense_streaming_oracle(
                     gjy = (eta[j, yp, x] - uj) / dx
                     px = gix - gjx
                     py = giy - gjy
-                    magnitude = np.sqrt(px * px + py * py)
-                    theta = np.arctan2(py, px) if magnitude > tolerance else 0.0
-                    gamma, gamma_first, _ = _pair_law(
-                        theta, orientations[i], orientations[j], gamma0, mobility0,
-                        g_min, inclination_weight, support_power, mobility_exponent,
-                        angular_scale, energy_normalization, mobility_normalization,
+                    norm, nx, ny = oracle_pair_norm_gradient(
+                        px, py, orientations[i], orientations[j], gamma0, g_min,
+                        inclination_weight, support_power, angular_scale,
+                        energy_normalization,
                     )
-                    cross = gix * gjx + giy * gjy
-                    base = ui * uj - gradient_scale * cross
-                    total += density_scale * gamma * base * dx * dx
-                    dgamma_x = 0.0
-                    dgamma_y = 0.0
-                    if magnitude > tolerance:
-                        dgamma_x = -gamma_first * py / (magnitude * magnitude)
-                        dgamma_y = gamma_first * px / (magnitude * magnitude)
-                    flux_ix = density_scale * (-gamma * gradient_scale * gjx + base * dgamma_x)
-                    flux_iy = density_scale * (-gamma * gradient_scale * gjy + base * dgamma_y)
-                    flux_jx = density_scale * (-gamma * gradient_scale * gix - base * dgamma_x)
-                    flux_jy = density_scale * (-gamma * gradient_scale * giy - base * dgamma_y)
-                    derivative[i, y, x] += density_scale * gamma * uj * dx * dx
-                    derivative[j, y, x] += density_scale * gamma * ui * dx * dx
+                    sx = gix + gjx
+                    sy = giy + gjy
+                    sum_norm, snx, sny = oracle_pair_norm_gradient(
+                        sx, sy, orientations[i], orientations[j], gamma0, g_min,
+                        inclination_weight, support_power, angular_scale,
+                        energy_normalization,
+                    )
+                    total += density_scale * (
+                        gamma0 * ui * uj
+                        + gradient_scale * (norm * norm - sum_norm * sum_norm)
+                        / (4.0 * gamma0)
+                    ) * dx * dx
+                    ax = gradient_scale * norm * nx / (2.0 * gamma0)
+                    ay = gradient_scale * norm * ny / (2.0 * gamma0)
+                    cx = gradient_scale * sum_norm * snx / (2.0 * gamma0)
+                    cy = gradient_scale * sum_norm * sny / (2.0 * gamma0)
+                    flux_ix = density_scale * (ax - cx)
+                    flux_iy = density_scale * (ay - cy)
+                    flux_jx = density_scale * (-ax - cx)
+                    flux_jy = density_scale * (-ay - cy)
+                    derivative[i, y, x] += density_scale * gamma0 * uj * dx * dx
+                    derivative[j, y, x] += density_scale * gamma0 * ui * dx * dx
                     derivative[i, y, x] -= (flux_ix + flux_iy) * dx
                     derivative[i, y, xp] += flux_ix * dx
                     derivative[i, yp, x] += flux_iy * dx
