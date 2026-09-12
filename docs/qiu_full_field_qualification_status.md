@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-11 18:34 PDT; the first legacy replay is retrieved, checksum-verified, source-attested, extracted, formally audited, and rendered through its N=100 endpoint; corrected seed 5101 is running beyond observed frame step 3200 and a locally verified atomic checkpoint 3000; the clean source/work continuation has crossed the causal transition and is running beyond observed field step 9770.
+Last update: 2026-09-11 19:33 PDT; both legacy replays are retrieved, checksum-verified, source-attested, extracted, formally audited, and rendered through their identical N=100 endpoint; corrected seed 5101 is running beyond closed step 3352 and a locally verified atomic checkpoint 3000; the factor-two seed-5101 refinement is running as Slurm job 55950433.
 
 ## Current source state
 
@@ -33,6 +33,7 @@ Last update: 2026-09-11 18:34 PDT; the first legacy replay is retrieved, checksu
 - Live-fragment, causal-reconstruction, and historical-frame renderer commits:
   `cf5a094`, `f1f4f28`, `b667763`.
 - Terminal legacy audit and strict-JSON analysis commit: `b8e12a1`.
+- Clean source/work transition audit commit: `60daacc`.
 - Historical production source: `4761ef957715ba2faa84f015a0e4f4c4cd21c7aa`
 - Historical QIU run: canonical, read-only, all integration-manifest hashes verified
 - Current scientific decision: the historical QIU remains an unresolved non-self-similar transient and its backend is conclusively a legacy FFT eigenstrain surrogate, not the archived current-geometry Qiu reference formulation. The selected qualification backend is therefore honestly named `FFT_EIGENSTRAIN_V2`; production behavior remains pending.
@@ -680,6 +681,53 @@ Last update: 2026-09-11 18:34 PDT; the first legacy replay is retrieved, checksu
   `5de822041ae4c533cf9c1c732d30182072045cb89b313a042c2e6f9a8b8632b1`.
   The reconciled execution queue SHA-256 is
   `4798909a0e03c51e4fccde52212d10ea65f3e9b6b7f1b994dac687d1998ae1df`.
+- The clean source/work continuation completed at the identical step 9984,
+  t=399.36, N=100 endpoint. Slurm `55948258` reports `COMPLETED`, exit `0:0`,
+  elapsed 03:04:22, and exactly one valid final marker. The runner fetched and
+  verified the 726,135,940-byte archive locally; matching local/remote SHA-256
+  is `f0c613ac63b358a92b1add3944202ef446b71a9f8863f2aec88a19fbd0899a23`.
+  All 255 substantive files match the internal HPC manifest. Its 32 inherited
+  AppleDouble entries are explicitly identified metadata sidecars consumed or
+  rewritten by Darwin extraction, not simulation files. Retrieval audit:
+  `hpc_terminal/20260911T111913Z-sourcework-legacy-seed5101/retrieval_audit.json`,
+  SHA-256 `25f1b13e8d66230cc1b04ccd99b8d93bca0bc287603f849f4bb53d3c6e57f13f`.
+- The terminal clean stream contains 984 contiguous scalar rows and 1,918,433
+  per-boundary rows through 9984. It reproduces the same transition timing and
+  terminal extrema as the dense replay. Before step 9671, global/per-boundary
+  work reconciliation remains within absolute `2.62e-12` and relative
+  `4.29e-13`; over the full extreme-range cascade the relative discrepancy is
+  below `8.34e-13`. Terminal source/work audit SHA-256:
+  `a59feac0b8bdc6f57b51ac6644c5810d5ca0c672459b3b9d589362333e55a3ed`;
+  formal-analysis SHA-256:
+  `e167cfc657dab410231c9eb59e587e59928d47dc534ab37cd0e3ee725776907d`.
+- Streaming SHA-256 comparison proves that all seven numerical checkpoint
+  members (`eta`, mobility, driving, active phases, orientations, previous eta,
+  and eigenstrain) are bitwise identical between the first and clean terminal
+  replay. All 43 shared trajectory/field diagnostics also match exactly over
+  steps 9001--9984. Only intentionally changed source/work recorder fields and
+  later read-only aspect statistics differ. Equivalence artifact SHA-256:
+  `2cae328da039b0a1b7bf0048a1cc8b2c5573d440486129029f2a8ee97a9e8123`.
+- The clean terminal movie contains 118 indexed states from step 0 through
+  9984 (19 compact frames and 99 full fields). GIF SHA-256 is
+  `448bf2e4107093c165247e7b6d35b5a8436e67f208e7b3f3198f59e3048e39bb`;
+  frame-index SHA-256 is
+  `b0d6c9f2b6ba453594664954b306e1da2810db94b765412d3c00981b3b0fe5e5`.
+  Visual inspection confirms coherent morphology at 9660/9670 and localized
+  extreme stress/eigenstrain by the guard field at 9673. The dense first-replay
+  movie remains the exact 9670/9671/9672 field sequence.
+- The verified terminal handoff freed one full-worker slot. Prepared refinement
+  `20260911T110924Z-nogit-6b926f` was submitted exactly once as Slurm
+  `55950433` and is running on `hpc3-14-12`, source `a173624`, dt=0.02,
+  external target=0.01. Its detached checkout is clean and the first closed row
+  at step 16/t=0.32/N=797 has zero rejection, equilibrium residual `2.19e-13`,
+  source-work error `-2.47e-8`, stress 0.0111, compactness 1.531, and no
+  disconnected grains. Independent source-attestation SHA-256:
+  `1f8f874cb30ccb697addd2f19594e079e6a6c42d6928ba0f988cec58663af3d7`.
+- Corrected seed 5101 remains healthy at latest audited closed step 3352,
+  t=134.08, N=213: zero coupled rejection, equilibrium residual `4.32e-14`,
+  source-work error `-1.35e-8`, stress 0.0665, compactness 1.493, and zero
+  disconnected grains. The current reconciled queue SHA-256 is
+  `c6eff07d03afcce17857232bdecc3bc79795850d38219403fccd79cf16e5fb11`.
 
 ## Decisions recorded
 
@@ -701,10 +749,9 @@ Last update: 2026-09-11 18:34 PDT; the first legacy replay is retrieved, checksu
 
 ## Next automatic action
 
-Continue monitoring corrected seed 5101 (`55932457`) and the clean legacy
-source/work continuation (`55948258`) without adding a third campaign worker.
-Retrieve and audit the source/work continuation's terminal evidence. When that worker
-reaches a verified terminal state, submit the prepared factor-two refinement
-next while corrected seed 5101 continues; the two additional corrected seeds
-follow in queue order. Continue checkpoint snapshots, terminal retrievals,
-analysis, and movie generation without exceeding two full-size workers.
+Continue monitoring corrected seed 5101 (`55932457`) and factor-two refinement
+seed 5101 (`55950433`) without adding a third campaign worker. Capture verified
+checkpoint snapshots and audit each terminal result. When either reaches a
+verified terminal state, submit corrected seed 5102 next; seed 5103 follows in
+queue order. Continue terminal retrievals, analysis, and movie generation
+without exceeding two full-size workers.

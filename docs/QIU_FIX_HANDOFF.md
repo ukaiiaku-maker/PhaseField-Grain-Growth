@@ -24,13 +24,26 @@ Project directory:
 
 | Purpose | HPC3 run | Slurm | Source | State at handoff |
 |---|---|---:|---|---|
-| Legacy forensic replay | `20260910T232437Z-nogit-f4803a` | 55930486 | `147141b` | running |
-| Corrected seed 5101 | `20260911T003946Z-nogit-c53868` | 55932457 | `8bb7837` | running |
+| Corrected seed 5101 | `20260911T003946Z-nogit-c53868` | 55932457 | `8bb7837` | running beyond closed step 3352 |
+| Refined seed 5101 | `20260911T110924Z-nogit-6b926f` | 55950433 | `a173624` | running from dt=0.02/target=0.01 |
 
 Use `hpc3 status`, then `hpc3 fetch` only when terminal. Verify the runner's
 archive checksum and `output/all-files.sha256`, then copy the unpacked result
 under the durable local qualification root. Never clean remote results
 automatically.
+
+Both legacy jobs are terminal, locally retrieved, and remain preserved remotely.
+The clean source/work continuation is
+`20260911T111913Z-nogit-06fc67` / Slurm `55948258`, source `bebd53b`; its
+726,135,940-byte terminal archive SHA-256 is
+`f0c613ac63b358a92b1add3944202ef446b71a9f8863f2aec88a19fbd0899a23`.
+The durable extraction is
+`hpc_terminal/20260911T111913Z-sourcework-legacy-seed5101`. It reaches the
+same step-9984/N=100 endpoint, all seven numerical checkpoint arrays are
+bitwise identical to the first replay, and its 984 scalar plus 1,918,433
+per-boundary rows close the source/work audit. The retrieval, source/work, and
+trajectory-equivalence sidecars are colocated with that extraction. Neither
+legacy replay is poolable as a qualified production result.
 
 Unused run `20260911T004157Z-nogit-7dd0b1` is only a local `PREPARED` plan and
 must not be submitted. It was created while reconciling a delayed submission
@@ -156,17 +169,14 @@ source SHAs, and missing gate groups.
 
 ## Next execution order
 
-1. Retrieve and audit the first terminal active job; retain remote data.
-2. When the original legacy replay frees its slot, launch source/work
-   continuation `20260911T111913Z-nogit-06fc67` from the exact step-9000 state.
-3. When the next slot frees, launch seed-5101 refinement, then corrected seeds
-   5102 and 5103 in that order.
-4. Prepare/hash the two additional 384x384 initial states with the same
-   1068-to-800 equilibration/compaction protocol, then run the corrected model.
-5. Run `scripts/analyze_qiu_full_field_qualification.py` on terminal paths.
-6. Render legacy, corrected seed-5101, and at least one additional seed with
+1. Continue monitoring corrected and refined seed 5101 without exceeding two
+   full-size campaign workers; retain remote data and verified snapshots.
+2. When either active worker reaches a verified terminal state, launch corrected
+   seed 5102, then seed 5103 at the following verified slot opening.
+3. Run `scripts/analyze_qiu_full_field_qualification.py` on terminal paths.
+4. Render legacy, corrected seed-5101, and at least one additional seed with
    `scripts/render_qiu_qualification_movie.py`; retain each `.frames.csv`.
-7. Issue `qualification_decision.json`, update the live report and validation
+5. Issue `qualification_decision.json`, update the live report and validation
    files, rerun the complete suite, commit, push, and open (but do not merge) a
    pull request.
 
