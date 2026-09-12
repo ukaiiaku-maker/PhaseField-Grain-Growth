@@ -522,4 +522,7 @@ correction pass independent finite-difference tests, including multiphase
 values. The immutable control template, normalization freezer, and
 matched-state comparator are prepared; normalization values remain unset until
 the promoted native initial network is available. The complete local
-repository suite passes **215/215** tests.
+repository suite passes **216/216** tests. A dense inclination sweep also
+confirms positive gamma and strictly positive stiffness for every distinct
+orientation pair present in the archived four-reference benchmark; the
+network-weighted normalization remains pending the promoted native state.

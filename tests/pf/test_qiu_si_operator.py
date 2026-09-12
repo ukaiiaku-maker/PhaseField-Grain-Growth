@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 
+from grain_growth_pf.mechanics.anisotropy import BoundaryLaw, LADDER
 from grain_growth_pf.pf.qiu_si import (
     QiuSI4RefParameters,
     QiuSIControl,
@@ -48,6 +49,19 @@ def test_archived_parameter_identity_and_beta_values():
         (expected, -expected)
     )
     assert qiu_native_beta(0.0, np.deg2rad(45.0)) == (0.0, -0.0)
+
+
+def test_a2_is_positive_and_strictly_stiff_for_all_qiu_orientation_pairs():
+    orientations = np.deg2rad([0.0, -22.6, 28.1])
+    inclination = np.linspace(0.0, 2 * np.pi, 4096, endpoint=False)
+    law = BoundaryLaw(strength=LADDER["A2_STRONG"])
+    for i in range(len(orientations)):
+        for j in range(i + 1, len(orientations)):
+            gamma, _, _, stiffness, _ = law.evaluate(
+                inclination, orientations[i], orientations[j]
+            )
+            assert np.min(gamma) > 0.0
+            assert np.min(stiffness) > 0.0
 
 
 def test_a0_port_matches_archived_ordered_pair_algebra_exactly():
