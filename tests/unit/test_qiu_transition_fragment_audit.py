@@ -1,6 +1,10 @@
 import numpy as np
 
-from audit_qiu_transition_fragment import domain_measurements, relative_l2
+from audit_qiu_transition_fragment import (
+    causal_interpretation,
+    domain_measurements,
+    relative_l2,
+)
 
 
 def test_domain_measurements_exposes_mismatched_gradient_singularity():
@@ -26,3 +30,11 @@ def test_domain_measurements_exposes_mismatched_gradient_singularity():
 def test_relative_l2_uses_reference_scale():
     reference = np.asarray([3.0, 4.0])
     assert relative_l2(np.asarray([0.3, 0.4]), reference) == 0.1
+
+
+def test_causal_interpretation_distinguishes_reset_accumulator():
+    reset = causal_interpretation(accumulator_reset=True)
+    retained = causal_interpretation(accumulator_reset=False)
+    assert "reset the diagnostic source accumulator" in reset
+    assert "retains prior increments" not in reset
+    assert "retains prior increments" in retained

@@ -169,6 +169,22 @@ def relative_l2(residual: np.ndarray, reference: np.ndarray) -> float:
     return float(np.linalg.norm(residual) / max(np.linalg.norm(reference), np.finfo(float).tiny))
 
 
+def causal_interpretation(*, accumulator_reset: bool) -> str:
+    source_state = (
+        "The closure reset the diagnostic source accumulator, so the current "
+        "field can be compared directly with the reconstructed step source."
+        if accumulator_reset else
+        "The closure bypassed begin_source_step, so the diagnostic source "
+        "accumulator retains prior increments."
+    )
+    return (
+        "A radius-two-valid interface sample has a zero radius-one velocity "
+        "gradient. The 1e-14 denominator floor converts finite phase change into "
+        "an enormous local velocity and eigenstrain source before stress feedback "
+        f"or morphology failure. {source_state}"
+    )
+
+
 def audit(args: argparse.Namespace) -> dict[str, object]:
     run = args.run.resolve()
     scalar_paths = sorted((run / "per_step_diagnostics.parquet").glob("part-*.parquet"))
@@ -188,6 +204,7 @@ def audit(args: argparse.Namespace) -> dict[str, object]:
     current_residual = current["source_increment"] - predicted
     prior_source_norm = float(np.linalg.norm(previous["source_increment"]))
     retained_residual_norm = float(np.linalg.norm(current_residual))
+    accumulator_reset = retained_residual_norm <= 1e-8
     field_paths = sorted((run / "diagnostic_fields").glob("step-*.npz"))
     field_steps = sorted({int(path.name.split("-")[1]) for path in field_paths})
     checkpoint_json = run / "checkpoint.json"
@@ -274,16 +291,10 @@ def audit(args: argparse.Namespace) -> dict[str, object]:
             "current_minus_predicted_l2": retained_residual_norm,
             "observed_delta_minus_predicted_relative_l2": relative_l2(delta_residual, predicted),
             "current_accumulator_minus_predicted_relative_l2": relative_l2(current_residual, predicted),
-            "source_accumulator_was_reset_by_closure": bool(
-                retained_residual_norm <= 1e-8
-            ),
+            "source_accumulator_was_reset_by_closure": bool(accumulator_reset),
             "largest_reconstructed_event": maximum_event,
-            "causal_interpretation": (
-                "A radius-two-valid interface sample has a zero radius-one velocity "
-                "gradient. The 1e-14 denominator floor converts finite phase change into "
-                "an enormous local velocity and eigenstrain source before stress feedback "
-                "or morphology failure. The closure also bypasses begin_source_step, so the "
-                "diagnostic source accumulator retains prior increments."
+            "causal_interpretation": causal_interpretation(
+                accumulator_reset=accumulator_reset
             ),
         },
     }

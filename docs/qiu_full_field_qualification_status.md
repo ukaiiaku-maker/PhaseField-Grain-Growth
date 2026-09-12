@@ -1,6 +1,6 @@
 # QIU full-field qualification status
 
-Last update: 2026-09-11 17:54 PDT; the first legacy replay is retrieved, checksum-verified, source-attested, extracted, formally audited, and rendered through its N=100 endpoint; corrected seed 5101 is running beyond a locally verified atomic checkpoint 3000; the clean source/work continuation is running beyond its locally verified atomic checkpoint 9500.
+Last update: 2026-09-11 18:34 PDT; the first legacy replay is retrieved, checksum-verified, source-attested, extracted, formally audited, and rendered through its N=100 endpoint; corrected seed 5101 is running beyond observed frame step 3200 and a locally verified atomic checkpoint 3000; the clean source/work continuation has crossed the causal transition and is running beyond observed field step 9770.
 
 ## Current source state
 
@@ -637,6 +637,49 @@ Last update: 2026-09-11 17:54 PDT; the first legacy replay is retrieved, checksu
   mandatory. Superseded attempt `20260911T010000Z-reduced-timestep-convergence`
   is excluded because the production 10% population guard is inappropriate in
   an 18-grain cell and stopped ordinary two-grain loss at step 167.
+- The clean source/work continuation has independently reproduced the legacy
+  singularity at step 9671. At step 9670 it has 494 grains, zero disconnected
+  grains, maximum compactness 1.448, source-increment L2 0.250, stress infinity
+  norm 176.1, and eigenstrain infinity norm 166.1. One step later, with those
+  morphology measures still unchanged, boundary `gb:343-357:1` records normal
+  displacement `2.5367e13`, source-tensor norm `6.2781e12`, and predicted work
+  `4.6321e13`; the scalar source norm is exactly `6.2781e12`, elastic energy
+  rises by `1.9707e25`, and stress rises to `3.7159e12`. The first disconnected
+  grain follows at 9673, mean compactness first exceeds 2.5 at 9706, maximum
+  compactness first exceeds 6 at 9727, and the 100-step loss first exceeds 10%
+  at 9731. This establishes the causal order source singularity -> elastic
+  feedback -> disconnection -> morphology/population cascade.
+- The verified nonterminal transition package is
+  `hpc_live/20260912T013000Z-sourcework-transition-step9737`, archive SHA-256
+  `644ac7d2a74f81a0f3e62a329204fd10ba31f0a53035542d7599ce0d8a771fb6`.
+  It contains 737 contiguous scalar rows and 1,469,955 per-boundary rows for
+  every step 9001--9737, the exact atomic step-9500 restart, 18 compact frames,
+  and retained full fields through step 9730. Before the singularity, summing
+  per-boundary predicted work reproduces the scalar value within absolute
+  `2.62e-12`; over the whole extreme-dynamic-range fragment the maximum
+  relative mismatch remains below `4.29e-13`. The independent legacy full-field
+  reconstruction matches the clean stream's event boundary, displacement, and
+  source norm, with source-delta reconstruction relative residual `1.80e-28`.
+  Source/work audit SHA-256:
+  `fe253efe583a2b93882b7639f82b84890c5b1110b03ff6f379820637ba1040e5`.
+- Correct source bookkeeping does not rescue legacy work conjugacy. Across the
+  670 clean steps before the singularity, source-work error has median absolute
+  26.90, p95 absolute 772.34, maximum absolute 1124.93, median relative 0.809,
+  and p95 relative 0.950. The recorder is internally reconciled, so this is a
+  model/operator-splitting mismatch rather than an aggregation error.
+- A first transition-fragment request is preserved and explicitly excluded at
+  `hpc_live/20260912T012400Z-sourcework-transition-step9724`: the step-9673
+  guard caused an early 13-row Parquet flush, so 46 closed parts ended at 9721
+  rather than the assumed 9724. The utility now reads and validates actual
+  Parquet step bounds and refuses an overstated endpoint; the corrected 47-part
+  package ends exactly at 9737. Six focused fragment/source-work tests pass.
+- The complete suite after the source/work transition audit and content-derived
+  fragment bounds passes 249/249 tests in 108.48 s with zero failures, errors,
+  or skips. Durable JUnit:
+  `results/validation/qiu_fix_sourcework_transition_tests.xml`; SHA-256
+  `5de822041ae4c533cf9c1c732d30182072045cb89b313a042c2e6f9a8b8632b1`.
+  The reconciled execution queue SHA-256 is
+  `4798909a0e03c51e4fccde52212d10ea65f3e9b6b7f1b994dac687d1998ae1df`.
 
 ## Decisions recorded
 
@@ -659,9 +702,8 @@ Last update: 2026-09-11 17:54 PDT; the first legacy replay is retrieved, checksu
 ## Next automatic action
 
 Continue monitoring corrected seed 5101 (`55932457`) and the clean legacy
-source/work continuation (`55948258`) without adding a third full worker.
-Capture and audit the source/work continuation across the independently known
-step-9671 singularity and retrieve its terminal evidence. When that worker
+source/work continuation (`55948258`) without adding a third campaign worker.
+Retrieve and audit the source/work continuation's terminal evidence. When that worker
 reaches a verified terminal state, submit the prepared factor-two refinement
 next while corrected seed 5101 continues; the two additional corrected seeds
 follow in queue order. Continue checkpoint snapshots, terminal retrievals,

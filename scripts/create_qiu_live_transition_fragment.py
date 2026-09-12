@@ -19,6 +19,8 @@ import tarfile
 import tempfile
 from pathlib import Path
 
+import pyarrow.parquet as pq
+
 
 PART_RE = re.compile(r"part-(\d+)\.parquet$")
 STEP_RE = re.compile(r"(?:frame-|step-)(\d+)")
@@ -72,6 +74,26 @@ def _closed_parts(source: Path, count: int, label: str) -> list[Path]:
     return selected
 
 
+def _step_stream_summary(parts: list[Path], *, unique: bool) -> dict[str, int]:
+    steps: list[int] = []
+    for part in parts:
+        table = pq.read_table(part, columns=["step"])
+        steps.extend(int(value.as_py()) for value in table.column("step"))
+    if not steps:
+        raise RuntimeError("selected diagnostic stream has no rows")
+    distinct = sorted(set(steps))
+    if unique and len(distinct) != len(steps):
+        raise RuntimeError("scalar diagnostic stream contains duplicate steps")
+    if distinct != list(range(distinct[0], distinct[-1] + 1)):
+        raise RuntimeError("diagnostic stream is not step-contiguous")
+    return {
+        "row_count": len(steps),
+        "unique_step_count": len(distinct),
+        "step_first": distinct[0],
+        "step_last": distinct[-1],
+    }
+
+
 def create_fragment(args: argparse.Namespace) -> dict[str, object]:
     source = args.source.resolve()
     checkpoint_bytes = (source / "checkpoint.json").read_bytes()
@@ -94,6 +116,21 @@ def create_fragment(args: argparse.Namespace) -> dict[str, object]:
         int(getattr(args, "closed_boundary_part_count", 0)),
         "boundary",
     )
+    scalar_stream = _step_stream_summary(selected_parts, unique=True)
+    if scalar_stream["step_last"] != args.through_step:
+        raise RuntimeError(
+            "selected scalar parts end at step "
+            f"{scalar_stream['step_last']}, not requested through-step {args.through_step}"
+        )
+    boundary_stream = (
+        _step_stream_summary(selected_boundary_parts, unique=False)
+        if selected_boundary_parts else None
+    )
+    if boundary_stream and (
+        boundary_stream["step_first"] != scalar_stream["step_first"]
+        or boundary_stream["step_last"] != scalar_stream["step_last"]
+    ):
+        raise RuntimeError("scalar and per-boundary diagnostic step bounds differ")
 
     destination = args.destination.resolve()
     destination.mkdir(parents=True, exist_ok=False)
@@ -165,6 +202,8 @@ def create_fragment(args: argparse.Namespace) -> dict[str, object]:
             "diagnostics_complete_through_step": args.through_step,
             "closed_scalar_parts": len(selected_parts),
             "closed_boundary_parts": len(selected_boundary_parts),
+            "scalar_stream": scalar_stream,
+            "boundary_stream": boundary_stream,
             "field_file_count": len(field_files),
             "field_step_first": min(field_steps) if field_steps else None,
             "field_step_last": max(field_steps) if field_steps else None,
