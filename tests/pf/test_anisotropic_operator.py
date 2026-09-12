@@ -49,6 +49,21 @@ def test_discrete_anisotropic_force_is_energy_derivative():
     assert abs(derivative[index] - finite_difference) <= 1e-7
 
 
+def test_pair_energy_is_continuous_when_third_phase_leaves_local_support():
+    profile = np.array([0.05, 0.3, 0.7, 0.95])
+    two_phase = np.empty((3, 3, 4))
+    two_phase[0] = profile
+    two_phase[1] = 1.0 - profile
+    two_phase[2] = 0.0
+    epsilon = 1e-12
+    three_phase = two_phase.copy()
+    three_phase[:2] *= 1.0 - epsilon
+    three_phase[2] = epsilon
+    energy_two = anisotropic_energy_gradient(*_gradient_arguments(two_phase))[0]
+    energy_three = anisotropic_energy_gradient(*_gradient_arguments(three_phase))[0]
+    assert abs(energy_three - energy_two) <= 1e-8
+
+
 def test_a0_configuration_is_exact_historical_kernel_nesting():
     eta = circular_grain((16, 16), 4, 3)
     common = dict(
@@ -113,6 +128,49 @@ def test_pair_mobility_multiplies_noncapillary_drive():
     expected_mobility = law.evaluate(0.0, *orientations)[4]
     measured_rate = (solver.eta[0, 0, 0] - 0.5) / cfg.time_step
     assert np.isclose(measured_rate, expected_mobility, rtol=1e-8)
+
+
+def test_pair_flux_obstacle_constraint_is_conservative_without_projection():
+    eta = np.empty((3, 3, 4))
+    eta[0] = 0.1
+    eta[1] = 0.2
+    eta[2] = 0.7
+    external = np.empty_like(eta)
+    external[0] = 100.0
+    external[1] = 0.0
+    external[2] = -100.0
+    cfg = PFConfig(
+        shape=(3, 4), interface_width=4, time_step=0.1,
+        intrinsic_mobility=4.0, adaptive_stepping=False,
+        anisotropy_strength="A2_STRONG", grain_extinction_threshold=0.01,
+    )
+    solver = MultiphaseFieldSolver(
+        eta, cfg, driving=lambda _eta, _time: external,
+        orientations=np.array([0.1, 0.5, 1.0]),
+    )
+    solver.step(compute_energy=False)
+    assert np.min(solver.eta) >= -1e-14
+    assert np.max(np.abs(solver.eta.sum(axis=0) - 1.0)) <= 2e-15
+    assert np.any(solver.eta == 0.0)
+
+
+def test_anisotropic_activity_does_not_delete_positive_subthreshold_phase():
+    eta = np.empty((3, 4, 5))
+    eta[0] = 0.495
+    eta[1] = 0.495
+    eta[2] = 0.01
+    cfg = PFConfig(
+        shape=(4, 5), interface_width=4, time_step=1e-8,
+        intrinsic_mobility=0.2, anisotropy_strength="A2_STRONG",
+        grain_extinction_threshold=0.05,
+    )
+    solver = MultiphaseFieldSolver(
+        eta, cfg, orientations=np.array([0.1, 0.5, 1.0])
+    )
+    assert np.array_equal(solver.active_phases, np.ones(3, dtype=bool))
+    solver.step()
+    assert solver.active_phases[2]
+    assert np.max(solver.eta[2]) > 0.0
 
 
 def test_anisotropic_restart_preserves_orientation_and_path():

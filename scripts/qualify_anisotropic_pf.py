@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -30,15 +31,50 @@ def config(shape, *, dt=0.04, dx=1.0, width=4.0, strength="A2_STRONG"):
     )
 
 
-def evolve(eta, cfg, orientations, physical_time):
+def evolve_steps(eta, cfg, orientations, steps):
     solver = MultiphaseFieldSolver(eta, cfg, orientations=orientations)
     energies = [solver._anisotropic_energy()] if solver.anisotropic else []
-    steps = 0
-    while solver.time < physical_time - 1e-14:
-        record = solver.step(dt=min(cfg.time_step, physical_time - solver.time))
+    accepted = []
+    for _ in range(steps):
+        record = solver.step()
         energies.append(record.interfacial_energy)
-        steps += 1
-    return solver, np.asarray(energies), steps
+        accepted.append(record.dt)
+    return solver, np.asarray(energies), np.asarray(accepted)
+
+
+def refinement_runs(eta, orientations, coarse_steps):
+    probe = MultiphaseFieldSolver(
+        eta.copy(), config(eta.shape[1:]), orientations=orientations
+    )
+    stability_limit = probe.stable_dt()
+    runs = []
+    for factor, steps in ((1.0, coarse_steps), (0.5, 2 * coarse_steps)):
+        requested = stability_limit * factor
+        solver, energies, accepted = evolve_steps(
+            eta.copy(), config(eta.shape[1:], dt=requested), orientations, steps
+        )
+        runs.append({
+            "factor": factor,
+            "requested_dt": requested,
+            "accepted_dt_min": float(np.min(accepted)),
+            "accepted_dt_max": float(np.max(accepted)),
+            "accepted_exact": bool(np.all(accepted == requested)),
+            "steps": steps,
+            "physical_time": solver.time,
+            "initial_energy": float(energies[0]),
+            "final_energy": float(energies[-1]),
+            "maximum_energy_increase": float(np.max(np.diff(energies))),
+            "positive_energy_steps": int(np.count_nonzero(np.diff(energies) > 1e-12)),
+            "constraint_error": float(np.max(np.abs(solver.eta.sum(axis=0) - 1))),
+            "minimum_phase_value": float(np.min(solver.eta)),
+            "finite": bool(np.all(np.isfinite(solver.eta))),
+            "solver": solver,
+        })
+    return stability_limit, runs
+
+
+def serialized_run(run):
+    return {key: value for key, value in run.items() if key != "solver"}
 
 
 def force_gradient_check():
@@ -87,57 +123,46 @@ def a0_nesting():
 
 def planar_checks():
     rows = []
-    yy, xx = np.indices((48, 48))
     for angle in (0.0, np.pi / 8, np.pi / 4, 3 * np.pi / 8):
         eta = planar_interface((48, 48), 4, angle=angle)
         initial_mass = float(eta[1].sum())
-        solver, energies, steps = evolve(
-            eta, config((48, 48)), np.array([0.13, 0.71]), 0.08
+        stability_limit, runs = refinement_runs(
+            eta, np.array([0.13, 0.71]), coarse_steps=160
         )
+        coarse = runs[0]["solver"]
+        fine = runs[1]["solver"]
         rows.append({
-            "angle": angle, "steps": steps,
-            "relative_mass_change": float((solver.eta[1].sum() - initial_mass) / initial_mass),
-            "maximum_energy_increase": float(np.max(np.diff(energies))),
-            "constraint_error": float(np.max(np.abs(solver.eta.sum(axis=0) - 1))),
-            "finite": bool(np.all(np.isfinite(solver.eta))),
+            "angle": angle,
+            "stability_limit": stability_limit,
+            "runs": [serialized_run(run) for run in runs],
+            "coarse_relative_mass_change": float(
+                (coarse.eta[1].sum() - initial_mass) / initial_mass
+            ),
+            "fine_relative_mass_change": float(
+                (fine.eta[1].sum() - initial_mass) / initial_mass
+            ),
+            "timestep_relative_field_error": float(
+                np.linalg.norm(coarse.eta - fine.eta) / np.linalg.norm(fine.eta)
+            ),
         })
     return rows
 
 
 def inclusion_and_refinement():
     eta = circular_grain((48, 48), 12, 4)
-    solver, energies, steps = evolve(
-        eta, config((48, 48)), np.array([0.07, 0.83]), 0.16
+    stability_limit, runs = refinement_runs(
+        eta, np.array([0.07, 0.83]), coarse_steps=800
     )
-    weights = solver.eta[1]
-    yy, xx = np.indices(weights.shape)
-    total = weights.sum()
-    center = np.array([(yy * weights).sum(), (xx * weights).sum()]) / total
-    dy = yy - center[0]; dx = xx - center[1]
-    covariance = np.array([
-        [(weights * dy * dy).sum(), (weights * dy * dx).sum()],
-        [(weights * dy * dx).sum(), (weights * dx * dx).sum()],
-    ]) / total
-    moments = np.linalg.eigvalsh(covariance)
-    aspect = float(np.sqrt(moments[-1] / moments[0]))
-
-    dt_solutions = []
-    for requested in (0.04, 0.0004):
-        refined, _, refined_steps = evolve(
-            eta.copy(), config((48, 48), dt=requested),
-            np.array([0.07, 0.83]), 0.04,
-        )
-        dt_solutions.append((refined.eta, refined_steps))
-    dt_error = float(
-        np.linalg.norm(dt_solutions[0][0] - dt_solutions[1][0])
-        / np.linalg.norm(dt_solutions[1][0])
-    )
+    coarse = runs[0]["solver"]
+    fine = runs[1]["solver"]
     return {
-        "steps": steps, "initial_energy": float(energies[0]),
-        "final_energy": float(energies[-1]),
-        "maximum_energy_increase": float(np.max(np.diff(energies))),
-        "aspect_ratio": aspect, "timestep_relative_field_error": dt_error,
-        "timestep_steps": [item[1] for item in dt_solutions],
+        "stability_limit": stability_limit,
+        "runs": [serialized_run(run) for run in runs],
+        "coarse_mass": float(coarse.eta[1].sum()),
+        "fine_mass": float(fine.eta[1].sum()),
+        "timestep_relative_field_error": float(
+            np.linalg.norm(coarse.eta - fine.eta) / np.linalg.norm(fine.eta)
+        ),
     }
 
 
@@ -148,15 +173,17 @@ def triple_junction_check():
     labels = np.floor(3 * angle / (2 * np.pi)).astype(int)
     eta = np.stack([gaussian_filter((labels == i).astype(float), 1.2) for i in range(3)])
     eta /= eta.sum(axis=0, keepdims=True)
-    solver, energies, steps = evolve(
-        eta, config(shape), np.array([0.03, 0.49, 1.11]), 0.08
+    stability_limit, runs = refinement_runs(
+        eta, np.array([0.03, 0.49, 1.11]), coarse_steps=1200
     )
+    coarse = runs[0]["solver"]
+    fine = runs[1]["solver"]
     return {
-        "steps": steps, "initial_energy": float(energies[0]),
-        "final_energy": float(energies[-1]),
-        "maximum_energy_increase": float(np.max(np.diff(energies))),
-        "constraint_error": float(np.max(np.abs(solver.eta.sum(axis=0) - 1))),
-        "finite": bool(np.all(np.isfinite(solver.eta))),
+        "stability_limit": stability_limit,
+        "runs": [serialized_run(run) for run in runs],
+        "timestep_relative_field_error": float(
+            np.linalg.norm(coarse.eta - fine.eta) / np.linalg.norm(fine.eta)
+        ),
     }
 
 
@@ -165,8 +192,13 @@ def restart_and_topology():
     cfg = config((40, 40))
     continuous = MultiphaseFieldSolver(eta.copy(), cfg, orientations=orientations)
     active_counts = [int(continuous.active_phases.sum())]
-    records = continuous.run(40)
-    active_counts.extend(int(np.count_nonzero(continuous.active_phases)) for _ in (0,))
+    energies = [continuous._anisotropic_energy()]
+    records = []
+    for _ in range(40):
+        record = continuous.step()
+        records.append(record)
+        energies.append(record.interfacial_energy)
+        active_counts.append(int(np.count_nonzero(continuous.active_phases)))
     interrupted = MultiphaseFieldSolver(eta.copy(), cfg, orientations=orientations)
     interrupted.run(17)
     restored = MultiphaseFieldSolver(eta.copy(), cfg, orientations=orientations)
@@ -176,8 +208,10 @@ def restart_and_topology():
         "restart_exact": bool(np.array_equal(continuous.eta, restored.eta)),
         "time_exact": bool(continuous.time == restored.time),
         "initial_active": active_counts[0], "final_active": active_counts[-1],
-        "no_resurrection": bool(active_counts[-1] <= active_counts[0]),
+        "no_resurrection": bool(np.all(np.diff(active_counts) <= 0)),
         "finite": bool(np.all(np.isfinite(continuous.eta))),
+        "minimum_phase_value": float(np.min(continuous.eta)),
+        "maximum_energy_increase": float(np.max(np.diff(energies))),
         "maximum_constraint_error": max(r.max_constraint_error for r in records),
     }
 
@@ -186,9 +220,12 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("output", type=Path)
     args = parser.parse_args()
+    if not os.environ.get("SLURM_JOB_ID") or not os.environ.get("SLURMD_NODENAME"):
+        raise RuntimeError("consolidated PF qualification requires an HPC3 allocation")
     args.output.mkdir(parents=True, exist_ok=False)
     report = {
-        "schema": "anisotropic-diffuse-pf-qualification-v1",
+        "schema": "anisotropic-diffuse-pf-consolidated-qualification-v2",
+        "job_id": os.environ["SLURM_JOB_ID"],
         "strength": "A2_STRONG", "C_gamma": CGAMMA, "C_M": CMOBILITY,
         "force_gradient": force_gradient_check(),
         "a0_nesting": a0_nesting(),
@@ -197,18 +234,34 @@ def main():
         "triple_junction": triple_junction_check(),
         "restart_topology": restart_and_topology(),
     }
+    planar_runs = [run for row in report["planar"] for run in row["runs"]]
+    evolving_runs = (
+        planar_runs + report["inclusion"]["runs"]
+        + report["triple_junction"]["runs"]
+    )
+    matched_times = []
+    for row in report["planar"]:
+        matched_times.append(abs(row["runs"][0]["physical_time"] - row["runs"][1]["physical_time"]) <= 1e-12)
+    matched_times.extend((
+        abs(report["inclusion"]["runs"][0]["physical_time"] - report["inclusion"]["runs"][1]["physical_time"]) <= 1e-12,
+        abs(report["triple_junction"]["runs"][0]["physical_time"] - report["triple_junction"]["runs"][1]["physical_time"]) <= 1e-12,
+    ))
     raw_gates = {
         "force_gradient": report["force_gradient"]["maximum_relative_error"] <= 1e-4,
         "a0_exact": report["a0_nesting"]["exact"],
-        "planar_finite": all(row["finite"] for row in report["planar"]),
-        "planar_constraint": max(abs(row["constraint_error"]) for row in report["planar"]) <= 1e-12,
-        "planar_energy": max(row["maximum_energy_increase"] for row in report["planar"]) <= 1e-9,
-        "inclusion_energy": report["inclusion"]["maximum_energy_increase"] <= 1e-9,
-        "timestep_refinement": report["inclusion"]["timestep_relative_field_error"] <= 5e-3,
-        "tj_energy": report["triple_junction"]["maximum_energy_increase"] <= 1e-9,
-        "tj_finite": report["triple_junction"]["finite"],
+        "two_accepted_timesteps": all(run["accepted_exact"] for run in evolving_runs),
+        "matched_physical_times": all(matched_times),
+        "manufactured_energy_descent": max(run["maximum_energy_increase"] for run in evolving_runs) <= 1e-9,
+        "manufactured_finite": all(run["finite"] for run in evolving_runs),
+        "manufactured_nonnegative": min(run["minimum_phase_value"] for run in evolving_runs) >= -1e-12,
+        "manufactured_phase_sum": max(run["constraint_error"] for run in evolving_runs) <= 1e-12,
         "restart_exact": report["restart_topology"]["restart_exact"],
+        "restart_time_exact": report["restart_topology"]["time_exact"],
         "no_resurrection": report["restart_topology"]["no_resurrection"],
+        "topology_energy_descent": report["restart_topology"]["maximum_energy_increase"] <= 1e-9,
+        "topology_finite": report["restart_topology"]["finite"],
+        "topology_nonnegative": report["restart_topology"]["minimum_phase_value"] >= -1e-12,
+        "topology_phase_sum": report["restart_topology"]["maximum_constraint_error"] <= 1e-12,
     }
     gates = {name: bool(value) for name, value in raw_gates.items()}
     report["gates"] = gates

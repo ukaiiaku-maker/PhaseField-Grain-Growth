@@ -347,3 +347,34 @@ The archive SHA-256 is
 it was fetched twice and verified independently. No reduced simulation,
 normalization freeze, production trajectory or movie was released. The
 campaign is classified `ANISOTROPIC_PF_TJ_ENERGY_GATE_FAILED` for this operator.
+
+## Phase 10: simplified Gate 1 correction, awaiting consolidated HPC3 test
+
+The revised release policy retains the Phase-9 failure as historical evidence
+and permits one smallest defensible operator correction. Inspection identified
+two coupled causes: the gradient energy coefficient contained the local phase
+count, so a third phase entering or leaving a TJ stencil changed the energy of
+the surviving pairs discontinuously; the completed trial state was then clipped
+and renormalized outside the pair-mobility metric.
+
+The corrected energy uses one fixed double-obstacle gradient coefficient per
+pair. The corrected obstacle update limits only a donor's outgoing pair flux to
+its available phase fraction. Each resulting pair coefficient is nonnegative,
+each exchange remains antisymmetric, and the nodal pair graph remains symmetric
+positive semidefinite. No separate TJ endpoint work exists, so there is no
+duplicate endpoint term. No cap, energy backtracking, arbitrary mobility change
+or smaller stability limit was introduced.
+
+The anisotropic activity rule was also separated from historical threshold
+extinction. Positive anisotropic phases remain active until conservative flow
+reaches exact zero, avoiding the former global zero-and-renormalize jump. A0
+retains the historical threshold behavior and exact path.
+
+Eight focused operator tests pass locally, including energy continuity when a
+third phase leaves support and conservative obstacle activation under a large
+external drive. The consolidated manufactured script also passed locally. At
+the original TJ horizon, coarse/fine energies changed from 245.04446 to
+178.91974/178.92948 with zero positive steps; the maximum constraint error was
+2.22e-16. These development checks do not release Gate 2. The next action is one
+HPC3 job containing the complete repository suite and the consolidated A0,
+force, planar, inclusion, TJ, accepted-timestep, restart and topology checks.

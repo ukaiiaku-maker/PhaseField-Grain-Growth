@@ -102,7 +102,14 @@ def anisotropic_energy_gradient(
                     count += 1
             if count < 2:
                 continue
-            pair_gradient_scale = gradient_scale / count
+            # Each supported pair contributes the same fixed double-obstacle
+            # gradient coefficient.  A local ``1 / count`` factor makes the
+            # functional discontinuous when a third phase enters or leaves a
+            # junction stencil: the coefficient of every surviving pair then
+            # changes even though its fields did not.  Pair support itself is
+            # safe to skip because an omitted pair has identically zero local
+            # density; its coefficient must not depend on other phases.
+            pair_gradient_scale = gradient_scale
             for left in range(count - 1):
                 i = local[left]
                 ui = eta[i, y, x]
@@ -190,6 +197,8 @@ def anisotropic_pairwise_step(
     phases, height, width_pixels = eta.shape
     rate = np.zeros_like(eta)
     local = np.empty(phases, dtype=np.int64)
+    outgoing = np.empty(phases, dtype=np.float64)
+    donor_scale = np.empty(phases, dtype=np.float64)
     kinetic_scale = np.pi * np.pi / (4.0 * width * dx * dx)
     tolerance = 1e-14
     for y in range(height):
@@ -200,6 +209,8 @@ def anisotropic_pairwise_step(
             xp = (x + 1) % width_pixels if periodic else min(x + 1, width_pixels - 1)
             count = 0
             for phase in range(phases):
+                outgoing[phase] = 0.0
+                donor_scale[phase] = 1.0
                 if active[phase] and (
                     eta[phase, y, x] > tolerance
                     or eta[phase, ym, x] > tolerance
@@ -232,20 +243,68 @@ def anisotropic_pairwise_step(
                     if use_external:
                         drive += (external[i, y, x] - external[j, y, x]) / count
                     exchange = pair_mobility * drive * mobility_scale[y, x]
+                    if exchange > 0.0:
+                        outgoing[j] += exchange
+                    else:
+                        outgoing[i] -= exchange
+
+            # Enforce the obstacle as a conservative pair-flux constraint.
+            # Scaling every downhill exchange from an overdrawn donor by the
+            # same nonnegative factor keeps each effective pair coefficient
+            # symmetric and the nodal mobility graph positive semidefinite.
+            for index in range(count):
+                phase = local[index]
+                demand = dt * outgoing[phase]
+                if demand > eta[phase, y, x] and demand > 0.0:
+                    donor_scale[phase] = eta[phase, y, x] / demand
+
+            for left in range(count - 1):
+                i = local[left]
+                for right in range(left + 1, count):
+                    j = local[right]
+                    px = (
+                        eta[i, y, xp] - eta[i, y, xm]
+                        - eta[j, y, xp] + eta[j, y, xm]
+                    ) / (2.0 * dx)
+                    py = (
+                        eta[i, yp, x] - eta[i, ym, x]
+                        - eta[j, yp, x] + eta[j, ym, x]
+                    ) / (2.0 * dx)
+                    theta = np.arctan2(py, px) if px * px + py * py > tolerance else 0.0
+                    _, _, law_mobility = _pair_law(
+                        theta, orientations[i], orientations[j], gamma0, mobility0,
+                        g_min, inclination_weight, support_power, mobility_exponent,
+                        angular_scale, energy_normalization, mobility_normalization,
+                    )
+                    pair_mobility = law_mobility if anisotropic_mobility else mobility0
+                    drive = kinetic_scale * (chemical[j, y, x] - chemical[i, y, x])
+                    if use_external:
+                        drive += (external[i, y, x] - external[j, y, x]) / count
+                    exchange = pair_mobility * drive * mobility_scale[y, x]
+                    exchange *= donor_scale[j] if exchange > 0.0 else donor_scale[i]
                     rate[i, y, x] += exchange
                     rate[j, y, x] -= exchange
 
     result = eta + dt * rate
+    # The limiter makes the trial feasible analytically.  Remove only negative
+    # roundoff and close the phase sum on the largest component; a larger
+    # violation indicates an implementation error rather than a projection
+    # event that may be silently normalized away.
+    roundoff_tolerance = 1e-12
+    zero_tolerance = 1e-14
     for y in range(height):
         for x in range(width_pixels):
             total = 0.0
+            largest = 0
             for phase in range(phases):
-                if result[phase, y, x] < 0.0:
+                if result[phase, y, x] < -roundoff_tolerance:
+                    raise FloatingPointError("pair-flux obstacle constraint failed")
+                if abs(result[phase, y, x]) <= zero_tolerance:
                     result[phase, y, x] = 0.0
-                elif result[phase, y, x] > 1.0:
-                    result[phase, y, x] = 1.0
+                if result[phase, y, x] > result[largest, y, x]:
+                    largest = phase
                 total += result[phase, y, x]
-            if total > 0.0:
-                for phase in range(phases):
-                    result[phase, y, x] /= total
+            result[largest, y, x] += 1.0 - total
+            if result[largest, y, x] < -roundoff_tolerance:
+                raise FloatingPointError("phase-sum roundoff correction failed")
     return result, energy, chemical

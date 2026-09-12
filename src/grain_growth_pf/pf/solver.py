@@ -64,9 +64,6 @@ class MultiphaseFieldSolver:
             and np.max(np.abs(sums - 1.0)) <= 1e-12
         )
         self.eta = eta.copy() if already_on_simplex else project_simplex(eta)
-        self.active_phases = np.max(self.eta, axis=(1, 2)) >= config.grain_extinction_threshold
-        if not np.any(self.active_phases):
-            raise ValueError("initial condition contains no active grain")
         self.config = config
         self.driving = driving
         self.orientations = (
@@ -76,6 +73,13 @@ class MultiphaseFieldSolver:
             config.anisotropy_strength not in {None, "A0_ISOTROPIC"}
             and (config.anisotropic_energy or config.anisotropic_mobility)
         )
+        phase_maxima = np.max(self.eta, axis=(1, 2))
+        self.active_phases = (
+            phase_maxima > 0.0 if self.anisotropic
+            else phase_maxima >= config.grain_extinction_threshold
+        )
+        if not np.any(self.active_phases):
+            raise ValueError("initial condition contains no active grain")
         if self.anisotropic and (
             self.orientations is None or self.orientations.shape != (len(self.eta),)
         ):
@@ -174,13 +178,16 @@ class MultiphaseFieldSolver:
             )
         if np.any(~np.isfinite(self.eta)):
             raise FloatingPointError("PF update produced a nonfinite phase value")
+        phase_maxima = np.max(self.eta, axis=(1, 2))
         extinct = self.active_phases & (
-            np.max(self.eta, axis=(1, 2)) < cfg.grain_extinction_threshold
+            phase_maxima == 0.0 if self.anisotropic
+            else phase_maxima < cfg.grain_extinction_threshold
         )
         if np.any(extinct) and np.count_nonzero(self.active_phases) > np.count_nonzero(extinct):
             self.active_phases[extinct] = False
-            self.eta[extinct] = 0.0
-            self.eta /= self.eta.sum(axis=0, keepdims=True)
+            if not self.anisotropic:
+                self.eta[extinct] = 0.0
+                self.eta /= self.eta.sum(axis=0, keepdims=True)
         self.time += used_dt
         self.step_number += 1
         return StepDiagnostics(
@@ -263,7 +270,14 @@ class MultiphaseFieldSolver:
         self.time = float(state["time"])
         self.step_number = int(state["step_number"])
         self.mobility_scale = np.asarray(state.get("mobility_scale", np.ones(self.config.shape)), dtype=float).copy()
-        self.active_phases = np.asarray(state.get("active_phases", np.max(self.eta, axis=(1, 2)) >= self.config.grain_extinction_threshold), dtype=bool).copy()
+        phase_maxima = np.max(self.eta, axis=(1, 2))
+        default_active = (
+            phase_maxima > 0.0 if self.anisotropic
+            else phase_maxima >= self.config.grain_extinction_threshold
+        )
+        self.active_phases = np.asarray(
+            state.get("active_phases", default_active), dtype=bool
+        ).copy()
         restored_orientations = state.get("orientations")
         if restored_orientations is not None:
             self.orientations = np.asarray(restored_orientations, dtype=float).copy()
