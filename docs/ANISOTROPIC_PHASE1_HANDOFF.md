@@ -150,3 +150,47 @@ finiteness, nonnegativity, phase sum, and morphology remained valid. The failure
 archive SHA-256 is
 `3bd6906e05663c4ad0b8ede7ebe46ccc1e4eb3fbad99c9e8dad5af5088b3b2da`.
 The remaining pilot cases were stopped. No A3 or production job was released.
+
+## Qiu SI reference anisotropy amendment
+
+Keep four independent names and result roots: `QIU_SI_REFERENCE` is the
+pristine archived current-geometry SI implementation;
+`QIU_SI_REFERENCE_ANISO` is its controlled gamma/M extension;
+`FFT_EIGENSTRAIN_V2` is the corrected periodic accumulated-eigenstrain model;
+and `QIU_LEGACY_FORENSIC` is rejected evidence only. Never map, rename, pool,
+or compare the legacy or FFT trajectories as a native Qiu control.
+
+The native [100] four-reference run is owned by the Qiu qualification session.
+Do not create or submit a second plan here. Consume its verified result
+read-only, after its matched-state promotion gate passes. The [111] drivers,
+missing continuation checkpoint, and exact published polycrystal realization
+remain blocked inputs. The only permitted new polycrystal label is
+`QIU_SI_POLYCRYSTAL_NEW_REALIZATION`.
+
+The controlled port must retain native geometry, orientations, four reference
+directions, beta functions, line-source reconstruction, stress kernels,
+elastic PF driving, domain, initial fields, boundary conditions, outputs, and
+physical horizon. It may replace only pair GB energy and/or pair mobility. Its
+A0 path must reproduce the native SI update before the A2 energy-only,
+mobility-only, and combined controls are released. See
+`qiu_si_reference_anisotropy_plan.md`. Current subcampaign classification:
+`QIU_SI_ANISOTROPIC_PF_UNRESOLVED`.
+
+The controlled local port is now `grain_growth_pf.pf.qiu_si`. Its A0 path
+matches a direct translation of the archived ordered-pair update exactly, and
+its A2 correction passes a discrete energy/force finite-difference test. It
+also enforces antisymmetric `eij` and elastic inputs and applies pair mobility
+to the complete drive. Do not treat these local tests as native promotion: the
+required beta/reference/line/stress/force/increment checkpoint comparison is
+still waiting for the owning Qiu session's verified result.
+
+The unresolved mathematical item is explicit. Native capillarity contains
+`phi_j laplacian(phi_i) - phi_i laplacian(phi_j)` at TJ pixels; this is not yet
+derived as the chemical-potential difference of the new pair energy for more
+than two coexisting phases. The current A2 implementation adds a variational
+`E_A2-E_A0` correction that is exactly zero in A0. Do not release a full Qiu
+anisotropic trajectory until the complete variational correspondence is
+derived and the matched-state, normalization, reduced-control, convergence,
+and HPC3 gates pass. The control template is
+`configs/production/qiu_si_4ref_controls.json` and deliberately retains null
+normalizations and false release flags.

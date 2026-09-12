@@ -452,3 +452,73 @@ future diagnosis. It does not alter the result: the stored trace contains 14
 positive transitions, and the independently stored final energy exceeds the
 initial energy by `47.74683`. Gate 3 is failed, production remains closed, and
 the Gate-2 manufactured pass must not be generalized to dense polycrystals.
+
+## Phase 13: Qiu SI reference anisotropy scope amendment
+
+The anisotropy program now has four explicitly separate model identities:
+`QIU_SI_REFERENCE`, `QIU_SI_REFERENCE_ANISO`, `FFT_EIGENSTRAIN_V2`, and
+`QIU_LEGACY_FORENSIC`. The rejected legacy accumulated point-eigenstrain
+surrogate is not the Qiu SI model and cannot serve as the isotropic control for
+the new Qiu extension. The two FFT seed-5101 calculations remain protected and
+read-only. No Qiu SI native baseline was submitted from this worktree; the
+immutable plan already owned by the Qiu qualification session remains the only
+authorized native [100] four-reference benchmark.
+
+The separate `QIU_SI_REFERENCE_ANISOTROPY` workstream is preregistered in
+`qiu_si_reference_anisotropy_plan.md`. It starts with the exact archived
+500x500, 17-order-parameter, four-reference native case and may consume that
+result only after retrieval, checksum verification, and promotion of matched
+beta, reference, line-density, stress, elastic-force, pre/post-renormalization
+increment, energy, morphology, and plotting-scale records. Missing [111]
+modules, its missing continuation checkpoint, and the absent published
+polycrystal realization remain explicit blockers; none will be synthesized.
+
+The current Phase-1 matrix is retained as a distinct future campaign. Adding
+the Qiu plan does not qualify either diffuse implementation. The umbrella state
+remains `ANISOTROPIC_IMPLEMENTATION_UNRESOLVED`; the new Qiu subcampaign is
+`QIU_SI_ANISOTROPIC_PF_UNRESOLVED` until native A0 nesting, variational
+pairwise coupling, convergence, and HPC3 reproduction all pass.
+
+## Phase 14: first-transition diagnosis and corrected functional
+
+HPC3 diagnostic job **55968232** reproduced the first positive A2 transition
+at step 28 (`5146.0289585 -> 5146.4781416`). Its analytic sparse gradient
+matched the independent dense representation to `7.60e-17`, and the executed
+pair graph had a single nonnegative coefficient with
+`g dot v = -1.4838979e7`. The production finite-difference quotient did not
+match that analytic slope, while a frozen-support update descended. At the
+same transition, maximum local support grew from 7 to 24 phases, the p95 grew
+from 4 to 19, and active pairs grew from 901 to 5989. The archived result
+SHA-256 is
+`8271e30a5331cfe395d5d1a8f7110a72b32f3b3f0ecffdda6e55644571ce015e`.
+
+Commit `1316cc8` replaced the angle-at-zero-gradient expression with a direct
+positively homogeneous norm and its finite Cahn--Hoffman derivative. On the
+captured failure state, the corrected A2 update decreases energy at `dt`
+through `dt/16`; the full-step decrease is `-1.94168`. The independent dense
+energy difference is `3.27e-11`, the gradient relative error is `2.12e-16`,
+and the frozen-support directional quotient converges to the analytic slope.
+The remaining branch behavior is classified
+`ACTIVE_BRANCH_NONDIFFERENTIABLE`, not a low-gradient orientation
+singularity. Consolidated postfix job **55968528** is running; no reduced
+mobility/combined case or production case is released before its A2 gate.
+
+## Phase 15: controlled Qiu SI port prepared locally
+
+The native archive audit identified the exact beta function, nine-point
+capillary stencil, antisymmetric `eij` barrier, scalar mobility, and signed
+elastic pair force. `grain_growth_pf.pf.qiu_si` now ports that ordered-pair A0
+algebra and keeps the archived native execution exclusive to its owning Qiu
+session. The A0 pre-renormalization increment matches an independent direct
+translation exactly in a local test. Pair exchanges conserve the phase sum,
+non-antisymmetric native inputs are rejected, and A2 mobility multiplies the
+complete capillary-plus-elastic-plus-barrier drive.
+
+The A2 capillary addition is represented as the discrete variational
+correction `E_A2-E_A0`, which vanishes at A0 and passes finite-difference force
+correspondence. The native TJ capillary expression is not yet shown to be the
+gradient of that pair energy for three or more coexisting phases, so the
+variational correspondence gate remains open. The immutable control template,
+normalization freezer, and matched-state comparator are prepared; normalization
+values remain unset until the promoted native initial network is available.
+The complete local repository suite passes **211/211** tests.
