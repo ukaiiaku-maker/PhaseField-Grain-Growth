@@ -308,3 +308,221 @@ def anisotropic_pairwise_step(
             if result[largest, y, x] < -roundoff_tolerance:
                 raise FloatingPointError("phase-sum roundoff correction failed")
     return result, energy, chemical
+
+
+@njit(cache=True)
+def anisotropic_pairwise_audit(
+    eta: Array,
+    active: NDArray[np.bool_],
+    orientations: Array,
+    mobility_scale: Array,
+    dt: float,
+    gamma0: float,
+    mobility0: float,
+    width: float,
+    dx: float,
+    periodic: bool,
+    g_min: float,
+    inclination_weight: float,
+    support_power: int,
+    mobility_exponent: float,
+    angular_scale: float,
+    energy_normalization: float,
+    mobility_normalization: float,
+    anisotropic_energy: bool,
+    anisotropic_mobility: bool,
+) -> tuple[Array, Array, Array, Array, Array, Array, Array, Array, Array, Array, Array, Array]:
+    """Replay one production pair step and expose its executed graph.
+
+    This diagnostic uses the production support predicate, pair law, donor
+    limiter, and loop ordering. Each row in the returned edge arrays is one
+    undirected cell-local pair; ``limited`` is added to phase ``i`` and
+    subtracted from phase ``j``.
+    """
+    _, chemical = anisotropic_energy_gradient(
+        eta, active, orientations, gamma0, mobility0, width, dx, periodic,
+        g_min, inclination_weight, support_power, mobility_exponent,
+        angular_scale, energy_normalization, mobility_normalization,
+        anisotropic_energy,
+    )
+    phases, height, width_pixels = eta.shape
+    tolerance = 1e-14
+    local = np.empty(phases, dtype=np.int64)
+    local_count = np.zeros((height, width_pixels), dtype=np.int32)
+    edge_total = 0
+    for y in range(height):
+        ym = (y - 1) % height if periodic else max(y - 1, 0)
+        yp = (y + 1) % height if periodic else min(y + 1, height - 1)
+        for x in range(width_pixels):
+            xm = (x - 1) % width_pixels if periodic else max(x - 1, 0)
+            xp = (x + 1) % width_pixels if periodic else min(x + 1, width_pixels - 1)
+            count = 0
+            for phase in range(phases):
+                if active[phase] and (
+                    eta[phase, y, x] > tolerance
+                    or eta[phase, ym, x] > tolerance
+                    or eta[phase, yp, x] > tolerance
+                    or eta[phase, y, xm] > tolerance
+                    or eta[phase, y, xp] > tolerance
+                ):
+                    count += 1
+            local_count[y, x] = count
+            edge_total += count * (count - 1) // 2
+
+    cell = np.empty(edge_total, dtype=np.int32)
+    phase_i = np.empty(edge_total, dtype=np.int16)
+    phase_j = np.empty(edge_total, dtype=np.int16)
+    mu_difference = np.empty(edge_total, dtype=np.float64)
+    raw = np.empty(edge_total, dtype=np.float64)
+    limited = np.empty(edge_total, dtype=np.float64)
+    coefficient = np.empty(edge_total, dtype=np.float64)
+    gradient_magnitude = np.empty(edge_total, dtype=np.float64)
+    donor_factors = np.ones_like(eta)
+    rate = np.zeros_like(eta)
+    outgoing = np.empty(phases, dtype=np.float64)
+    donor_scale = np.empty(phases, dtype=np.float64)
+    kinetic_scale = np.pi * np.pi / (4.0 * width * dx * dx)
+    edge = 0
+    for y in range(height):
+        ym = (y - 1) % height if periodic else max(y - 1, 0)
+        yp = (y + 1) % height if periodic else min(y + 1, height - 1)
+        for x in range(width_pixels):
+            xm = (x - 1) % width_pixels if periodic else max(x - 1, 0)
+            xp = (x + 1) % width_pixels if periodic else min(x + 1, width_pixels - 1)
+            count = 0
+            for phase in range(phases):
+                outgoing[phase] = 0.0
+                donor_scale[phase] = 1.0
+                if active[phase] and (
+                    eta[phase, y, x] > tolerance
+                    or eta[phase, ym, x] > tolerance
+                    or eta[phase, yp, x] > tolerance
+                    or eta[phase, y, xm] > tolerance
+                    or eta[phase, y, xp] > tolerance
+                ):
+                    local[count] = phase
+                    count += 1
+            begin = edge
+            for left in range(count - 1):
+                i = local[left]
+                for right in range(left + 1, count):
+                    j = local[right]
+                    px = (
+                        eta[i, y, xp] - eta[i, y, xm]
+                        - eta[j, y, xp] + eta[j, y, xm]
+                    ) / (2.0 * dx)
+                    py = (
+                        eta[i, yp, x] - eta[i, ym, x]
+                        - eta[j, yp, x] + eta[j, ym, x]
+                    ) / (2.0 * dx)
+                    magnitude = np.sqrt(px * px + py * py)
+                    theta = np.arctan2(py, px) if magnitude * magnitude > tolerance else 0.0
+                    _, _, law_mobility = _pair_law(
+                        theta, orientations[i], orientations[j], gamma0, mobility0,
+                        g_min, inclination_weight, support_power, mobility_exponent,
+                        angular_scale, energy_normalization, mobility_normalization,
+                    )
+                    pair_mobility = law_mobility if anisotropic_mobility else mobility0
+                    difference = chemical[j, y, x] - chemical[i, y, x]
+                    exchange = pair_mobility * kinetic_scale * difference * mobility_scale[y, x]
+                    cell[edge] = y * width_pixels + x
+                    phase_i[edge] = i
+                    phase_j[edge] = j
+                    mu_difference[edge] = difference
+                    raw[edge] = exchange
+                    gradient_magnitude[edge] = magnitude
+                    if exchange > 0.0:
+                        outgoing[j] += exchange
+                    else:
+                        outgoing[i] -= exchange
+                    edge += 1
+            for index in range(count):
+                phase = local[index]
+                demand = dt * outgoing[phase]
+                if demand > eta[phase, y, x] and demand > 0.0:
+                    donor_scale[phase] = eta[phase, y, x] / demand
+                donor_factors[phase, y, x] = donor_scale[phase]
+            for entry in range(begin, edge):
+                i = int(phase_i[entry])
+                j = int(phase_j[entry])
+                exchange = raw[entry]
+                scale = donor_scale[j] if exchange > 0.0 else donor_scale[i]
+                executed = exchange * scale
+                limited[entry] = executed
+                coefficient[entry] = (
+                    executed / mu_difference[entry]
+                    if mu_difference[entry] != 0.0 else 0.0
+                )
+                rate[i, y, x] += executed
+                rate[j, y, x] -= executed
+    return (
+        chemical, rate, donor_factors, local_count, cell, phase_i, phase_j,
+        mu_difference, raw, limited, coefficient, gradient_magnitude,
+    )
+
+
+@njit(cache=True)
+def anisotropic_energy_components(
+    eta: Array,
+    active: NDArray[np.bool_],
+    orientations: Array,
+    gamma0: float,
+    mobility0: float,
+    width: float,
+    dx: float,
+    periodic: bool,
+    g_min: float,
+    inclination_weight: float,
+    support_power: int,
+    mobility_exponent: float,
+    angular_scale: float,
+    energy_normalization: float,
+    mobility_normalization: float,
+    anisotropic_energy: bool,
+) -> tuple[Array, Array, Array]:
+    """Return cellwise potential, gradient, and total implemented energies."""
+    phases, height, width_pixels = eta.shape
+    potential = np.zeros((height, width_pixels), dtype=np.float64)
+    gradient = np.zeros((height, width_pixels), dtype=np.float64)
+    gradient_scale = width * width / (np.pi * np.pi)
+    density_scale = 4.0 / width
+    tolerance = 1e-14
+    local = np.empty(phases, dtype=np.int64)
+    for y in range(height):
+        yp = (y + 1) % height if periodic else min(y + 1, height - 1)
+        for x in range(width_pixels):
+            xp = (x + 1) % width_pixels if periodic else min(x + 1, width_pixels - 1)
+            count = 0
+            for phase in range(phases):
+                if active[phase] and (
+                    eta[phase, y, x] > tolerance
+                    or eta[phase, yp, x] > tolerance
+                    or eta[phase, y, xp] > tolerance
+                ):
+                    local[count] = phase
+                    count += 1
+            for left in range(count - 1):
+                i = local[left]
+                ui = eta[i, y, x]
+                gix = (eta[i, y, xp] - ui) / dx
+                giy = (eta[i, yp, x] - ui) / dx
+                for right in range(left + 1, count):
+                    j = local[right]
+                    uj = eta[j, y, x]
+                    gjx = (eta[j, y, xp] - uj) / dx
+                    gjy = (eta[j, yp, x] - uj) / dx
+                    px = gix - gjx
+                    py = giy - gjy
+                    magnitude = np.sqrt(px * px + py * py)
+                    theta = np.arctan2(py, px) if magnitude > tolerance else 0.0
+                    law_gamma, _, _ = _pair_law(
+                        theta, orientations[i], orientations[j], gamma0, mobility0,
+                        g_min, inclination_weight, support_power, mobility_exponent,
+                        angular_scale, energy_normalization, mobility_normalization,
+                    )
+                    gamma = law_gamma if anisotropic_energy else gamma0
+                    potential[y, x] += density_scale * gamma * ui * uj * dx * dx
+                    gradient[y, x] += density_scale * gamma * (
+                        -gradient_scale * (gix * gjx + giy * gjy)
+                    ) * dx * dx
+    return potential, gradient, potential + gradient

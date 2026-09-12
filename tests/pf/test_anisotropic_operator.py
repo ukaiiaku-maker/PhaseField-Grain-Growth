@@ -4,7 +4,10 @@ from grain_growth_pf.config import PFConfig
 from grain_growth_pf.mechanics.anisotropy import (
     BoundaryLaw, LADDER, angular_normalization,
 )
-from grain_growth_pf.pf.anisotropic import anisotropic_energy_gradient
+from grain_growth_pf.pf.anisotropic import (
+    anisotropic_energy_gradient,
+    anisotropic_pairwise_audit,
+)
 from grain_growth_pf.pf.geometry import circular_grain
 from grain_growth_pf.pf.solver import MultiphaseFieldSolver
 
@@ -213,3 +216,33 @@ def test_disabling_energy_diagnostic_does_not_change_anisotropic_update():
     assert np.isfinite(measured.interfacial_energy)
     assert np.isnan(skipped.interfacial_energy)
     assert with_energy._last_pre_step_energy == without_energy._last_pre_step_energy
+
+
+def test_executed_audit_graph_has_one_nonnegative_pair_coefficient():
+    rng = np.random.default_rng(17)
+    eta = rng.uniform(0.2, 1.0, (3, 5, 5))
+    eta /= eta.sum(axis=0)
+    cfg = PFConfig(
+        shape=(5, 5), interface_width=4, time_step=1e-6,
+        intrinsic_mobility=0.2, anisotropy_strength="A2_STRONG",
+    )
+    orientations = np.array([0.1, 0.5, 1.0])
+    solver = MultiphaseFieldSolver(eta, cfg, orientations=orientations)
+    strength = LADDER["A2_STRONG"]
+    audit = anisotropic_pairwise_audit(
+        eta, solver.active_phases, orientations, np.ones(cfg.shape), cfg.time_step,
+        cfg.gb_energy, cfg.intrinsic_mobility, cfg.interface_width,
+        cfg.grid_spacing, True, strength.g_min, strength.inclination_weight,
+        strength.support_power, strength.mobility_exponent,
+        angular_normalization(strength), cfg.anisotropy_energy_normalization,
+        cfg.anisotropy_mobility_normalization, True, True,
+    )
+    chemical, rate = audit[:2]
+    difference, limited, coefficient = audit[7], audit[9], audit[10]
+    assert np.min(coefficient) >= 0.0
+    np.testing.assert_allclose(limited, coefficient * difference, rtol=0, atol=1e-14)
+    np.testing.assert_allclose(
+        np.sum(chemical * rate),
+        -np.sum(coefficient * difference**2),
+        rtol=1e-13, atol=1e-13,
+    )
