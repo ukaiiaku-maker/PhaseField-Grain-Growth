@@ -407,3 +407,18 @@ transition, exact midpoint restart, phase and topology invariants, morphology
 stability, and four global responses. If all A2 cases are valid but every
 combined response differs from A0 by less than 10%, the same job evaluates the
 combined A3 case exactly once.
+
+The first pilot allocation, job 55965862, was stopped before any A2 case
+completed. Dense local phase support made successive 16-step blocks take about
+39, 194, 551, and 1415 seconds, proving that the preregistered 128-step serial
+matrix could not finish inside its 12-hour scheduler limit. HPC3 denied an
+in-place time-limit extension. The progress log was preserved with SHA-256
+`5c61b04d3f9e26456f25c1c3bcfa84553a66f38fdc63241048a65492d4b220ed`.
+This is an operational sizing failure; no A2 case summary, response, energy
+decision, or scientific gate result existed when it was stopped.
+
+The repaired Gate-3 matrix keeps the same 192x192 state, 200 grains, seed,
+accepted timestep, four cases, responses, checks, and conditional one-time A3
+policy. Its reduced horizon is preregistered at 64 accepted steps, with exact
+restart after step 32. This horizon was selected solely from pre-result runtime
+measurements so the single serial reduced matrix can complete on HPC3.
