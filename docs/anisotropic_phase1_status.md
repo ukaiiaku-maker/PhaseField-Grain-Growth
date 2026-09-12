@@ -1,5 +1,8 @@
 # Anisotropic Phase-1 status
 
+Current classification: **ANISOTROPIC_PF_TJ_ENERGY_GATE_FAILED**.
+Reduced and production release are closed.
+
 Branch: `codex/anisotropic-cahn-hoffman-phase1-v1`.
 Initial HEAD: `9f66c8d7a5a266687284d8da35aefbc6062808f7` (clean audited parent).
 Worktree: `/private/tmp/pfgg-anisotropic-cahn-hoffman-v1`.
@@ -44,8 +47,8 @@ CPUs and 72 h limit (216 CPU-h maximum exposure). Standard is available with a
 14-day limit. No reservations were reported. No production resource request is
 selected before profiling. No alternate account is authorized.
 
-Tests: pending. Simulations: none submitted.
-Current classification: ANISOTROPIC_IMPLEMENTATION_UNRESOLVED.
+At this initial audit stage, tests were pending and no simulation had been submitted.
+The classification was ANISOTROPIC_IMPLEMENTATION_UNRESOLVED.
 Next automatic action: implement and verify independent energy/force primitives;
 prepare bounded HPC3 mathematical qualification; keep production fail-closed.
 
@@ -278,8 +281,8 @@ the reviewed 4ef9390 snapshot. Both original QIU jobs remain independently
 running. The primary audited checkout is clean at 9f66c8d; all 75 pre-existing
 source files on this branch are byte-identical to the audited base.
 
-Scientific decision: **ANISOTROPIC_IMPLEMENTATION_UNRESOLVED**. This is an
-incomplete campaign. No coupled PF implementation, reduced polycrystal response,
+The Phase 7 decision was **ANISOTROPIC_IMPLEMENTATION_UNRESOLVED**. At that
+stage no coupled PF implementation, reduced polycrystal response,
 production trajectory, matched kinetic/morphology comparison or movie exists.
 The >=10% effect-size requirement is untested and minimum-model change is
 undetermined. The next scientific block is the qualified PF coupling and its
@@ -318,6 +321,29 @@ One initial local pytest invocation lacked `PYTHONPATH=src` and failed collectio
 the corrected invocation passed. Full regression and all evolving scientific
 qualification remain assigned to HPC3.
 
-Scientific decision remains **ANISOTROPIC_IMPLEMENTATION_UNRESOLVED** until the
-diffuse force/energy, A0 response, planar/circle/Wulff/TJ, refinement, restart,
-topology, and reduced-polycrystal gates pass. No production row is released.
+## Phase 9: diffuse PF gate failed under timestep refinement
+
+HPC3 job **55949185** tested source `8d274f8`. All 200 repository tests passed
+in 644.54 s. The discrete force-gradient error was 1.72e-8; exact A0 nesting,
+four planar interfaces, the inclusion calculation, restart, no-resurrection,
+finiteness and phase-sum conservation passed. The diffuse A2 triple-junction
+calculation failed energy descent with a maximum one-step increase of
+2.6432486007842755. Its inclusion timestep comparison was not accepted because
+both requested timesteps were capped to the same accepted value.
+
+The isolated refinement job **55949331**, runner
+`20260912T001247Z-nogit-ff8282`, tested source `403b1a4` at accepted timestep
+factors 1, 1/2, 1/4 and 1/8. Maximum energy increases were 2.64325, 2.76135,
+3.66392 and 3.30394; the corresponding positive-step counts were 603, 1231,
+2423 and 4862. At the finest timestep the field remained finite and conserved
+the phase sum to 2.22e-16. The defect neither vanished nor decreased with
+timestep, so it is structural in the current diffuse active-set/projection
+operator rather than an overly loose explicit stability bound.
+
+Job 55949331 used one CPU and 4 GiB on SDILLON1 / standard, elapsed 142 s,
+used 138 CPU-s and 300.09 MiB, and finalized its failed-gate archive correctly.
+The archive SHA-256 is
+`b70bb2188ac817112794eade58b98b0ef4c8b311bec7d86913e9f8957c9ab01e`;
+it was fetched twice and verified independently. No reduced simulation,
+normalization freeze, production trajectory or movie was released. The
+campaign is classified `ANISOTROPIC_PF_TJ_ENERGY_GATE_FAILED` for this operator.

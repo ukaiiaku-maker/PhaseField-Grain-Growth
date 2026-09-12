@@ -1,6 +1,6 @@
 # Anisotropic Phase-1 scientific report
 
-Classification: **ANISOTROPIC_IMPLEMENTATION_UNRESOLVED**.
+Classification: **ANISOTROPIC_PF_TJ_ENERGY_GATE_FAILED**.
 
 The implemented constitutive candidate is the preregistered A2 strong rounded
 fourfold law: g_min=0.65, lambda=0.85, support power=16, mobility exponent=2.
@@ -70,3 +70,20 @@ The principal risk identified by the audit is substituting a sharp geometric
 pressure into a diffuse kernel without establishing the corresponding discrete
 energy derivative and pair mobility. Merely completing HPC3 jobs cannot resolve
 that risk or qualify the campaign.
+
+## Diffuse operator result
+
+The resumed implementation supplied a discrete anisotropic energy derivative,
+complete pair mobility, activation-pressure reuse and accepted-time clock
+propagation. Job 55949185 passed 200 tests and all focused diffuse checks except
+A2 triple-junction energy descent. Its largest single-step energy increase was
+2.6432486007842755.
+
+The controlled job 55949331 reduced accepted dt by factors 1, 2, 4 and 8 at a
+common physical horizon. The maximum energy increases were 2.64325, 2.76135,
+3.66392 and 3.30394. The failure persisted at the finest dt and did not decrease
+with refinement, even though every field stayed finite and the maximum phase-sum
+error was 2.22e-16. This is a structural failure of the current diffuse
+active-set/projection formulation. It cannot support scientific attribution or
+production. The A2 normalization remains provisional, and the >=10% effect
+gate remains unmeasured.

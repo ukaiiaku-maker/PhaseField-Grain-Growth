@@ -1,6 +1,6 @@
 # Anisotropic HPC3 execution evidence
 
-Classification: **ANISOTROPIC_IMPLEMENTATION_UNRESOLVED**. These are environment, regression and mathematical network jobs, not production PF trajectories. No reduced arrays or array task IDs exist; each job is one task. No full production or continuation IDs exist.
+Classification: **ANISOTROPIC_PF_TJ_ENERGY_GATE_FAILED**. These are qualification jobs, not production PF trajectories. No reduced arrays or array task IDs exist; each job is one task. No full production or continuation IDs exist.
 
 All submitted jobs use **SDILLON1 / standard**, one node and one task, no GPU, no high QOS, and one numerical-library thread. Requests respect the 6 GiB/core partition limit. The latest preflight recorded 547 SU available, remote usage 6.42 GiB/1 TiB and 43.75k/8m inodes, and local free space 197 GiB. The other account SDILLON1_LAB was not used by this session.
 
@@ -137,3 +137,29 @@ An idempotent second fetch succeeded, and reconciliation reports no unretrieved
 jobs. All older failed archives remain retained and explicitly failed.
 The last live query showed only the two independently owned QIU jobs and an
 SDILLON1 balance of 545 SU. No anisotropy job remains active.
+
+## Diffuse PF qualification jobs
+
+Five later single-task jobs implemented and qualified the diffuse path. Jobs
+55948589, 55948622, 55948684 and 55948822 preserved successive environment,
+call-signature, report-serialization and checkpoint-fixture failures. Job
+**55949185** tested source `8d274f8`, passed all **200 tests in 644.54 s**, and
+then failed only the focused scientific report because its A2 diffuse triple
+junction increased energy by 2.6432486007842755 in one step. Its result archive
+SHA-256 is
+`9eba85458d53890411055a3bcf5208a2fcfb228c8e70957f118a62fc8d000c7f`.
+
+Job **55949331**, runner `20260912T001247Z-nogit-ff8282`, used source
+`403b1a43c7df91990e25e42712b59fd6e73f8694` and source archive SHA-256
+`f8406bc63e9313e388399b23717ad2036fdbaca1cd5d0205e61be9a6922527ca`.
+It requested 1 CPU, 4 GiB and 1 h on SDILLON1 / standard. Actual elapsed time
+was 142 s, CPU use 138 s, CPU efficiency 97.18%, and peak RSS 300.09 MiB.
+Its scientific exit was 1 and finalization exit 0; the full failed-gate output
+was archived, fetched twice and independently verified as
+`b70bb2188ac817112794eade58b98b0ef4c8b311bec7d86913e9f8957c9ab01e`.
+
+The first submission attempt timed out during remote directory creation before
+upload or Slurm assignment. An immutable-comment scheduler query found no job;
+the same prepared run was retried and received exactly one Slurm ID, 55949331.
+No anisotropy job remains active. This failure closed reduced and production
+release; no production resource exposure was incurred.

@@ -1,7 +1,8 @@
 # Anisotropic campaign handoff
 
 This is an incomplete campaign with implemented and tested geometry foundations.
-Classification: `ANISOTROPIC_IMPLEMENTATION_UNRESOLVED`. Do not release production.
+Classification: `ANISOTROPIC_PF_TJ_ENERGY_GATE_FAILED`. Do not release reduced
+or production trajectories with the current diffuse operator.
 
 ## Locations and ownership
 
@@ -117,9 +118,23 @@ CSV, ten-row run/comparison matrices, two actual mathematical summary figures,
 movie nonproduction index, checksum inventory and compact HPC evidence.
 Earlier coarse failures remain in the 20260911T010258Z companion directory.
 
-The next implementation block is the coupled PF energy/mobility operator, not
-another strength search or production submission. Use the integration audit
-for its force, TJ, activation pressure and physical-time contracts. Then qualify
-grid/width/cadence/restart, run the reduced polycrystal and attribution matrix,
-and evaluate the >=10% effect gate before releasing any full trajectory.
-The current campaign is incomplete and classification remains UNRESOLVED.
+## Diffuse PF implementation outcome
+
+The resumed branch implemented an opt-in pairwise anisotropic energy derivative,
+pair mobility, diffuse capillary-pressure diagnostics and accepted-physical-time
+propagation. HPC3 job 55949185 passed all 200 repository tests and most focused
+diffuse checks, but failed A2 triple-junction energy descent. The focused
+timestep job 55949331 showed maximum energy increases of 2.64325, 2.76135,
+3.66392 and 3.30394 when accepted dt was reduced by 8x. This excludes the
+stability cap as the explanation and fails the current active-set/projection
+formulation structurally.
+
+Compact evidence is in
+`results/long_time_kinetics_900K_anisotropic_20260910/20260912T001247Z-pf-tj-gate-failed/`.
+Full immutable output remains under runner ID
+`20260912T001247Z-nogit-ff8282`, Slurm job 55949331, result archive SHA-256
+`b70bb2188ac817112794eade58b98b0ef4c8b311bec7d86913e9f8957c9ab01e`.
+All ten production rows remain `PREPARED_NOT_RELEASED`; reconstruction
+normalization remains provisional. A future continuation must replace or
+derive a continuous work-conjugate multiphase constraint treatment and repeat
+the full diffuse/convergence gates before any reduced or production release.

@@ -1,6 +1,6 @@
 # Anisotropic Phase-1 validation report
 
-Current classification: **ANISOTROPIC_IMPLEMENTATION_UNRESOLVED**.
+Current classification: **ANISOTROPIC_PF_TJ_ENERGY_GATE_FAILED**.
 This report distinguishes completed checks from missing campaign gates.
 
 ## Provenance and isolation
@@ -136,13 +136,13 @@ resubmission. No full scientific trajectory or continuation has been launched.
 | Requested gate family | Evidence and remaining scope |
 | --- | --- |
 | A: symmetry/objectivity | Passed for the independent A2 constitutive/geometry primitives. |
-| B: isotropic nesting | Exact A0 primitive values and geometric reference subtraction pass; all historical source files are identical. No coupled anisotropic PF A0 path exists. |
-| C: Cahn–Hoffman geometry | Straight/circle, endpoint closure, finite TJ variation and static Wulff mesh tests pass. Dynamic PF geometries have not run. |
+| B: isotropic nesting | Exact A0 primitive values and geometric reference subtraction pass; the opt-in solver dispatch reproduces the historical A0 path exactly. |
+| C: Cahn–Hoffman geometry | Straight/circle, endpoint closure, finite TJ variation and static Wulff mesh tests pass. Diffuse planar and inclusion energy checks pass; diffuse TJ energy descent fails. |
 | D: regularity and strength | A2 dense convexity/stiffness and all initial-network constitutive range gates pass provisionally; continuum reconstruction convergence remains open. |
-| E: PF coupling | Not implemented: no pair-mobility/full-force operator, activation-pressure mapping or qualified TJ correction. |
+| E: PF coupling | Implemented for qualification with pair mobility, full pair drive and identical activation-pressure derivative; rejected because diffuse TJ energy descent does not converge with timestep. |
 | F: topology | Periodic closure, graph partition, disconnected paths and static split-energy checks pass. Dynamic merges/reconnection/history transfer are not qualified. |
-| G: numerics | Static Wulff spatial convergence is tested. Sharp-network time refinement is separate from the unrun PF grid, width, cadence, restart, extinction and no-resurrection checks. |
-| H: regression | 193 repository tests pass on HPC3; 75 pre-existing source files are byte-identical to the audited base. This does not supply missing anisotropic PF integration tests. |
+| G: numerics | Static Wulff and sharp-network refinement pass. Diffuse restart and no-resurrection pass, but TJ timestep refinement fails structurally; later grid, width and cadence matrices were stopped. |
+| H: regression | 200 repository tests pass on HPC3 at source 8d274f8, including the new anisotropic integration and accepted-time tests. |
 
 - Initial-network reconstruction convergence and frozen normalization acceptance.
 - Acceptance of measured constitutive ranges after reconstruction convergence.
@@ -157,3 +157,22 @@ resubmission. No full scientific trajectory or continuation has been launched.
 The static Wulff and polygon tests must not be substituted for these missing
 PF or campaign tests. A3 is not released while A2 numerical qualification is
 unresolved. No selected production law or qualified campaign is claimed.
+
+## Diffuse PF qualification and stop decision
+
+Job 55949185 ran source `8d274f8` on HPC3. It passed all 200 repository tests,
+the 1.72e-8 force-energy finite-difference check, exact A0 path nesting,
+planar-interface energy descent, inclusion energy descent, restart equivalence,
+no resurrection, finiteness and phase-sum conservation. Its diffuse A2 triple
+junction had a maximum one-step energy increase of 2.6432486007842755.
+
+Job 55949331 then held the initial condition and physical horizon fixed while
+reducing the accepted timestep from 6.36493e-5 to 7.95617e-6. Maximum energy
+increases were 2.64325, 2.76135, 3.66392 and 3.30394, so the failure did not
+converge away. The finest run had 4,862 positive-energy steps while remaining
+finite and conserving phase sum to 2.22e-16. The current active-set/projection
+formulation fails the work-conjugate diffuse TJ gate structurally.
+
+The grid, interface-width, cadence, topology and reduced-polycrystal matrices
+were not run after this prerequisite failed. Normalization was not frozen and
+the ten production rows were not released.

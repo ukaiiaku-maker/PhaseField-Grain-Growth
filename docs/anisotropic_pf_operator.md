@@ -45,5 +45,11 @@ finite differences must therefore keep the support fixed, while topology and
 extinction are tested separately. The stability bound uses a conservative dense
 upper bound on the selected law's reduced coefficient `M(gamma+gamma'')`.
 
-This document describes an implementation awaiting diffuse HPC3 qualification;
-it is not a production validation claim.
+HPC3 qualification rejected this implementation. Job 55949185 found a
+2.6432486007842755 one-step energy increase during diffuse A2 triple-junction
+relaxation. Job 55949331 repeated that calculation at accepted timestep factors
+1, 1/2, 1/4 and 1/8; the maximum increases were 2.64325, 2.76135, 3.66392 and
+3.30394. Finiteness and phase-sum conservation held, but the energy defect did
+not converge away. The current active-set/projection formulation is therefore
+not a qualified discrete gradient flow and must not be used for reduced or
+production trajectories.
