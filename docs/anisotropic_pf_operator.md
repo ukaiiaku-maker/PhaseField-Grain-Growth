@@ -1,23 +1,34 @@
 # Native anisotropic phase-field operator
 
 The anisotropic solver is opt-in through `PFConfig.anisotropy_strength`. A null
-strength and `A0_ISOTROPIC` both call the historical Qiu kernel without changing
-its arithmetic. This is the exact trajectory-nesting contract used for A0.
+strength and `A0_ISOTROPIC` both call the historical isotropic Phase-1 kernel
+without changing its arithmetic. This is the exact trajectory-nesting contract
+used for Phase-1 A0; it is not the Qiu SI four-reference nesting test.
 
-For a non-A0 strength, the implemented discrete functional is evaluated over
-locally supported grain pairs. At each forward-difference cell,
+For a non-A0 strength, the corrected discrete functional is evaluated over
+locally supported grain pairs. Let
+
+\[
+\widehat\gamma_{ij}(p)=|p|\gamma_{ij}(p/|p|)
+\]
+
+be the positively one-homogeneous pair norm, evaluated directly from rotated
+even p-norms rather than from an angle. At each forward-difference cell,
 
 \[
 E_h={4\over w}\sum_c \Delta x^2\sum_{i<j}
-\gamma_{ij}(\theta_{ij})
-\left[\eta_i\eta_j-{w^2\over \pi^2}
-\nabla_h\eta_i\mathbin{\cdot}\nabla_h\eta_j\right].
+\left[\gamma_0\eta_i\eta_j+{w^2\over4\pi^2\gamma_0}
+\left(\widehat\gamma_{ij}(\nabla_h\eta_i-\nabla_h\eta_j)^2
+-\widehat\gamma_{ij}(\nabla_h\eta_i+\nabla_h\eta_j)^2\right)\right].
 \]
 
-The pair normal is the direction of `grad(eta_i-eta_j)`. The code differentiates every
-term analytically, including the inclination derivative `gamma_theta`; its
-returned capillary potential is therefore the exact nodal derivative of the
-reported discrete energy on a fixed active-set branch.
+The difference/sum polarization preserves exact pair extinction: if either
+phase and its local gradient vanish, that pair contributes zero energy. It also
+recovers the former isotropic term exactly because
+`widehat_gamma(p) = gamma0 |p|` in that limit. The code differentiates the
+squared norm analytically. Its product with the Cahn--Hoffman vector is zero at
+zero pair gradient, so no undefined normal or inverse gradient magnitude enters
+the energy derivative.
 
 The phase exchange at a pixel is
 
