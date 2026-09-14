@@ -96,7 +96,7 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 self.config.parameters.get("event_normal_pressure", 1.0)
             )
         return normal_force_balance(
-            capillary_pressure=float(self.config.pf.gb_energy * segment.curvature),
+            capillary_pressure=self._capillary_pressure(segment),
             chemical_pressure=0.0,
             beta=float(self.config.parameters.get("easy_beta", 0.35)),
             resolved_shear=self._boundary_resolved_shear(domain, segment),
@@ -425,7 +425,7 @@ class MigrationClosureSimulation(EventResolvedSimulation):
             )
             velocity = float(segment.velocity)
             capillary_work_rate = float(
-                self.config.pf.gb_energy * segment.curvature * velocity
+                self._capillary_pressure(segment) * velocity
             )
             resolved_shear = float(self._boundary_resolved_shear(domain, segment))
             force_balance = self._boundary_force_balance(domain, segment)
@@ -878,13 +878,13 @@ class MigrationClosureSimulation(EventResolvedSimulation):
         domain.area_loss_pending = True
         domain.blocked = True
         if domain.climb.stage in {ClimbStage.INACTIVE, ClimbStage.COMPLETE}:
-            domain.climb.activate(self.solver.time - self.config.pf.time_step)
+            domain.climb.activate(self._accepted_step_start_time)
         rates = self._area_loss_stage_rates(
             domain, segment.length, prefix="gb_sink_"
         )
         complete = domain.climb.advance(
-            self.config.pf.time_step,
-            self.solver.time - self.config.pf.time_step,
+            self._accepted_step_dt,
+            self._accepted_step_start_time,
             *rates,
         )
         position = segment.points.mean(axis=0).tolist() if len(segment.points) else ""
@@ -1058,7 +1058,7 @@ class MigrationClosureSimulation(EventResolvedSimulation):
             domain.area_loss_pending = True
             domain.blocked = True
             if domain.climb.stage in {ClimbStage.INACTIVE, ClimbStage.COMPLETE}:
-                domain.climb.activate(self.solver.time - self.config.pf.time_step)
+                domain.climb.activate(self._accepted_step_start_time)
             penalty = max(interfacial_change, 0.0) + max(decision.residual_energy_change, 0.0)
             rates = self._area_loss_stage_rates(
                 domain,
@@ -1072,8 +1072,8 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                     rate=rates[0], candidate_allowed=True, candidate_reason=decision.reason,
                 )
             complete = domain.climb.advance(
-                self.config.pf.time_step,
-                self.solver.time - self.config.pf.time_step,
+                self._accepted_step_dt,
+                self._accepted_step_start_time,
                 *rates,
             )
             self._record_sink_transitions(
@@ -1212,7 +1212,7 @@ class MigrationClosureSimulation(EventResolvedSimulation):
 
             p_cap V_n + tau V_tau + Delta_mu_v N_v.
         """
-        capillary = self.config.pf.gb_energy * segment.curvature
+        capillary = self._capillary_pressure(segment)
         candidates = [
             mode for mode in self.modes
             if (mode.family != "easy" if domain.blocked else True)
@@ -1312,7 +1312,7 @@ class MigrationClosureSimulation(EventResolvedSimulation):
         prior_release_remaining = domain.normal_release_remaining
         prior_compatibility_pending = domain.compatibility_pending
 
-        capillary_pressure = float(self.config.pf.gb_energy * segment.curvature)
+        capillary_pressure = self._capillary_pressure(segment)
         work_capillary = capillary_pressure * mode.activation_volume_normal
         work_shear = driving.resolved_shear * mode.activation_volume_shear
         work_free_volume = (
@@ -1429,7 +1429,7 @@ class MigrationClosureSimulation(EventResolvedSimulation):
             )
             if stress is not None:
                 resolved += float(b_direction @ stress @ normal)
-            capillary.append(float(self.config.pf.gb_energy * segment.curvature))
+            capillary.append(self._capillary_pressure(segment))
             shear.append(resolved)
             vacancy_mu.append(float(boundary_domain.free_volume.chemical_potential))
 
@@ -1669,7 +1669,9 @@ class MigrationClosureSimulation(EventResolvedSimulation):
 
             if "shear_memory" in modules or "shear_feedback" in modules:
                 beta = float(cfg.parameters.get("easy_beta", 0.35))
-                domain.shear.migrate(beta, local_normal_displacement, cfg.pf.time_step)
+                domain.shear.migrate(
+                    beta, local_normal_displacement, self._accepted_step_dt
+                )
 
             if (
                 "qiu_reference_shear" in modules
@@ -1734,8 +1736,8 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                 completions, hits = self._advance_activation(
                     domain,
                     total_rate,
-                    cfg.pf.time_step,
-                    self.solver.time - cfg.pf.time_step,
+                    self._accepted_step_dt,
+                    self._accepted_step_start_time,
                     stop_after_completion=True,
                 )
                 self._record_activation_hits(
@@ -1785,8 +1787,8 @@ class MigrationClosureSimulation(EventResolvedSimulation):
                     completions, hits = self._advance_activation(
                         domain,
                         total_rate,
-                        cfg.pf.time_step,
-                        self.solver.time - cfg.pf.time_step,
+                        self._accepted_step_dt,
+                        self._accepted_step_start_time,
                     )
                     self._record_activation_hits(
                         domain, total_rate, hits, segment=segment, position=ledger_position

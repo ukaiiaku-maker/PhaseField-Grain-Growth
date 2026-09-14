@@ -4,6 +4,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 import yaml
 
 
@@ -21,6 +22,11 @@ class PFConfig:
     temperature: float = 900.0
     adaptive_stepping: bool = False
     grain_extinction_threshold: float = 0.5
+    anisotropy_strength: str | None = None
+    anisotropic_energy: bool = True
+    anisotropic_mobility: bool = True
+    anisotropy_energy_normalization: float = 1.0
+    anisotropy_mobility_normalization: float = 1.0
 
     def __post_init__(self) -> None:
         if self.simulation_dimension != 2:
@@ -33,6 +39,19 @@ class PFConfig:
             raise ValueError("boundary_conditions must be periodic or neumann")
         if not 0 < self.grain_extinction_threshold < 1:
             raise ValueError("grain_extinction_threshold must lie in (0,1)")
+        if self.anisotropy_strength not in {
+            None, "A0_ISOTROPIC", "A1_MODERATE", "A2_STRONG",
+            "A3_STRONGER_BOUNDED",
+        }:
+            raise ValueError("unknown anisotropy strength")
+        if not all(
+            np.isfinite(value) and value > 0
+            for value in (
+                self.anisotropy_energy_normalization,
+                self.anisotropy_mobility_normalization,
+            )
+        ):
+            raise ValueError("anisotropy normalizations must be finite and positive")
 
 
 @dataclass(frozen=True)

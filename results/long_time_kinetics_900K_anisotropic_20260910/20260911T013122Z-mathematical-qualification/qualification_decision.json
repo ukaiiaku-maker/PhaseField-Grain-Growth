@@ -1,0 +1,22 @@
+{
+  "classification": "ANISOTROPIC_IMPLEMENTATION_UNRESOLVED",
+  "scope": "geometry foundations and mathematical network checks",
+  "production_release": false,
+  "pf_coupling_implemented": false,
+  "junit_counts": {
+    "tests": 193,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "test_process_exit_code": 0,
+  "full_suite_passed": true,
+  "geometry_status": "completed",
+  "manufactured_status": "completed",
+  "geometry_failure": null,
+  "manufactured_failure": null,
+  "sharp_network_tests_passed": true,
+  "effect_size_requirement": "not evaluated",
+  "minimum_model_change": "undetermined",
+  "production_trajectories_executed": 0
+}

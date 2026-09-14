@@ -1,0 +1,63 @@
+{
+  "job_id": "55932951",
+  "model": "sharp polygon network",
+  "pf_coupling_qualified": false,
+  "production_release": false,
+  "cases": {
+    "A0_ISOTROPIC": [
+      {
+        "dt": 0.002,
+        "steps": 100,
+        "rejections": 0,
+        "initial_energy": 50.260436014924366,
+        "final_energy": 49.62824437168952,
+        "maximum_relative_dissipation_error": 1.926653189312882e-12,
+        "mean_final_radius": 7.899373472518683,
+        "circle_exact_radius_relative_error": 8.113645095708448e-07
+      },
+      {
+        "dt": 0.001,
+        "steps": 200,
+        "rejections": 0,
+        "initial_energy": 50.260436014924366,
+        "final_energy": 49.628224239694234,
+        "maximum_relative_dissipation_error": 4.906800857127438e-12,
+        "mean_final_radius": 7.899370268090408,
+        "circle_exact_radius_relative_error": 4.057081767192289e-07
+      }
+    ],
+    "A2_STRONG": [
+      {
+        "dt": 0.002,
+        "steps": 100,
+        "rejections": 0,
+        "initial_energy": 38.277714653809056,
+        "final_energy": 36.99025414671033,
+        "maximum_relative_dissipation_error": 0.04286839385045959,
+        "mean_final_radius": 7.8472528982267775
+      },
+      {
+        "dt": 0.001,
+        "steps": 200,
+        "rejections": 0,
+        "initial_energy": 38.277714653809056,
+        "final_energy": 36.99024496553278,
+        "maximum_relative_dissipation_error": 0.021004038504779495,
+        "mean_final_radius": 7.847241238779979
+      }
+    ]
+  },
+  "junction": {
+    "junction": [
+      0.010458036383995097,
+      0.24954879943487765
+    ],
+    "steps": 18055,
+    "dt": 0.01,
+    "initial_energy": 7.687723410088177,
+    "final_energy": 7.664082734865982,
+    "force_residual": 9.994608560039625e-08,
+    "largest_energy_increase": 1.7763568394002505e-15
+  },
+  "failure": "RuntimeError: TJ residual did not converge"
+}

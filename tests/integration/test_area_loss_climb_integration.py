@@ -147,7 +147,10 @@ def _checkpoint_without_trace(path: Path) -> tuple[dict[str, np.ndarray], dict]:
         }
         state = json.loads(str(archive["checkpoint_state_json"]))
     state.get("extension_state", {}).pop("event_trace", None)
-    for key in ("event_ledger_offset", "grain_tracks_offset", "boundary_tracks_offset"):
+    for key in (
+        "event_ledger_offset", "grain_tracks_offset", "boundary_tracks_offset",
+        "timesteps_offset",
+    ):
         state.pop(key, None)
     return arrays, state
 
