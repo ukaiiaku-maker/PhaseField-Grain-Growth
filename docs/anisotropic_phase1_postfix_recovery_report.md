@@ -92,6 +92,24 @@ existed, and no job with the recovery name/comment appeared in `squeue`. One
 unrelated FFT job, 55950433, was running. No Qiu recovery or production job was
 submitted.
 
+The executable recovery commit is
+`ad698bc8ac3b6d26d04d07bb241b85e5f0562f97`. The immutable runner ID is
+`20260914T202421Z-nogit-f0fd7d`, submitted once as Slurm job `56017421` with
+job name `aniso-postfix-recovery-v1`. Its identities are:
+
+- recovery source archive: `f9507613c56b664b0b9d57953cbd9ad27bba741494e8bc71e9b8e98288197cf9`
+- runner archive bundle: `49400c14508e937f7335f9f2c65a8a969e72f8c96f3633f7c375239ee518ccae`
+- logical input manifest: `8f614b6b07fc97e0257e46cebca2d0ce29e25eeb99b6d5cfefbf7c7480a3c2f9`
+- resolved recovery config: `51daaf8fd254c5a320c93512d4fe356aeed0101b91bd4f3fdfc43634a0e41558`
+- environment: `714dd16b2f3624b877352abbbe3e75a576883507e8b286dfd0691eb70d30438a`
+- initial phase field: `2986f2bf744107c46aeedf05d00849a5f35db8c3ba85f70f7a7645b7922b2e61`
+- orientations: `217578bc628ee08179cf59123c21a9af7b31ecdfc4eb8ee6a0816446221f3141`
+
+The first remote-directory operation timed out before upload. Reconciliation
+found no matching Slurm job and no remote bundle, so the same immutable
+prepared run was retried and submitted; no second run ID was created.
+
 ## Completion result
 
-Pending the single bounded recovery job.
+Job 56017421 is running; scientific fields below remain pending until its
+terminal state and fetched archive are verified.

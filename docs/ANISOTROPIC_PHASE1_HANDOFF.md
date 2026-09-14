@@ -163,3 +163,7 @@ submit a duplicate recovery job after an SSH timeout: reconcile its immutable
 runner ID and Slurm name/comment first. Do not mix Qiu/SI or production work
 into this recovery. The authoritative audit and eventual decision are in
 `docs/anisotropic_phase1_postfix_recovery_report.md`.
+
+The one permitted recovery submission is runner
+`20260914T202421Z-nogit-f0fd7d`, Slurm job 56017421, job name
+`aniso-postfix-recovery-v1`. Its requested maximum exposure is 12 CPU-hours.

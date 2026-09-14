@@ -460,6 +460,7 @@ complete, but every polycrystal record is `LOG_ONLY`; the partial archive has no
 scientific state, energy trace, checkpoint, case summary, or restart metadata.
 The recovery branch `codex/aniso-phase1-postfix-recovery-v1` starts at exact
 scientific source `1316cc8` and adds only atomic incremental finalization and
-focused tests. A single one-CPU, twelve-hour completion job will rerun A0,
+focused tests. Single one-CPU, twelve-hour job 56017421, runner
+`20260914T202421Z-nogit-f0fd7d`, is rerunning A0,
 corrected A2 energy-only, and matched-horizon half-dt A2. Production and Qiu/SI
 remain outside this recovery. See `anisotropic_phase1_postfix_recovery_report.md`.
