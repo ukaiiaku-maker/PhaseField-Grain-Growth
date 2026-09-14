@@ -526,3 +526,28 @@ repository suite passes **216/216** tests. A dense inclination sweep also
 confirms positive gamma and strictly positive stiffness for every distinct
 orientation pair present in the archived four-reference benchmark; the
 network-weighted normalization remains pending the promoted native state.
+
+## Phase 16: postfix allocation timeout
+
+Consolidated postfix job **55968528** reached its four-hour Slurm limit after
+`04:00:25`. This is an operational timeout, not an A2 scientific decision. The
+emergency marker is incomplete and the runner therefore correctly classifies
+the retrieval as partial/unverified. The partial result archive was fetched
+twice with stable SHA-256
+`f4b97f553ec5e6923bb205eb95700ecec63a7fb60b74dd6c3cd94edf749980f9`.
+
+The preserved evidence shows all **206/206** repository tests from source
+`1316cc8` passed, and the complete manufactured qualification passed. The
+postfix progress log records A0 64/64, A2 energy-only 64/64, and the half-dt A2
+run through step 96/128. The script had not serialized its postfix summary or
+case states before timeout, so the completed progress lines cannot establish
+energy descent, restart, or the timestep-refinement gate. No mobility-only,
+combined, A3, or production case is released.
+
+Protected FFT job **55932457** subsequently completed with scheduler exit 0;
+its owning workstream has not yet promoted the result here. Refinement job
+**55950433** remains running. The immutable Qiu native plan
+`20260912T180419Z-nogit-a25f0c` remains prepared and unsubmitted. Under the
+scope-amendment ordering, that owning Qiu baseline plan has priority for the
+free worker slot; this anisotropy workstream will not submit a competing Qiu
+job or an additional postfix worker.

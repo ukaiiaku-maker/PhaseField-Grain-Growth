@@ -195,3 +195,17 @@ matched-state, normalization, reduced-control, convergence, and HPC3 gates
 pass. The control template is
 `configs/production/qiu_si_4ref_controls.json` and deliberately retains null
 normalizations and false release flags.
+
+Postfix job **55968528** timed out operationally at `04:00:25`. Its twice-
+fetched partial archive SHA-256 is
+`f4b97f553ec5e6923bb205eb95700ecec63a7fb60b74dd6c3cd94edf749980f9`.
+The archive proves 206 source-era repository tests and the manufactured gate
+passed. It logs completed 64-step A0 and A2 energy-only execution, followed by
+96/128 half-dt steps, but no postfix summary was written before timeout.
+Therefore do not infer an A2 energy decision from that run.
+
+FFT job **55932457** is scheduler-complete with exit 0; **55950433** is still
+running. The Qiu native plan `20260912T180419Z-nogit-a25f0c` is still prepared,
+not submitted. The Qiu owner has priority for the open slot. Do not launch a
+postfix continuation, reduced mobility case, combined case, or duplicate Qiu
+baseline until that scheduling order permits it.
