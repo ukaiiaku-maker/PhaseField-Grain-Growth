@@ -150,3 +150,16 @@ finiteness, nonnegativity, phase sum, and morphology remained valid. The failure
 archive SHA-256 is
 `3bd6906e05663c4ad0b8ede7ebe46ccc1e4eb3fbad99c9e8dad5af5088b3b2da`.
 The remaining pilot cases were stopped. No A3 or production job was released.
+
+## Postfix recovery handoff
+
+The corrected homogeneous-norm postfix job 55968528 timed out and preserved no
+restartable scientific states. Its 206-test and manufactured passes are valid
+upstream evidence; its A0/A2 progress lines are `LOG_ONLY`. Continue only from
+the isolated branch `codex/aniso-phase1-postfix-recovery-v1`, whose scientific
+base is `1316cc8`. Its recovery runner atomically finalizes each case and
+checkpoints every 16 steps, including on the pre-timeout `USR1` path. Do not
+submit a duplicate recovery job after an SSH timeout: reconcile its immutable
+runner ID and Slurm name/comment first. Do not mix Qiu/SI or production work
+into this recovery. The authoritative audit and eventual decision are in
+`docs/anisotropic_phase1_postfix_recovery_report.md`.

@@ -452,3 +452,14 @@ future diagnosis. It does not alter the result: the stored trace contains 14
 positive transitions, and the independently stored final energy exceeds the
 initial energy by `47.74683`. Gate 3 is failed, production remains closed, and
 the Gate-2 manufactured pass must not be generalized to dense polycrystals.
+
+## Phase 13: isolated postfix recovery
+
+Job 55968528 timed out after 04:00:25. Its test and manufactured evidence is
+complete, but every polycrystal record is `LOG_ONLY`; the partial archive has no
+scientific state, energy trace, checkpoint, case summary, or restart metadata.
+The recovery branch `codex/aniso-phase1-postfix-recovery-v1` starts at exact
+scientific source `1316cc8` and adds only atomic incremental finalization and
+focused tests. A single one-CPU, twelve-hour completion job will rerun A0,
+corrected A2 energy-only, and matched-horizon half-dt A2. Production and Qiu/SI
+remain outside this recovery. See `anisotropic_phase1_postfix_recovery_report.md`.
