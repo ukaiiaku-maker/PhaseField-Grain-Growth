@@ -1,6 +1,6 @@
 # Qiu anisotropy and support-repair status
 
-Updated: 2026-09-15 13:08 PDT
+Updated: 2026-09-15 14:15 PDT
 
 - Branch: `codex/qiu-anisotropy-support-repair-v1`; integration base
   `88fd5dddd3fc425d0b920373cd3698080a3e7452`.
@@ -71,15 +71,27 @@ Updated: 2026-09-15 13:08 PDT
   contained no files. The prepared record is now
   `HELD_NOT_SUBMITTED_LOCAL_FALLBACK`, with null job ID and submission time.
 - Local run `local-compact-support-step1024-20260915T200027Z` is running under a
-  durable tmux/caffeinate supervisor, PID `13122`, at low priority with one
+  durable tmux/caffeinate supervisor, PID `17159`, at low priority with one
   numerical thread. It executes the byte-identical source archive from commit
   `db1770b2fe098274ccd8ce3a611ea79932ebd3bd` (SHA-256
   `7ce21b3a3ece25fa4f09e5efd4a49fe87fa8fdd988a2e42cbabaef7667f6ab85`).
   The immutable start checkpoint is exact step 1024, time
   0.06517691816792172, SHA-256
   `4b7138b5d73d30c7cff8d6e9a3d1b5c1891b3202c4214ce86efdd3df99df580e`.
-  Controlled process interruption/restart has already advanced exactly through
-  step 1099 and step 1179 checkpoints without replay from step zero.
+  Controlled process interruption/restart advanced exactly through step 1099
+  and step 1179 checkpoints without replay from step zero. The resumed
+  coarse-dt/KKT-1e-8 case then reached its preregistered horizon at step 3968,
+  time 0.25256055790072346. Python 3.13 rejected a NumPy Boolean during summary
+  serialization; the terminal field remained intact. Its summary was recovered
+  from that exact checkpoint without advancing the solver, and a JSON-only
+  NumPy-scalar compatibility shim was installed. All first-case numerical and
+  scaling targets pass. The fine-dt/KKT-1e-8 sibling is now running.
+- Case lineage is explicit. Only `dt-6.364933414836189e-05_kkt-1e-08` resumes
+  the step-1024 checkpoint. The other five frozen-script cases independently
+  start from the common deterministic step-zero field. Labeling those five as
+  step-1024 restarts would contradict the executable and their checkpoint
+  metadata. Every preserved checkpoint now records its actual parent, dt, KKT
+  tolerance, case-local step/time, and continuous or replay role.
 - Next automatic action: let the local run reach the existing Gate-1 endpoint,
   preserve and audit its terminal checkpoints, postprocess all six cases,
   classify the local gate, and prepare only the short HPC3 platform check if

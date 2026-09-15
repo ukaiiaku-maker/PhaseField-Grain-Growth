@@ -35,7 +35,7 @@ The numerical package versions match the qualified HPC3 environment. The
 supervisor runs under `caffeinate` at nice level 10 and constrains OpenMP,
 OpenBLAS, MKL, NumExpr, Accelerate, and Numba to one thread.
 
-Supervisor PID `13122` is owned by durable tmux session
+Supervisor PID `17159` is owned by durable tmux session
 `pfgg-compact-gate1-200027`. The frozen scientific entrypoint remains
 `scripts/qualify_compact_support.py`; no physical parameter, tolerance,
 timestep, stop criterion, or model implementation was changed.
@@ -49,7 +49,34 @@ from it. A later controlled supervisor restart produced and resumed exact
 step-1179 checkpoint (SHA-256 prefix `03f33cd2abbf`). The run is therefore
 durable across both scientific-worker and supervisor process termination.
 
-Final energy, support, KKT, runtime, morphology, restart-equivalence, and Gate-1
-classification will be written here after the preregistered endpoint is
-reached. A short HPC3 cross-platform confirmation will be prepared only if the
-local result qualifies.
+The first case, `dt-6.364933414836189e-05_kkt-1e-08`, reached its
+preregistered physical-time endpoint at step 3968 and time
+0.25256055790072346. Its last recorded energy increment is `-1.8086`, maximum
+KKT residual is `3.33e-16`, maximum/p95 exact support is `7/3`, and its
+late/early step-cost ratio is 1.108. Every per-case release target passes.
+
+Python 3.13 rejected the NumPy Boolean produced while serializing that case's
+otherwise complete summary. The exact terminal checkpoint was already atomic.
+The summary was reconstructed from its stored field and history without taking
+another numerical step. A recorded compatibility shim now converts NumPy
+scalar diagnostics to native JSON scalars; it does not change the solver,
+state, parameters, timestep, tolerance, or stopping rule.
+
+## Independent case lineage
+
+The frozen entrypoint defines six sibling cases. The coarse-dt/KKT-1e-8 case
+is the sole case whose existing checkpoint matches and resumes the exact
+step-1024 configuration. The remaining five cases start independently from
+the shared deterministic step-zero Voronoi field. Their actual checkpoint
+parents are recorded as `deterministic_initial_state`, step and time zero;
+they are not concatenated to the terminal state of an earlier sibling.
+
+Each checkpoint record now contains the campaign run ID, case ID, actual
+parent identity, dt, KKT tolerance, case-local step/time, and continuous or
+replay role. The current fine-dt/KKT-1e-8 case checkpointed at its local step
+90 before an independent process restart.
+
+Final cross-case energy, support, KKT, runtime, morphology, scientific
+restart-equivalence, and Gate-1 classification will be written here after all
+six siblings reach their preregistered endpoints. A short HPC3 cross-platform
+confirmation will be prepared only if the local result qualifies.
