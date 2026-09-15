@@ -495,4 +495,6 @@ remain finite. Fine support grew to 184 phases and 16,836 pairs per cell and
 operationally incomplete within the allocation. The terminal classification is
 `A2_POSTFIX_OPERATIONALLY_INCOMPLETE`. Mobility-only, combined A2, A3, and
 production remain unreleased. No Qiu/SI job or source was touched. See
-`anisotropic_phase1_postfix_recovery_report.md` for the complete audit.
+`anisotropic_phase1_postfix_recovery_report.md` for the complete audit and
+`anisotropic_phase1_postsimulation_analysis.md` for the reproducible figures
+and post-simulation interpretation.

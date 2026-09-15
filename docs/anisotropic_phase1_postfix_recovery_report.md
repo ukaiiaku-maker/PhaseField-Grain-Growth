@@ -196,3 +196,18 @@ The verified runner record is
 The independently extracted archive is
 `/Users/sdillon/HPC3/anisotropic-phase1-state/extracted-20260915T0825Z`, and
 the case records are under its `output/postfix` directory.
+
+## Post-simulation analysis
+
+The reproducible post-analysis is in
+`docs/anisotropic_phase1_postsimulation_analysis.md`; its compact data and
+figures are under
+`results/long_time_kinetics_900K_anisotropic_20260910/20260915T082458Z-postfix-recovery-analysis`.
+It independently reproduces the energy and convergence gates, compares full
+phase fields and grain areas, visualizes the orientation-colored structures,
+and relates block runtime to pair-support growth. Amplitude-threshold analysis
+shows that the operational explosion is dominated by widespread small phase
+tails: half-dt mean phase support falls from 116.8 at the production 1e-14
+threshold to 1.62 at amplitude 0.01, while the mean inverse-participation count
+is 1.278. This supports no ad hoc truncation; any support repair changes the
+discrete operator and requires new qualification.

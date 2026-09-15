@@ -186,4 +186,8 @@ supported-pair instances. The final classification is
 `A2_POSTFIX_OPERATIONALLY_INCOMPLETE`. Do not release mobility-only, combined
 A2, A3, or production trajectories. No Qiu/SI job was duplicated or modified.
 The authoritative details and artifact hashes are in
-`docs/anisotropic_phase1_postfix_recovery_report.md`.
+`docs/anisotropic_phase1_postfix_recovery_report.md`. Reproducible tables,
+300-dpi PNG/PDF figures, field comparisons, support-threshold analysis, and the
+scientific interpretation are in
+`docs/anisotropic_phase1_postsimulation_analysis.md` and
+`results/long_time_kinetics_900K_anisotropic_20260910/20260915T082458Z-postfix-recovery-analysis`.
