@@ -1,0 +1,98 @@
+{
+  "schema": "fft-eigenstrain-v2-analysis-manifest-v1",
+  "inputs": [
+    {
+      "path": "/Users/sdillon/HPC3/qiu-qualification-20260910/extracted-20260915T1848Z/output/qualification/qualification_run_summary.json",
+      "sha256": "ed623a5805278c0d8ebebf31aed6c86083ad828ae332c65891e6044d9eb82d37"
+    },
+    {
+      "path": "/Users/sdillon/HPC3/qiu-qualification-20260910/extracted-20260915T1848Z/output/qualification/manifest.json",
+      "sha256": "c898823b449b2a17a24708eb8f7cff2dd46d45001a2b9f2722923c1c8a6b6c18"
+    },
+    {
+      "path": "/Users/sdillon/HPC3/qiu-qualification-20260910/extracted-20260915T1848Z/output/qualification/checkpoint.npz",
+      "sha256": "d190c50b68328629e3c28779df4e5dcc8f3f80670a54a507d74ee34ee3513665"
+    },
+    {
+      "path": "/Users/sdillon/HPC3/qiu-qualification-20260910/hpc3-results/pfgg-qiu-qualification/20260911T003946Z-nogit-c53868/results/results-single.tar.gz",
+      "sha256": "1ef8e15ec70bf87ecf2a3175076035216c9aa01388ef5b10157d85d08e83a417"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "diagnostic_timeline.csv",
+      "sha256": "58964ced6d176f4e8e052a67959f48d5b7325dfbcd0cffdb3759c85e37c7abe4",
+      "bytes": 2071068
+    },
+    {
+      "path": "kinetics_energy_mechanics.png",
+      "sha256": "231e64a13b23ea287624ebba295cf2c5f1b3c3eab3c9615181d19a08ed74aee8",
+      "bytes": 420923
+    },
+    {
+      "path": "kinetics_energy_mechanics.pdf",
+      "sha256": "ce15f2010dfec18cd9daf5839e2a4606896ed37c8596f65757db1c848894cd52",
+      "bytes": 142846
+    },
+    {
+      "path": "population_loss_and_acceptance.png",
+      "sha256": "2e2234539a4fe9070fc63585297cded4f957a21f7769eacee2057bbcb5c227e8",
+      "bytes": 206926
+    },
+    {
+      "path": "population_loss_and_acceptance.pdf",
+      "sha256": "9b5deb8002e08ca82004eb2a6e5f5800a485c7f6e156f489319910c6d342e690",
+      "bytes": 30455
+    },
+    {
+      "path": "grain_area_distributions.png",
+      "sha256": "8c8c6b87b3c103811884d6bc87d4cb6e0cdd21ca8dc0577dd47b7fe9501e43ed",
+      "bytes": 107738
+    },
+    {
+      "path": "grain_area_distributions.pdf",
+      "sha256": "65e04d13ca106c0e774ea779b996d6dd3948bf077cedd59c21b45058c7c01da3",
+      "bytes": 17504
+    },
+    {
+      "path": "grain_area_statistics.csv",
+      "sha256": "da8ef693f140fd1a8261acbf1141c1f48c6c608c82328eba0cfc7256f93d3e62",
+      "bytes": 255
+    },
+    {
+      "path": "field_evolution.png",
+      "sha256": "2bc02e246ad4664e6d52738d969a1e13c3b73ff4d8da975cb3049aa5ff76f5dd",
+      "bytes": 4296966
+    },
+    {
+      "path": "field_evolution.pdf",
+      "sha256": "88b8a46344f00b2bf9c065bf1ab1baa8a36abc5ea4ff725ba3e22eadea64deb1",
+      "bytes": 3956694
+    },
+    {
+      "path": "boundary_statistics.csv",
+      "sha256": "32afcb5e3b4768743c8ed4fc1092db3cc6d297b5e464d4dd09a5894b964c6237",
+      "bytes": 4160
+    },
+    {
+      "path": "boundary_evolution.png",
+      "sha256": "02012bec49fb0224ae9fa692d2c19159e4ec2cd2b1259d1292e555a0ffb417b6",
+      "bytes": 207640
+    },
+    {
+      "path": "boundary_evolution.pdf",
+      "sha256": "2e48c4448452442fdd65805fd3bfe0c01a85ba97fa849ef6bc0a6ac2612b2842",
+      "bytes": 16029
+    },
+    {
+      "path": "analysis_summary.json",
+      "sha256": "a5d0fffde1cdcd77b7cefe91fb94bc03b6f1ae6346a3fae83d98ce238c402a0d",
+      "bytes": 1034
+    },
+    {
+      "path": "analysis_report.md",
+      "sha256": "a078295a54249105e32ac4aaaaa900de201edad1b7f88bba34ec14cd618c7b84",
+      "bytes": 821
+    }
+  ]
+}
