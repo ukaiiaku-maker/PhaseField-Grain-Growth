@@ -33,7 +33,7 @@ def main() -> None:
     args = parser.parse_args()
 
     report: dict[str, object] = {
-        "model": "QIU_SI_REFERENCE_ANISOTROPY",
+        "model": "QIU_SI_REFERENCE_ANISO",
         "native_sha256": digest(args.native),
         "port_sha256": digest(args.port),
         "rtol": args.rtol,

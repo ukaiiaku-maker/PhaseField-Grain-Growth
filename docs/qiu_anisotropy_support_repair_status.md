@@ -1,6 +1,6 @@
 # Qiu anisotropy and support-repair status
 
-Updated: 2026-09-15 11:20 PDT
+Updated: 2026-09-15 11:34 PDT
 
 - Branch: `codex/qiu-anisotropy-support-repair-v1`; integration base
   `88fd5dddd3fc425d0b920373cd3698080a3e7452`.
@@ -12,7 +12,9 @@ Updated: 2026-09-15 11:20 PDT
 - Retrieval: terminal FFT job `55932457` was reconciled from a stale runner
   state and retrieved with runner checksum verification.
 - Native plan: `20260912T180419Z-nogit-a25f0c` is prepared and unsubmitted;
-  no duplicate exists.
+  no duplicate exists. The immutable driver does not emit phase-field or
+  restart checkpoints, so numeric A0 promotion will use a separately named,
+  output-only instrumented native control built from the checksummed source.
 - Support decision: the exact-stencil candidate graph, symmetric pair-mobility
   descent, simplex obstacle solve, KKT audit, and strict energy backtracking
   are implemented. The complete local suite passes 225/225. No HPC

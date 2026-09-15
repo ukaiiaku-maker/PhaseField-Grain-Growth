@@ -2,7 +2,7 @@
 
 ## Identity and scope
 
-`QIU_SI_REFERENCE_ANISOTROPY` is a controlled extension campaign for the
+`QIU_SI_REFERENCE_ANISO` is a controlled extension campaign for the
 pristine supplementary-information Qiu implementation. Its native control is
 `QIU_SI_REFERENCE`; neither `FFT_EIGENSTRAIN_V2` nor
 `QIU_LEGACY_FORENSIC` supplies its baseline. The existing large-polycrystal
@@ -135,4 +135,4 @@ Separate output roots are mandatory:
 `anisotropic_phase1`, and `fft_eigenstrain_v2`. Reports must state that the
 anisotropic result is a new extension, not a published Qiu anisotropic
 reproduction. Current classification:
-`QIU_SI_ANISOTROPIC_PF_UNRESOLVED`.
+`QIU_SI_ANISOTROPY_UNRESOLVED`.

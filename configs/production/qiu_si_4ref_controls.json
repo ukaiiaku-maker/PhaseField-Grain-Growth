@@ -1,6 +1,6 @@
 {
-  "campaign": "QIU_SI_REFERENCE_ANISOTROPY",
-  "classification": "QIU_SI_ANISOTROPIC_PF_UNRESOLVED",
+  "campaign": "QIU_SI_REFERENCE_ANISO",
+  "classification": "QIU_SI_ANISOTROPY_UNRESOLVED",
   "native_archive": {
     "sha256": "2740e0af26bd3acd24bfbbca44b8b3cd56e2e3bacf97ef5648ab69b84989bf90",
     "driver_sha256": "03f8cee8834e5f9669dceb1c831590de55c5ef26f6cc41e0913c0fc89ee2cd17",
@@ -48,5 +48,5 @@
     "reduced_controls_passed": false,
     "full_trajectory_authorized": false
   },
-  "result_root": "qiu_si_reference_anisotropic"
+  "result_root": "qiu-si-reference-anisotropic"
 }

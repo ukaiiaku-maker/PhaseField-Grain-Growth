@@ -2,7 +2,7 @@
 
 Status: **interim implementation report**. Native reproduction and all
 trajectory sections remain pending. Current classification:
-`QIU_SI_ANISOTROPIC_PF_UNRESOLVED`.
+`QIU_SI_ANISOTROPY_UNRESOLVED`.
 
 ## Identity and provenance
 
