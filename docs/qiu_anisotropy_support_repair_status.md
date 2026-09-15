@@ -1,6 +1,6 @@
 # Qiu anisotropy and support-repair status
 
-Updated: 2026-09-15 11:58 PDT
+Updated: 2026-09-15 12:09 PDT
 
 - Branch: `codex/qiu-anisotropy-support-repair-v1`; integration base
   `88fd5dddd3fc425d0b920373cd3698080a3e7452`.
@@ -62,6 +62,13 @@ Updated: 2026-09-15 11:58 PDT
   before submission, and must never be launched. Prepared plan
   `20260915T181845Z-nogit-76f707` is also superseded because it would have
   reported valid scientific gate failures as infrastructure failures.
-- Next automatic action: wait for either external worker `56040506` or FFT
-  refinement `55950433` to release a slot, then submit sole continuation plan
+- Scheduler hold: the bounded read-only check at 2026-09-15 12:09 PDT found
+  five live full scientific workers: protected jobs `55950433` and `56040506`,
+  plus external jobs `56040570`, `56040575`, and `56040576`. No job was
+  submitted, cancelled, or altered. The prepared continuation remains the sole
+  valid continuation and has no known Slurm identity.
+- Next automatic action: wait until the account has at most one live full
+  scientific worker, then reconcile the local ledger, Slurm job name/comment,
+  remote continuation directory, checkpoint hash, and prepared state. If that
+  reconciliation still finds no Slurm identity, submit exactly
   `20260915T185600Z-nogit-8a5672`, postprocess it, and enforce Gate 1.
