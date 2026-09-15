@@ -1,6 +1,6 @@
 # Qiu anisotropy and support-repair status
 
-Updated: 2026-09-15 12:13 PDT
+Updated: 2026-09-15 13:08 PDT
 
 - Branch: `codex/qiu-anisotropy-support-repair-v1`; integration base
   `88fd5dddd3fc425d0b920373cd3698080a3e7452`.
@@ -62,20 +62,25 @@ Updated: 2026-09-15 12:13 PDT
   before submission, and must never be launched. Prepared plan
   `20260915T181845Z-nogit-76f707` is also superseded because it would have
   reported valid scientific gate failures as infrastructure failures.
-- Scheduler hold: the single bounded read-only check at 2026-09-15 12:13 PDT
-  found three live full scientific workers: job `56040797`, name
-  `full-v34-v24-planar-sibm-matrix`, immutable comment
-  `20260915T192037Z-29a0282-c0a8eb`; job `56040575`, name
-  `full-v34-v24-asb-seed43-dt-refined-continuation`, immutable comment
-  `20260915T185230Z-0ff33cb-0f6b77`; and job `55950433`, name
-  `pfgg-fft-v2-seed5101-target001`, immutable comment
-  `20260911T110924Z-nogit-6b926f`. Jobs `56040506`, `56040570`, and `56040576`
-  were absent from this live queue result; their terminal state was not inferred
-  without accounting evidence. No job was submitted, cancelled, or altered.
-  The prepared continuation remains the sole valid continuation and has no
-  known Slurm identity.
-- Next automatic action: wait until the account has at most one live full
-  scientific worker, then reconcile the local ledger, Slurm job name/comment,
-  remote continuation directory, checkpoint hash, and prepared state. If that
-  reconciliation still finds no Slurm identity, submit exactly
-  `20260915T185600Z-nogit-8a5672`, postprocess it, and enforce Gate 1.
+- Local Gate-1 fallback: the user explicitly authorized local execution of the
+  compact-support continuation while the HPC3 worker ceiling remained closed.
+  The pre-launch reconciliation at 2026-09-15 12:45 PDT found only protected
+  HPC3 job `55950433` live. Accounting showed predecessor `56040470` cancelled,
+  and found no job for prepared run/comment
+  `20260915T185600Z-nogit-8a5672` or its expected job name. Its remote directory
+  contained no files. The prepared record is now
+  `HELD_NOT_SUBMITTED_LOCAL_FALLBACK`, with null job ID and submission time.
+- Local run `local-compact-support-step1024-20260915T200027Z` is running under a
+  durable tmux/caffeinate supervisor, PID `13122`, at low priority with one
+  numerical thread. It executes the byte-identical source archive from commit
+  `db1770b2fe098274ccd8ce3a611ea79932ebd3bd` (SHA-256
+  `7ce21b3a3ece25fa4f09e5efd4a49fe87fa8fdd988a2e42cbabaef7667f6ab85`).
+  The immutable start checkpoint is exact step 1024, time
+  0.06517691816792172, SHA-256
+  `4b7138b5d73d30c7cff8d6e9a3d1b5c1891b3202c4214ce86efdd3df99df580e`.
+  Controlled process interruption/restart has already advanced exactly through
+  step 1099 and step 1179 checkpoints without replay from step zero.
+- Next automatic action: let the local run reach the existing Gate-1 endpoint,
+  preserve and audit its terminal checkpoints, postprocess all six cases,
+  classify the local gate, and prepare only the short HPC3 platform check if
+  local qualification passes. Native Qiu and anisotropic Qiu remain gated.
