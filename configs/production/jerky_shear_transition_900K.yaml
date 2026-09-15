@@ -1,0 +1,103 @@
+prepare_initial_conditions: true
+temperatures: [900.0]
+seeds: [5101]
+base:
+  regime: GTSC_GB_Ks025
+  seed: 5101
+  pf:
+    shape: [192, 192]
+    grid_spacing: 1.0
+    interface_width: 4.0
+    time_step: 0.04
+    gb_energy: 1.0
+    intrinsic_mobility: 4.0
+    boundary_conditions: periodic
+    temperature: 900.0
+    adaptive_stepping: true
+    grain_extinction_threshold: 0.5
+  mechanics_backend: local_memory
+  compatibility_model: geometric_surrogate
+  active_modules: [gb_compatibility, tj_compatibility, multihit_persistent, shear_memory, area_loss_climb, gb_defect_sink]
+  output_cadence: 50
+  max_steps: 10000
+  termination_grains: 120
+  parameters:
+    initial_grains: 267
+    equilibration_steps: 20
+    equilibrate_to_grains: 200
+    equilibration_max_steps: 1200
+    compact_after_equilibration: true
+    event_domain_length: 12.0
+    arclength_domains: true
+    encounter_density: 0.20
+    barrier_core_ev: 0.25
+    b_coefficient_ev: 0.02
+    h_coefficient_ev: 0.02
+    attempt_frequency: 10.0
+    packet_size: 2.0
+    packet_window_time: 1.0
+    pinned_mobility_fraction: 0.0
+    migration_closure: gate_only
+    blocked_gate_profile: line
+    tj_correlation_radius: 0
+    tj_correlation_length: 2.0
+    tj_barrier_ev: 0.55
+    tj_attempt_frequency: 1000.0
+    shear_stiffness: 0.25
+    shear_trigger: 0.25
+    easy_beta: 0.35
+    excess_volume_per_area: 0.01
+    point_defect_formation_volume: 0.02
+    free_volume_stiffness: 0.05
+    climb_trigger_quota: 0.25
+    climb_release_quota: 1.0
+    tj_sink_release_quota: 1.0
+    nucleation_prefactor: 100000.0
+    exchange_prefactor: 100000.0
+    transport_prefactor: 100000.0
+    nucleation_barrier_ev: 0.45
+    exchange_barrier_ev: 0.55
+    transport_barrier_ev: 0.65
+    tj_sink_nucleation_prefactor: 100000.0
+    tj_sink_exchange_prefactor: 100000.0
+    tj_sink_transport_prefactor: 100000.0
+    tj_sink_nucleation_barrier_ev: 0.45
+    tj_sink_exchange_barrier_ev: 0.55
+    tj_sink_transport_barrier_ev: 0.65
+    tj_sink_compatibility_tolerance: 0.25
+    tj_sink_step_length: 1.0
+    tj_sink_burgers: 0.25
+    tj_residual_stiffness_ev: 1.0
+    event_trace_enabled: true
+    event_trace_pre_steps: 25
+    event_trace_post_steps: 50
+    event_trace_stride: 1
+    event_trace_format: parquet
+    event_ledger_format: parquet
+    video_frame_cadence: 50
+    candidate_diagnostic_cadence: 50
+regimes:
+  GTSC_GB_Ks025:
+    parameters: {shear_stiffness: 0.25}
+  GTSC_GB_Ks030:
+    parameters: {shear_stiffness: 0.30}
+  GTSC_GB_Ks035:
+    parameters: {shear_stiffness: 0.35}
+  GSC_GBTJ_Ks025:
+    modules: [gb_compatibility, multihit_persistent, shear_memory, area_loss_climb, gb_defect_sink, tj_defect_sink]
+    parameters: {shear_stiffness: 0.25}
+  GSC_GBTJ_Ks030:
+    modules: [gb_compatibility, multihit_persistent, shear_memory, area_loss_climb, gb_defect_sink, tj_defect_sink]
+    parameters: {shear_stiffness: 0.30}
+  GSC_GBTJ_Ks035:
+    modules: [gb_compatibility, multihit_persistent, shear_memory, area_loss_climb, gb_defect_sink, tj_defect_sink]
+    parameters: {shear_stiffness: 0.35}
+  GTSC_GBTJ_Ks025:
+    modules: [gb_compatibility, tj_compatibility, multihit_persistent, shear_memory, area_loss_climb, gb_defect_sink, tj_defect_sink]
+    parameters: {shear_stiffness: 0.25}
+  GTSC_GBTJ_Ks030:
+    modules: [gb_compatibility, tj_compatibility, multihit_persistent, shear_memory, area_loss_climb, gb_defect_sink, tj_defect_sink]
+    parameters: {shear_stiffness: 0.30}
+  GTSC_GBTJ_Ks035:
+    modules: [gb_compatibility, tj_compatibility, multihit_persistent, shear_memory, area_loss_climb, gb_defect_sink, tj_defect_sink]
+    parameters: {shear_stiffness: 0.35}

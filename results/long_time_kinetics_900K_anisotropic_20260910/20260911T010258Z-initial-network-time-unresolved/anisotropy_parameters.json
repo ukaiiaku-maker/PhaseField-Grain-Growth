@@ -1,0 +1,44 @@
+{
+  "selected_production_strength": null,
+  "intended_strength": "A2_STRONG",
+  "A3_released": false,
+  "laws": {
+    "A0_ISOTROPIC": {
+      "strength": {
+        "g_min": 1.0,
+        "inclination_weight": 0.0,
+        "support_power": 2,
+        "mobility_exponent": 0.0
+      },
+      "gamma0": 1.0,
+      "mobility0": 4.0,
+      "energy_normalization": 1.0,
+      "mobility_normalization": 1.0
+    },
+    "A1_MODERATE": {
+      "strength": {
+        "g_min": 0.8,
+        "inclination_weight": 0.65,
+        "support_power": 8,
+        "mobility_exponent": 1.0
+      },
+      "gamma0": 1.0,
+      "mobility0": 4.0,
+      "energy_normalization": 1.1078418017561684,
+      "mobility_normalization": 0.9925527524942722
+    },
+    "A2_STRONG": {
+      "strength": {
+        "g_min": 0.65,
+        "inclination_weight": 0.85,
+        "support_power": 16,
+        "mobility_exponent": 2.0
+      },
+      "gamma0": 1.0,
+      "mobility0": 4.0,
+      "energy_normalization": 1.2060485247581734,
+      "mobility_normalization": 0.924620319961451
+    }
+  },
+  "hypothesis": "synthetic inverse energy-mobility correlation"
+}

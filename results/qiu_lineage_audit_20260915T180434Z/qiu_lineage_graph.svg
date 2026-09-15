@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520">
+<style>text{font:18px sans-serif}.h{font-weight:bold;font-size:22px}.n{fill:#eef3f8;stroke:#24445f;stroke-width:2}.a{stroke:#24445f;stroke-width:3;marker-end:url(#m)}.r{stroke:#a34835;stroke-width:3;stroke-dasharray:8 6;marker-end:url(#r)}</style>
+<defs><marker id="m" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8z" fill="#24445f"/></marker><marker id="r" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8z" fill="#a34835"/></marker></defs>
+<text class="h" x="30" y="35">Immutable Qiu and FFT lineage audit</text>
+<text x="30" y="85">QIU_LEGACY_FORENSIC</text><rect class="n" x="280" y="55" width="250" height="55" rx="8"/><text x="300" y="88">55930486: 0 → 9984</text>
+<rect class="n" x="700" y="55" width="330" height="55" rx="8"/><text x="720" y="88">55948258: 9000 → 9984 replay</text><line class="r" x1="530" y1="82" x2="695" y2="82"/><text x="550" y="130" fill="#a34835">overlap; no continuation edge</text>
+<text x="30" y="220">FFT_EIGENSTRAIN_V2</text><rect class="n" x="280" y="180" width="300" height="55" rx="8"/><text x="300" y="213">55932457: dt .04, terminal</text><rect class="n" x="700" y="180" width="320" height="55" rx="8"/><text x="720" y="213">55950433: dt .02, running</text><text x="470" y="265">separate refinement calculations</text>
+<text x="30" y="350">QIU_SI_REFERENCE</text><rect class="n" x="280" y="310" width="560" height="70" rx="8"/><text x="300" y="340">20260912T180419Z-nogit-a25f0c</text><text x="300" y="367">native [100] 4ref: prepared, unsubmitted</text>
+<text class="h" x="30" y="465">Classification: QIU_ISOTROPIC_LINEAGE_INCOMPLETE</text><text x="30" y="495">Authoritative baseline: pristine native QIU_SI_REFERENCE</text></svg>

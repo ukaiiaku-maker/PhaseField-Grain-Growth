@@ -9,9 +9,11 @@ Array = NDArray[np.float64]
 
 
 @njit(cache=True)
-def pairwise_obstacle_step(
+def _pairwise_obstacle_step_masked(
     eta: Array,
     active: NDArray[np.bool_],
+    row_support: NDArray[np.bool_],
+    column_support: NDArray[np.bool_],
     mobility_scale: Array,
     external: Array,
     use_external: bool,
@@ -40,9 +42,13 @@ def pairwise_obstacle_step(
         if not active[phase]:
             continue
         for y in range(height):
+            if not row_support[phase, y]:
+                continue
             ym = (y - 1) % height if periodic else max(y - 1, 0)
             yp = (y + 1) % height if periodic else min(y + 1, height - 1)
             for x in range(width_pixels):
+                if not column_support[phase, x]:
+                    continue
                 xm = (x - 1) % width_pixels if periodic else max(x - 1, 0)
                 xp = (x + 1) % width_pixels if periodic else min(x + 1, width_pixels - 1)
                 if not (
@@ -81,9 +87,13 @@ def pairwise_obstacle_step(
         if not active[phase]:
             continue
         for y in range(height):
+            if not row_support[phase, y]:
+                continue
             ym = (y - 1) % height if periodic else max(y - 1, 0)
             yp = (y + 1) % height if periodic else min(y + 1, height - 1)
             for x in range(width_pixels):
+                if not column_support[phase, x]:
+                    continue
                 xm = (x - 1) % width_pixels if periodic else max(x - 1, 0)
                 xp = (x + 1) % width_pixels if periodic else min(x + 1, width_pixels - 1)
                 if not (
@@ -130,10 +140,55 @@ def pairwise_obstacle_step(
         if not active[phase]:
             continue
         for y in range(height):
+            if not row_support[phase, y]:
+                continue
             for x in range(width_pixels):
+                if not column_support[phase, x]:
+                    continue
                 if trial_sum[y, x] > 0.0:
                     result[phase, y, x] /= trial_sum[y, x]
     return result
+
+
+def phase_support_masks(
+    eta: Array, active: NDArray[np.bool_], periodic: bool,
+) -> tuple[NDArray[np.bool_], NDArray[np.bool_]]:
+    """Return conservative row/column masks including the cardinal halo."""
+    present = eta > 1e-14
+    rows = np.any(present, axis=2)
+    columns = np.any(present, axis=1)
+    if periodic:
+        rows = rows | np.roll(rows, 1, axis=1) | np.roll(rows, -1, axis=1)
+        columns = columns | np.roll(columns, 1, axis=1) | np.roll(columns, -1, axis=1)
+    else:
+        rows[:, 1:] |= rows[:, :-1].copy()
+        rows[:, :-1] |= rows[:, 1:].copy()
+        columns[:, 1:] |= columns[:, :-1].copy()
+        columns[:, :-1] |= columns[:, 1:].copy()
+    rows[~active] = False
+    columns[~active] = False
+    return rows, columns
+
+
+def pairwise_obstacle_step(
+    eta: Array,
+    active: NDArray[np.bool_],
+    mobility_scale: Array,
+    external: Array,
+    use_external: bool,
+    dt: float,
+    mobility: float,
+    gamma: float,
+    width: float,
+    dx: float,
+    periodic: bool,
+) -> Array:
+    """Advance the exact local equation while skipping empty phase rectangles."""
+    rows, columns = phase_support_masks(eta, active, periodic)
+    return _pairwise_obstacle_step_masked(
+        eta, active, rows, columns, mobility_scale, external, use_external,
+        dt, mobility, gamma, width, dx, periodic,
+    )
 
 
 @njit(cache=True)
