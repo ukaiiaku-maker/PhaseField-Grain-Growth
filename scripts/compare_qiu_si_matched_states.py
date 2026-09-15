@@ -10,9 +10,13 @@ from pathlib import Path
 import numpy as np
 
 REQUIRED = (
+    "accepted_step", "physical_time", "output_scaling", "orientations",
     "beta", "reference_directions", "line_density", "sigma11", "sigma12",
-    "sigma22", "elastic_force", "delta_eta_pre", "delta_eta_accepted", "phi",
+    "sigma22", "elastic_force", "barrier_eij", "delta_eta_pre",
+    "delta_eta_accepted", "energy_components", "phi", "active_support",
+    "grain_labels",
 )
+EXACT = {"accepted_step", "active_support", "grain_labels"}
 
 
 def digest(path: Path) -> str:
@@ -52,11 +56,16 @@ def main() -> None:
             difference = np.abs(left - right) if same_shape else np.array([np.inf])
             scale = np.maximum(np.abs(left), np.abs(right)) if same_shape else np.array([1.0])
             threshold = args.atol + args.rtol * scale
-            field_pass = bool(same_shape and finite and np.all(difference <= threshold))
+            exact = name in EXACT
+            field_pass = bool(
+                same_shape and finite
+                and (np.array_equal(left, right) if exact else np.all(difference <= threshold))
+            )
             report["fields"][name] = {
                 "shape": list(left.shape),
                 "max_abs": float(np.max(difference)),
                 "max_scaled_error": float(np.max(difference / threshold)),
+                "comparison": "exact" if exact else "tolerance",
                 "pass": field_pass,
             }
             passed &= field_pass
