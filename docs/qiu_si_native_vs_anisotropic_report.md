@@ -33,6 +33,10 @@ The sole native plan is owned outside this worktree as
 | crystallographic references | four, spacing `pi/4` |
 | beta | archived orientation-pair function |
 | line/disconnection density | archived current-geometry reconstruction |
+| stress and elastic force | archived `sigma11`, `sigma12`, `sigma22` kernels and signed pair force |
+| barrier term | archived antisymmetric `eij`, `eee=20` |
+| boundary conditions and cadence | periodic; GB/stress output every 250 steps |
+| renormalization | archived clip-and-normalize operation after the recorded pre-increment |
 
 ## Pair-energy correspondence
 
@@ -48,10 +52,6 @@ capillary, elastic, and antisymmetric barrier drive. Both energy/force
 identities pass central finite differences locally. A0 still executes the
 archived algebra directly, so nesting does not depend on cancellation in a
 rewritten formula.
-| stress and elastic force | archived `sigma11`, `sigma12`, `sigma22` kernels and signed pair force |
-| barrier term | archived antisymmetric `eij`, `eee=20` |
-| boundary conditions and cadence | periodic; GB/stress output every 250 steps |
-| renormalization | archived clip-and-normalize operation after the recorded pre-increment |
 
 ## Declared extension quantities
 
