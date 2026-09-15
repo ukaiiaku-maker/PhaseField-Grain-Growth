@@ -1,6 +1,6 @@
 # Qiu anisotropy and support-repair status
 
-Updated: 2026-09-15 12:09 PDT
+Updated: 2026-09-15 12:13 PDT
 
 - Branch: `codex/qiu-anisotropy-support-repair-v1`; integration base
   `88fd5dddd3fc425d0b920373cd3698080a3e7452`.
@@ -62,11 +62,18 @@ Updated: 2026-09-15 12:09 PDT
   before submission, and must never be launched. Prepared plan
   `20260915T181845Z-nogit-76f707` is also superseded because it would have
   reported valid scientific gate failures as infrastructure failures.
-- Scheduler hold: the bounded read-only check at 2026-09-15 12:09 PDT found
-  five live full scientific workers: protected jobs `55950433` and `56040506`,
-  plus external jobs `56040570`, `56040575`, and `56040576`. No job was
-  submitted, cancelled, or altered. The prepared continuation remains the sole
-  valid continuation and has no known Slurm identity.
+- Scheduler hold: the single bounded read-only check at 2026-09-15 12:13 PDT
+  found three live full scientific workers: job `56040797`, name
+  `full-v34-v24-planar-sibm-matrix`, immutable comment
+  `20260915T192037Z-29a0282-c0a8eb`; job `56040575`, name
+  `full-v34-v24-asb-seed43-dt-refined-continuation`, immutable comment
+  `20260915T185230Z-0ff33cb-0f6b77`; and job `55950433`, name
+  `pfgg-fft-v2-seed5101-target001`, immutable comment
+  `20260911T110924Z-nogit-6b926f`. Jobs `56040506`, `56040570`, and `56040576`
+  were absent from this live queue result; their terminal state was not inferred
+  without accounting evidence. No job was submitted, cancelled, or altered.
+  The prepared continuation remains the sole valid continuation and has no
+  known Slurm identity.
 - Next automatic action: wait until the account has at most one live full
   scientific worker, then reconcile the local ledger, Slurm job name/comment,
   remote continuation directory, checkpoint hash, and prepared state. If that
