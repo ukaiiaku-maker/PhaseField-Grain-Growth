@@ -1,0 +1,14 @@
+    PID    PPID ELAPSED %CPU STAT WCHAN                            COMMAND
+ 679180  678354    1098  1.9 Dl   IBVSocket_waitForRecvCompletionE /pub/sdillon1/sw/pfgg-anisotropy/f4aa53f-714dd16b2f3624b8/bin/python -m pytest -q source/tests --junitxml=output/tests.xml
+__IBVSocket_waitForRecvCompletionEventtotal 0
+lr-x------ 1 sdillon1 sdillon1 64 Sep 10 19:00 0 -> /dev/null
+lrwx------ 1 sdillon1 sdillon1 64 Sep 10 19:00 1 -> /tmp/sdillon1/55933300/#630217 (deleted)
+l-wx------ 1 sdillon1 sdillon1 64 Sep 10 19:00 10 -> /dev/null
+lrwx------ 1 sdillon1 sdillon1 64 Sep 10 19:00 2 -> /tmp/sdillon1/55933300/#630218 (deleted)
+lr-x------ 1 sdillon1 sdillon1 64 Sep 10 19:00 3 -> /dev/null
+lr-x------ 1 sdillon1 sdillon1 64 Sep 10 19:00 4 -> /dev/null
+l-wx------ 1 sdillon1 sdillon1 64 Sep 10 19:00 5 -> /tmp/sdillon1/55933300/hpc3-20260911T013122Z-nogit-e7f36e-single/output/tests.log
+lrwx------ 1 sdillon1 sdillon1 64 Sep 10 19:00 6 -> /tmp/sdillon1/55933300/#630217 (deleted)
+l-wx------ 1 sdillon1 sdillon1 64 Sep 10 19:00 7 -> /tmp/sdillon1/55933300/hpc3-20260911T013122Z-nogit-e7f36e-single/output/tests.log
+lrwx------ 1 sdillon1 sdillon1 64 Sep 10 19:00 8 -> /tmp/sdillon1/55933300/#630218 (deleted)
+l-wx------ 1 sdillon1 sdillon1 64 Sep 10 19:00 9 -> /tmp/sdillon1/55933300/hpc3-20260911T013122Z-nogit-e7f36e-single/output/tests.log

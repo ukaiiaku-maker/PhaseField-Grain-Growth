@@ -1,0 +1,16 @@
+JobID             State ExitCode    Elapsed  Timelimit  AllocCPUS        NodeList 
+------------ ---------- -------- ---------- ---------- ---------- --------------- 
+55932113         FAILED      1:0   00:00:10   01:00:00          2      hpc3-14-06 
+55932113.ba+     FAILED      1:0   00:00:10                     2      hpc3-14-06 
+55932113.ex+  COMPLETED      0:0   00:00:10                     2      hpc3-14-06 
+Job ID: 55932113
+Cluster: hpc3
+User/Group: sdillon1/sdillon1
+State: FAILED (exit code 1)
+Nodes: 1
+Cores per node: 2
+CPU Utilized: 00:00:01
+CPU Efficiency: 5.00% of 00:00:20 core-walltime
+Job Wall-clock time: 00:00:10
+Memory Utilized: 209.25 MB
+Memory Efficiency: 1.70% of 12.00 GB (12.00 GB/node)
