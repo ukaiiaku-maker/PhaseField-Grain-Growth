@@ -1,6 +1,6 @@
 # Qiu anisotropy and support-repair status
 
-Updated: 2026-09-15 11:04 PDT
+Updated: 2026-09-15 11:22 PDT
 
 - Branch: `codex/qiu-anisotropy-support-repair-v1`; integration base
   `88fd5dddd3fc425d0b920373cd3698080a3e7452`.
@@ -13,11 +13,12 @@ Updated: 2026-09-15 11:04 PDT
   state and retrieved with runner checksum verification.
 - Native plan: `20260912T180419Z-nogit-a25f0c` is prepared and unsubmitted;
   no duplicate exists.
-- Support decision: an exact-stencil candidate graph and simplex obstacle
-  active-set step are under local unit qualification. No HPC qualification has
-  yet been released.
+- Support decision: the exact-stencil candidate graph, symmetric pair-mobility
+  descent, simplex obstacle solve, KKT audit, and strict energy backtracking
+  are implemented. The complete local suite passes 225/225. No HPC
+  qualification has yet been released.
 - Qiu anisotropy decision: the Qiu SI port through commit `97e6a9d` was
   selectively integrated; reduced controls remain blocked by Gate 1.
-- Next automatic action: finish compact-support tests and derivation, commit
-  the operator, close the missing two-step historical restart, and prepare the
-  HPC3 support qualification.
+- Next automatic action: close the missing two-step historical restart and
+  prepare the 192×192 HPC3 support qualification at both timesteps and all
+  three KKT tolerances.

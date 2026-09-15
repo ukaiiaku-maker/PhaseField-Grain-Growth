@@ -27,6 +27,8 @@ class PFConfig:
     anisotropic_mobility: bool = True
     anisotropy_energy_normalization: float = 1.0
     anisotropy_mobility_normalization: float = 1.0
+    anisotropic_support_mode: str = "compact_active_set"
+    anisotropic_kkt_tolerance: float = 1e-10
 
     def __post_init__(self) -> None:
         if self.simulation_dimension != 2:
@@ -52,6 +54,10 @@ class PFConfig:
             )
         ):
             raise ValueError("anisotropy normalizations must be finite and positive")
+        if self.anisotropic_support_mode not in {"compact_active_set", "legacy_pair_limiter"}:
+            raise ValueError("unknown anisotropic support mode")
+        if self.anisotropic_kkt_tolerance not in {1e-8, 1e-10, 1e-12}:
+            raise ValueError("anisotropic KKT tolerance must be 1e-8, 1e-10, or 1e-12")
 
 
 @dataclass(frozen=True)
