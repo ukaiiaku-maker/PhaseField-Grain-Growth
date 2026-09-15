@@ -1,6 +1,6 @@
 # Qiu anisotropy and support-repair status
 
-Updated: 2026-09-15 11:51 PDT
+Updated: 2026-09-15 11:58 PDT
 
 - Branch: `codex/qiu-anisotropy-support-repair-v1`; integration base
   `88fd5dddd3fc425d0b920373cd3698080a3e7452`.
@@ -45,9 +45,16 @@ Updated: 2026-09-15 11:51 PDT
   candidate graph; the complete suite passes 225/225.
   The cancelled source archive SHA-256 was
   `cca8f546f1e310eaf8f73dfd7f30ac44d4d6f564caa9b4985c05f0beaac4a592`.
-  Replacement run `20260915T184102Z-nogit-583359`, Slurm job `56040470`, is
-  running commit `db1770b2fe098274ccd8ce3a611ea79932ebd3bd`; its source archive
-  SHA-256 is `7ce21b3a3ece25fa4f09e5efd4a49fe87fa8fdd988a2e42cbabaef7667f6ab85`.
+  Replacement run `20260915T184102Z-nogit-583359`, Slurm job `56040470`, ran
+  commit `db1770b2fe098274ccd8ce3a611ea79932ebd3bd`; its source archive SHA-256
+  is `7ce21b3a3ece25fa4f09e5efd4a49fe87fa8fdd988a2e42cbabaef7667f6ab85`.
+  It was owner-cancelled after 12:19 when external full worker `56040506`
+  appeared and raised the account above the mission's two-worker ceiling.
+  The retrieved partial archive contains an exact step-1024 checkpoint at
+  time 0.06517691816792172. At that point mean/p95/maximum exact support was
+  1.553/3/6, candidate maximum was 7, KKT residual was 2.22e-16, and the full
+  timestep was accepted with decreasing energy. Prepared continuation
+  `20260915T185600Z-nogit-8a5672` will resume this checkpoint without replay.
   An initial remote-directory setup timed out before upload or `sbatch`; a
   complete Slurm, accounting, command-path, comment, and remote-file check
   found no submission before the successful retry. Prepared
@@ -55,6 +62,6 @@ Updated: 2026-09-15 11:51 PDT
   before submission, and must never be launched. Prepared plan
   `20260915T181845Z-nogit-76f707` is also superseded because it would have
   reported valid scientific gate failures as infrastructure failures.
-- Next automatic action: monitor and retrieve replacement support
-  qualification job `56040470`, then run its committed postprocessor and
-  enforce Gate 1 from the scientific classification.
+- Next automatic action: wait for either external worker `56040506` or FFT
+  refinement `55950433` to release a slot, then submit sole continuation plan
+  `20260915T185600Z-nogit-8a5672`, postprocess it, and enforce Gate 1.
