@@ -111,5 +111,88 @@ prepared run was retried and submitted; no second run ID was created.
 
 ## Completion result
 
-Job 56017421 is running; scientific fields below remain pending until its
-terminal state and fetched archive are verified.
+Job 56017421 terminated after 11:57:27 with Slurm state `FAILED` and exit
+`1:0`. This is the recovery program's deliberate incomplete exit after the
+checkpoint request, not a numerical exception. The application exit is 1 and
+finalization exit is 0. It used 11:31:49 CPU time on one CPU (96.43% CPU
+efficiency) and 981068 KiB peak RSS. The requested resources were one CPU,
+3 GiB, and 12 hours; actual exposure was 11.96 CPU-hours.
+
+The result archive was fetched and independently compared with the remote
+archive and runner checksum. All three SHA-256 values are
+`b1d3eec6b0b693641958c78fcc73bf2bd7a83bc827eff861fdd661cfd116fc42`.
+The final marker SHA-256 is
+`0146d43016914e5846bc0606ccdc61d794b2b4aa52ced80c0c8156f6e556282e`.
+The marker records `complete:false`, `application_exit:1`, and
+`finalization_exit:0`.
+
+The recovery recomputed every requested trajectory from the authoritative
+deterministic initial state because job 55968528 supplied no exact state. It
+resumed no state from that job. A0 and coarse A2 each completed both the
+64-step continuous path and exact midpoint replay. Fine A2 completed its
+128-step continuous path, then replayed from the midpoint through exact step
+126 of 128. Its checkpoint contains the complete field, active mask,
+orientations, mobility scale, physical time 0.004009908051346792, 62 replay
+timesteps, the complete 129-point continuous energy trace, 129 support records,
+and all submitted identities. It correctly retains `CASE_INCOMPLETE`; no fine
+case summary or `CASE_COMPLETE` exists.
+
+| Case | Energy, initial to final | Maximum increment | Positive steps | Restart result |
+|---|---:|---:|---:|---|
+| A0, 64 steps | 5210.112257121886 to 5191.6061749583605 | -0.1458073707026415 | 0 | exact; both field hashes `1d53555e5a2a345ca5bf04e22f1daf6ffbad6a67d663e2fe369819189e868850` |
+| A2 energy-only, 64 steps | 5236.012485284901 to 5149.6346852197785 | -0.9399010361212277 | 0 | exact; both field hashes `705c5a32329aa697b51273a473c6a3143e1c12c35ff126bf6f915a4ed89a36f3` |
+| A2 energy-only, half dt, 128 continuous steps | 5236.012485284901 to 5115.519299781972 | -0.47039203997974255 | 0 | incomplete at replay step 126/128; continuous final field `a12a42877337e1c2f71d52c1a6415ee424ace386f7abf3325e9070208d25bc62`, preserved replay field `52a8b65b8b7cdbd662d2dce7279a78664e812b2c0b7b33b4aa5ad4331ca66101` |
+
+Every recorded state is finite and nonnegative, with maximum phase-sum error
+4.44e-16 for A0 and 2.22e-16 for both A2 cases. The positively homogeneous
+zero-gradient branch remained finite throughout. Coarse A2 reached 70 maximum
+active phases per cell, 2,415 maximum active pairs per cell, 49,763,328
+cell-local supported-pair instances, and 230,742 zero-gradient supported-pair
+instances. Fine A2 grew to 184 active phases per cell, 16,836 active pairs per
+cell, 494,818,360 supported-pair instances, and 3,581,251 zero-gradient
+instances. Its smallest nonzero pair-gradient magnitude was 7.89e-31; all
+evaluations remained finite. This growth was numerically finite but not
+computationally manageable within the conservatively requested 12-hour job.
+
+The completed coarse and fine continuous states satisfy the preregistered
+timestep comparison: final-energy relative difference 0.0066690, boundary
+density difference 0.0017495, grain-area CV difference 0.0006918, and
+area-weighted radius difference 0.0001340. These are all below their 1% and 10%
+thresholds. This does not qualify the model because the exact fine restart
+comparison is missing two accepted steps.
+
+Case summary SHA-256 values are
+`91e3108d65c634df6eefa134fbee7bcb23d091791f508bec7dd07704744282d1`
+for A0 and
+`c283826a03a6c876643db4846466e377de651837285cd94c734038502cfefcd7`
+for coarse A2. Fine A2 has no admissible case summary; its checkpoint JSON and
+NPZ hashes are
+`32963dd9bf37f5666790876e67c84ae851a9106b4d70ad3422a807e8a07ea6a3`
+and `dfa0d876ea9d3106463b510ea6f5bf063f82dd11d39552918f5171329b205cfd`.
+
+The generated submission included `#SBATCH --signal=B:USR1@900`, but Slurm
+delivered that signal to the batch shell while it was waiting for `run.sh`; the
+shell trap did not promptly invoke `checkpoint.sh`. An overlapping step on the
+already assigned node invoked that uploaded checkpoint command once. The
+scientific process then completed its current accepted step, atomically wrote
+restart step 126, and exited before the hard limit. The wrapper copied the full
+incremental output and finalized the archive successfully. The external runner
+renderer was subsequently corrected to emit `#SBATCH --signal=USR1@900`, which
+the installed HPC3 `sbatch` manual defines as signaling all job steps. Its three
+focused renderer tests pass. This runner correction is outside the isolated
+scientific-source branch.
+
+The required final classification is exactly:
+
+**`A2_POSTFIX_OPERATIONALLY_INCOMPLETE`**
+
+The recorded energy, convergence, finiteness, and low-gradient evidence is
+favorable, but the missing two replay steps prohibit an exact fine restart
+decision. Accordingly the reduced A2 mobility-only and combined controls are
+not released. No A3, production, or Qiu/SI job was submitted or modified.
+
+The verified runner record is
+`/Users/sdillon/HPC3/anisotropic-phase1-state/hpc3-results/pfgg-anisotropic-cahn-hoffman-v1/20260914T202421Z-nogit-f0fd7d`.
+The independently extracted archive is
+`/Users/sdillon/HPC3/anisotropic-phase1-state/extracted-20260915T0825Z`, and
+the case records are under its `output/postfix` directory.

@@ -1,7 +1,17 @@
 # Anisotropic Phase-1 status
 
-Current classification: **ANISOTROPIC_REDUCED_PILOT_ENERGY_GATE_FAILED**.
-Reduced and production release are closed.
+Current corrected-postfix classification:
+**A2_POSTFIX_OPERATIONALLY_INCOMPLETE**. Reduced mobility controls and
+production release are closed. The earlier
+`ANISOTROPIC_REDUCED_PILOT_ENERGY_GATE_FAILED` result remains historical
+evidence for the superseded operator and is not reused as the postfix result.
+
+Recovery branch: `codex/aniso-phase1-postfix-recovery-v1`, isolated at source
+`1316cc89dbabfb41cb883b0d4a4c74738cc2bef6`. Recovery job 56017421 completed
+all continuous trajectories and exact A0/coarse-A2 restarts, but the half-dt
+A2 restart stopped at 126/128 after 11:57:27. Its verified result archive
+SHA-256 is
+`b1d3eec6b0b693641958c78fcc73bf2bd7a83bc827eff861fdd661cfd116fc42`.
 
 Branch: `codex/anisotropic-cahn-hoffman-phase1-v1`.
 Initial HEAD: `9f66c8d7a5a266687284d8da35aefbc6062808f7` (clean audited parent).
@@ -460,7 +470,29 @@ complete, but every polycrystal record is `LOG_ONLY`; the partial archive has no
 scientific state, energy trace, checkpoint, case summary, or restart metadata.
 The recovery branch `codex/aniso-phase1-postfix-recovery-v1` starts at exact
 scientific source `1316cc8` and adds only atomic incremental finalization and
-focused tests. Single one-CPU, twelve-hour job 56017421, runner
-`20260914T202421Z-nogit-f0fd7d`, is rerunning A0,
-corrected A2 energy-only, and matched-horizon half-dt A2. Production and Qiu/SI
-remain outside this recovery. See `anisotropic_phase1_postfix_recovery_report.md`.
+focused tests.
+
+The single one-CPU, twelve-hour recovery job 56017421, runner
+`20260914T202421Z-nogit-f0fd7d`, ended `FAILED` with exit `1:0` after a
+controlled checkpoint request. Application exit was 1, finalization exit was
+0, elapsed time was 11:57:27, CPU time was 11:31:49, CPU efficiency was 96.43%,
+and peak RSS was 981068 KiB. Its local, remote, and runner archive hashes all
+equal
+`b1d3eec6b0b693641958c78fcc73bf2bd7a83bc827eff861fdd661cfd116fc42`.
+
+A0 and coarse A2 are independently complete, energy-descending, finite, and
+exactly restartable. Coarse A2 decreased from 5236.012485284901 to
+5149.6346852197785 without a positive step. Fine A2 completed its 128-step
+continuous path, decreasing from 5236.012485284901 to 5115.519299781972 with
+maximum increment -0.47039203997974255 and no positive step. Its midpoint
+restart reached exact step 126/128, then preserved `CASE_INCOMPLETE`; the final
+restart equivalence is therefore unavailable.
+
+The completed continuous coarse/fine comparison passes the preregistered
+energy and morphology thresholds, and all recorded low-gradient evaluations
+remain finite. Fine support grew to 184 phases and 16,836 pairs per cell and
+494,818,360 supported-pair instances, making the required replay
+operationally incomplete within the allocation. The terminal classification is
+`A2_POSTFIX_OPERATIONALLY_INCOMPLETE`. Mobility-only, combined A2, A3, and
+production remain unreleased. No Qiu/SI job or source was touched. See
+`anisotropic_phase1_postfix_recovery_report.md` for the complete audit.

@@ -155,15 +155,35 @@ The remaining pilot cases were stopped. No A3 or production job was released.
 
 The corrected homogeneous-norm postfix job 55968528 timed out and preserved no
 restartable scientific states. Its 206-test and manufactured passes are valid
-upstream evidence; its A0/A2 progress lines are `LOG_ONLY`. Continue only from
-the isolated branch `codex/aniso-phase1-postfix-recovery-v1`, whose scientific
-base is `1316cc8`. Its recovery runner atomically finalizes each case and
-checkpoints every 16 steps, including on the pre-timeout `USR1` path. Do not
-submit a duplicate recovery job after an SSH timeout: reconcile its immutable
-runner ID and Slurm name/comment first. Do not mix Qiu/SI or production work
-into this recovery. The authoritative audit and eventual decision are in
-`docs/anisotropic_phase1_postfix_recovery_report.md`.
+upstream evidence; its A0/A2 progress lines are `LOG_ONLY`. The isolated branch
+`codex/aniso-phase1-postfix-recovery-v1` uses exact scientific base `1316cc8`.
+Its recovery runner atomically finalizes each case and checkpoints every 16
+steps. Do not mix Qiu/SI or production work into this recovery.
 
 The one permitted recovery submission is runner
 `20260914T202421Z-nogit-f0fd7d`, Slurm job 56017421, job name
-`aniso-postfix-recovery-v1`. Its requested maximum exposure is 12 CPU-hours.
+`aniso-postfix-recovery-v1`. It requested one CPU, 3 GiB, and 12 hours and
+ended after 11:57:27 with application exit 1 and successful finalization. CPU
+time was 11:31:49, peak RSS was 981068 KiB, and archive SHA-256 was independently
+verified as
+`b1d3eec6b0b693641958c78fcc73bf2bd7a83bc827eff861fdd661cfd116fc42`.
+The submitted `B:USR1` targeted only the waiting batch shell, so an overlapping
+step invoked the uploaded checkpoint command on the assigned node. The local
+runner renderer now emits `--signal=USR1@900`; its focused tests pass.
+
+A0 and coarse A2 completed continuous and midpoint-restart paths. Both restart
+field hashes are exact; neither energy trace has a positive step. Coarse A2
+energy is 5236.012485284901 to 5149.6346852197785. Fine A2 completed all 128
+continuous steps with energy 5236.012485284901 to 5115.519299781972 and no
+positive step. It replayed only through exact step 126/128. The checkpoint and
+`CASE_INCOMPLETE` marker are durable, but the two missing steps mean there is no
+fine case summary or exact final restart comparison.
+
+The continuous coarse/fine energy and three morphology comparisons pass their
+preregistered thresholds. All low-gradient evaluations stayed finite, but fine
+support expanded to 184 phases and 16,836 pairs per cell and 494,818,360
+supported-pair instances. The final classification is
+`A2_POSTFIX_OPERATIONALLY_INCOMPLETE`. Do not release mobility-only, combined
+A2, A3, or production trajectories. No Qiu/SI job was duplicated or modified.
+The authoritative details and artifact hashes are in
+`docs/anisotropic_phase1_postfix_recovery_report.md`.
