@@ -1,6 +1,6 @@
 # Qiu anisotropy and support-repair status
 
-Updated: 2026-09-15 11:22 PDT
+Updated: 2026-09-15 11:20 PDT
 
 - Branch: `codex/qiu-anisotropy-support-repair-v1`; integration base
   `88fd5dddd3fc425d0b920373cd3698080a3e7452`.
@@ -19,6 +19,18 @@ Updated: 2026-09-15 11:22 PDT
   qualification has yet been released.
 - Qiu anisotropy decision: the Qiu SI port through commit `97e6a9d` was
   selectively integrated; reduced controls remain blocked by Gate 1.
-- Next automatic action: close the missing two-step historical restart and
-  prepare the 192×192 HPC3 support qualification at both timesteps and all
-  three KKT tolerances.
+- Historical restart closure: immutable run
+  `20260915T181129Z-nogit-2b882f`, authoritative Slurm job `56040138`, is
+  running from exact step 126. A lost submit acknowledgement created orphan
+  duplicate job `56040137`; it was detected at six minutes and cancelled.
+  Both jobs used identical inputs, and only ledger-owned `56040138` is
+  authoritative.
+- Support qualification: corrected prepared plan
+  `20260915T181845Z-nogit-76f707` contains source archive SHA-256
+  `37f5211a5fef614c9fe03fd83bba8fe177599573294688980331ef41ef8057ec`.
+  It is intentionally unsubmitted until the closure worker exits. Prepared
+  plan `20260915T181823Z-nogit-edb039` has an empty source archive, was caught
+  before submission, and must never be launched.
+- Next automatic action: retrieve and verify the historical closure, then
+  submit the corrected 192×192 support qualification at both timesteps and
+  all three KKT tolerances without exceeding two scientific workers.

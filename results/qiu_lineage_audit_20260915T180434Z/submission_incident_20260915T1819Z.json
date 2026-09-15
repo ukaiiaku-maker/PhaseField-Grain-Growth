@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "run_id": "20260915T181129Z-nogit-2b882f",
+  "incident": "lost_submission_acknowledgement_created_duplicate_on_retry",
+  "immutable_input_bundle_sha256": "82b301327d4f14c01b99c83a2877a76aa6e278d08359a25c3098870254000b50",
+  "orphan_job_id": "56040137",
+  "orphan_action": "cancelled_at_elapsed_00:06:21",
+  "authoritative_job_id": "56040138",
+  "authoritative_basis": "job recorded by the hpc3 runner ledger",
+  "physical_trajectory_overlap": true,
+  "pooling_rule": "discard orphan output; retain only job 56040138",
+  "scientific_effect": "none; identical restart inputs and no outputs are combined",
+  "prevention_for_following_submissions": "query scontrol by remote Command path in addition to runner state and sacct comment before retry"
+}
