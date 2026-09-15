@@ -1,6 +1,6 @@
 # Qiu anisotropy and support-repair status
 
-Updated: 2026-09-15 11:37 PDT
+Updated: 2026-09-15 11:42 PDT
 
 - Branch: `codex/qiu-anisotropy-support-repair-v1`; integration base
   `88fd5dddd3fc425d0b920373cd3698080a3e7452`.
@@ -31,8 +31,13 @@ Updated: 2026-09-15 11:37 PDT
   Both jobs used identical inputs, and only ledger-owned `56040138` is
   authoritative.
 - Support qualification: Slurm job `56040378`, run
-  `20260915T182600Z-nogit-0d1663`, is running the corrected source commit
-  `f2537c0fae40fbe114c13d2b4bfaef3f2c34efe3`; its source archive SHA-256 is
+  `20260915T182600Z-nogit-0d1663`, was cancelled by the owner after 89 seconds
+  when a deeper source audit found that energy assembly still scanned all
+  global phases at every cell. It is ineligible for scientific classification.
+  The repaired implementation now evaluates the discrete energy, derivative,
+  pair descent, projection, and line-search trials on one frozen stencil-local
+  candidate graph; the complete suite passes 225/225.
+  The cancelled source archive SHA-256 was
   `cca8f546f1e310eaf8f73dfd7f30ac44d4d6f564caa9b4985c05f0beaac4a592`.
   An initial remote-directory setup timed out before upload or `sbatch`; a
   complete Slurm, accounting, command-path, comment, and remote-file check
@@ -41,6 +46,6 @@ Updated: 2026-09-15 11:37 PDT
   before submission, and must never be launched. Prepared plan
   `20260915T181845Z-nogit-76f707` is also superseded because it would have
   reported valid scientific gate failures as infrastructure failures.
-- Next automatic action: monitor and retrieve support qualification job
-  `56040378`, run its committed postprocessor, and enforce Gate 1 from the
-  resulting scientific classification.
+- Next automatic action: prepare and submit a new checksummed support
+  qualification from the local-graph repair, then run its committed
+  postprocessor and enforce Gate 1 from the scientific classification.

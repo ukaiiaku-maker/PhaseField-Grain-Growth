@@ -19,7 +19,7 @@ import numpy as np
 from numba import njit
 from numpy.typing import NDArray
 
-from .anisotropic import _pair_law, anisotropic_energy_gradient
+from .anisotropic import _pair_homogeneous_norm_and_gradient, _pair_law
 
 Array = NDArray[np.float64]
 
@@ -71,6 +71,103 @@ def exact_candidate_graph(
         graph[y, x, slot] = phase
         cursor[y, x] += 1
     return graph, counts
+
+
+@njit(cache=True)
+def _candidate_energy_gradient(
+    eta: Array,
+    graph: NDArray[np.int64],
+    counts: NDArray[np.int32],
+    orientations: Array,
+    gamma0: float,
+    interface_width: float,
+    dx: float,
+    periodic: bool,
+    g_min: float,
+    inclination_weight: float,
+    support_power: int,
+    angular_scale: float,
+    energy_normalization: float,
+    anisotropic_energy: bool,
+) -> tuple[float, Array]:
+    """Evaluate energy and its derivative on one frozen local graph."""
+    _, height, width_pixels = eta.shape
+    derivative = np.zeros_like(eta)
+    energy = 0.0
+    gradient_scale = interface_width * interface_width / (np.pi * np.pi)
+    density_scale = 4.0 / interface_width
+    for y in range(height):
+        yp = (y + 1) % height if periodic else min(y + 1, height - 1)
+        for x in range(width_pixels):
+            xp = (x + 1) % width_pixels if periodic else min(x + 1, width_pixels - 1)
+            count = counts[y, x]
+            for left in range(count - 1):
+                i = graph[y, x, left]
+                ui = eta[i, y, x]
+                gix = (eta[i, y, xp] - ui) / dx
+                giy = (eta[i, yp, x] - ui) / dx
+                for right in range(left + 1, count):
+                    j = graph[y, x, right]
+                    uj = eta[j, y, x]
+                    gjx = (eta[j, y, xp] - uj) / dx
+                    gjy = (eta[j, yp, x] - uj) / dx
+                    px = gix - gjx
+                    py = giy - gjy
+                    if anisotropic_energy:
+                        norm, norm_x, norm_y = _pair_homogeneous_norm_and_gradient(
+                            px, py, orientations[i], orientations[j], gamma0,
+                            g_min, inclination_weight, support_power, angular_scale,
+                            energy_normalization,
+                        )
+                        sx = gix + gjx
+                        sy = giy + gjy
+                        sum_norm, sum_norm_x, sum_norm_y = _pair_homogeneous_norm_and_gradient(
+                            sx, sy, orientations[i], orientations[j], gamma0,
+                            g_min, inclination_weight, support_power, angular_scale,
+                            energy_normalization,
+                        )
+                        potential = gamma0 * ui * uj
+                        gradient = gradient_scale * (norm * norm - sum_norm * sum_norm) / (4.0 * gamma0)
+                        common_x = gradient_scale * sum_norm * sum_norm_x / (2.0 * gamma0)
+                        common_y = gradient_scale * sum_norm * sum_norm_y / (2.0 * gamma0)
+                        anisotropic_x = gradient_scale * norm * norm_x / (2.0 * gamma0)
+                        anisotropic_y = gradient_scale * norm * norm_y / (2.0 * gamma0)
+                        flux_ix = density_scale * (anisotropic_x - common_x)
+                        flux_iy = density_scale * (anisotropic_y - common_y)
+                        flux_jx = density_scale * (-anisotropic_x - common_x)
+                        flux_jy = density_scale * (-anisotropic_y - common_y)
+                    else:
+                        potential = gamma0 * ui * uj
+                        gradient = -gamma0 * gradient_scale * (gix * gjx + giy * gjy)
+                        flux_ix = -density_scale * gamma0 * gradient_scale * gjx
+                        flux_iy = -density_scale * gamma0 * gradient_scale * gjy
+                        flux_jx = -density_scale * gamma0 * gradient_scale * gix
+                        flux_jy = -density_scale * gamma0 * gradient_scale * giy
+                    energy += density_scale * (potential + gradient) * dx * dx
+                    derivative[i, y, x] += density_scale * gamma0 * uj * dx * dx
+                    derivative[j, y, x] += density_scale * gamma0 * ui * dx * dx
+                    derivative[i, y, x] -= (flux_ix + flux_iy) * dx
+                    derivative[i, y, xp] += flux_ix * dx
+                    derivative[i, yp, x] += flux_iy * dx
+                    derivative[j, y, x] -= (flux_jx + flux_jy) * dx
+                    derivative[j, y, xp] += flux_jx * dx
+                    derivative[j, yp, x] += flux_jy * dx
+    return energy, derivative
+
+
+def compact_support_energy(
+    eta: Array, orientations: Array, gamma0: float, interface_width: float,
+    dx: float, periodic: bool, g_min: float, inclination_weight: float,
+    support_power: int, angular_scale: float, energy_normalization: float,
+    anisotropic_energy: bool,
+) -> float:
+    """Return the canonical energy on the deterministic local graph."""
+    graph, counts = exact_candidate_graph(eta, periodic)
+    return float(_candidate_energy_gradient(
+        eta, graph, counts, orientations, gamma0, interface_width, dx,
+        periodic, g_min, inclination_weight, support_power, angular_scale,
+        energy_normalization, anisotropic_energy,
+    )[0])
 
 
 @njit(cache=True)
@@ -217,11 +314,10 @@ def compact_support_step(
     if kkt_tolerance not in (1e-8, 1e-10, 1e-12):
         raise ValueError("compact-support KKT tolerance must be 1e-8, 1e-10, or 1e-12")
     graph, counts = exact_candidate_graph(eta, periodic)
-    energy, chemical = anisotropic_energy_gradient(
-        eta, active, orientations, gamma0, mobility0, interface_width, dx,
-        periodic, g_min, inclination_weight, support_power, mobility_exponent,
-        angular_scale, energy_normalization, mobility_normalization,
-        anisotropic_energy,
+    energy, chemical = _candidate_energy_gradient(
+        eta, graph, counts, orientations, gamma0, interface_width, dx,
+        periodic, g_min, inclination_weight, support_power, angular_scale,
+        energy_normalization, anisotropic_energy,
     )
     rate = _candidate_pair_rate(
         eta, chemical, graph, counts, orientations, mobility_scale, external,
@@ -239,11 +335,10 @@ def compact_support_step(
         if use_external:
             accepted = trial
             break
-        trial_energy = anisotropic_energy_gradient(
-            trial, np.max(trial, axis=(1, 2)) > 0.0, orientations, gamma0,
-            mobility0, interface_width, dx, periodic, g_min,
-            inclination_weight, support_power, mobility_exponent, angular_scale,
-            energy_normalization, mobility_normalization, anisotropic_energy,
+        trial_energy = _candidate_energy_gradient(
+            trial, graph, counts, orientations, gamma0, interface_width, dx,
+            periodic, g_min, inclination_weight, support_power, angular_scale,
+            energy_normalization, anisotropic_energy,
         )[0]
         energy_slack = 64.0 * np.finfo(float).eps * max(1.0, abs(energy))
         if trial_energy <= energy + energy_slack:
