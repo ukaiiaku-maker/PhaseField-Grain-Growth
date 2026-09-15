@@ -359,7 +359,11 @@ def main() -> int:
     atomic_write_text(args.output / "RUN_COMPLETE", classification + "\n")
     (args.output / "RUN_INCOMPLETE").unlink(missing_ok=True)
     print(classification, flush=True)
-    return 0 if classification == "COMPACT_SUPPORT_OPERATOR_QUALIFIED" else 2
+    # A scientific gate failure is a valid completed qualification result.  A
+    # nonzero process status would make the runner classify and retrieve the
+    # evidence as an incomplete infrastructure failure, obscuring the actual
+    # scientific classification written above.
+    return 0
 
 
 if __name__ == "__main__":
