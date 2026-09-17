@@ -13,6 +13,8 @@ def test_historical_preflight_checkpoint_sequence_and_restart():
     generated = instrument(source)
     assert "if accepted_step in (100, 500):" in generated
     assert "diagnostic_sigma11_R1=sigma11_R1.copy()" in generated
+    assert "nb.set_num_threads(int(os.environ.get('QIU_NUMBA_THREADS', '1')))" in generated
+    assert "nb.set_num_threads(8)" not in generated
     assert "QIU_NATIVE_HISTORICAL_OBJECT_MODE" in generated
     assert "native dispatcher lacks a nopython signature" not in generated
 

@@ -14,6 +14,7 @@ PRISTINE_DRIVER_SHA256 = "03f8cee8834e5f9669dceb1c831590de55c5ef26f6cc41e0913c0f
 FUNCTION_VARIANTS = {
     "pristine_archive": "3fb625fcb88be515defb813df198f671b45f528e44f32ac7fabae36e1c926aaf",
     "numba_compatibility_v1": "1d656039b8dca20bac8f056ad195fdc201775331e73e0f6f5da1e866622f1f78",
+    "numba_compatibility_v2": "00c9c9c51df14ed14b312197594bc855d7f5e2612d62775f35cf6f3cb71ae0cf",
 }
 
 
@@ -29,6 +30,7 @@ def replace_once(source: str, old: str, new: str) -> str:
 
 def instrument(source: str) -> str:
     source = replace_once(source, "import os\nimport numba as nb", "import os\nimport json\nimport numba as nb")
+    source = replace_once(source, "nb.set_num_threads(8)", "nb.set_num_threads(int(os.environ.get('QIU_NUMBA_THREADS', '1')))")
     source = replace_once(
         source,
         "from functions_4ref_new import *\nimport sparse",

@@ -1,0 +1,125 @@
+{
+  "schema": "qiu-modern-numba-compatibility-patch-v2",
+  "source_variant": "numba_compatibility_v2",
+  "parent_variant": "numba_compatibility_v1",
+  "reason": "make the archived boundary ordering path compile in Numba 0.61 nopython mode without changing finite-input semantics",
+  "execution_policy": {
+    "authoritative_numba_threads": 1,
+    "reason": "stress_field_extend performs in-place neighbor updates and is nondeterministic under prange scheduling"
+  },
+  "parent": {
+    "driver_sha256": "03f8cee8834e5f9669dceb1c831590de55c5ef26f6cc41e0913c0fc89ee2cd17",
+    "functions_sha256": "1d656039b8dca20bac8f056ad195fdc201775331e73e0f6f5da1e866622f1f78"
+  },
+  "patched": {
+    "driver_sha256": "03f8cee8834e5f9669dceb1c831590de55c5ef26f6cc41e0913c0fc89ee2cd17",
+    "functions_sha256": "00c9c9c51df14ed14b312197594bc855d7f5e2612d62775f35cf6f3cb71ae0cf"
+  },
+  "semantic_changes": [
+    "array copies replace unsupported array constructors",
+    "first-tie argmin replaces list.index(min)",
+    "scalar cross-product algebra replaces temporary vectors",
+    "PBC_scalar finite branches have a non-Optional return type"
+  ],
+  "exact_unified_diff": "--- numba_compatibility_v1/functions_4ref_new.py\n+++ numba_compatibility_v2/functions_4ref_new.py\n@@ -147,8 +147,8 @@\n                               ref_theta_i, flag, nstep, G, sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2,\n                               sigma12_R2, sigma22_R2,dx,dy)\n \n-        gb_x_all.append(np.array(gb_ij_x))\n-        gb_y_all.append(np.array(gb_ij_y))\n+        gb_x_all.append(gb_ij_x.copy())\n+        gb_y_all.append(gb_ij_y.copy())\n \n     stress_field_line(phi,nx,ny,gb_x_all, gb_y_all, sigma11, sigma12, sigma22, misorientation_list, index_gb_array,\n                       ref_theta_i, flag, nstep, G, sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2, sigma12_ext, sigma11_ext, sigma22_ext,dx,dy)\n@@ -163,7 +163,7 @@\n     \n     \n \n-@nb.jit(parallel=True)\n+@nb.njit(fastmath=False)\n def sort_gb(gb_ij, flag, normal_ii, nx, ny, dx, dy, phi):\n     gb_ij_x = gb_ij[:, 0]\n     gb_ij_y = gb_ij[:, 1]\n@@ -180,18 +180,19 @@\n     lll = 0\n     while gb_ij_x.size > 0:\n         disxxx = gb_ij_x - gb_ij_x_new[lll]\n-        Disxxx = np.where(abs(disxxx) > nx / 2, disxxx - np.sign(disxxx) * nx, disxxx)\n+        Disxxx = np.where(np.abs(disxxx) > nx / 2, disxxx - np.sign(disxxx) * nx, disxxx)\n         disyyy = gb_ij_y - gb_ij_y_new[lll]\n-        Disyyy = np.where(abs(disyyy) > ny / 2, disyyy - np.sign(disyyy) * ny, disyyy)\n+        Disyyy = np.where(np.abs(disyyy) > ny / 2, disyyy - np.sign(disyyy) * ny, disyyy)\n         dis = Disxxx ** 2 + Disyyy ** 2\n \n-        DIS = list(dis)\n-        min_index = DIS.index(min(DIS))\n-\n-        if min(DIS) < 1e-4:\n+        # Numba compatibility: np.argmin preserves Python list.index(min(...)) first-tie behavior.\n+        min_index = np.argmin(dis)\n+        minimum_distance = dis[min_index]\n+\n+        if minimum_distance < 1e-4:\n             gb_ij_x = np.delete(gb_ij_x, min_index)\n             gb_ij_y = np.delete(gb_ij_y, min_index)\n-        elif min(DIS) >= 1e-4:\n+        elif minimum_distance >= 1e-4:\n             lll += 1\n             gb_ij_x_new = np.append(gb_ij_x_new, gb_ij_x[min_index])\n             gb_ij_y_new = np.append(gb_ij_y_new, gb_ij_y[min_index])\n@@ -213,7 +214,7 @@\n         \n         signn = 0\n         \n-        loc = np.zeros(20, dtype=int)\n+        loc = np.zeros(20, dtype=np.int64)\n         for qq in range(len(loc)):\n             loc[qq] = int(int(qq*(len(gb_ij_x_new)-1)//20)+1)\n         #np.random.randint(len(gb_ij_x_new)-1, size=10)+1\n@@ -230,15 +231,14 @@\n \n \n \n-#@nb.njit(parallel=True)\n+@nb.njit(fastmath=False)\n def clockorcounterclock(gb_ij_x_new, gb_ij_y_new, phi, nx, ny, loc, normal_ii, dx, dy, vvv):\n     \n     for i_loc in range(len(loc)):\n         indecc = loc[i_loc]\n         gb_x_dd = PBC_scalar(gb_ij_x_new[indecc] - gb_ij_x_new[indecc - 1], nx)\n         gb_y_dd = PBC_scalar(gb_ij_y_new[indecc] - gb_ij_y_new[indecc - 1], ny)\n-        tan_vec = np.array([gb_x_dd, gb_y_dd, 0.])\n-\n+        # Numba compatibility: retain the exact z-component cross-product algebra as scalars.\n \n         gb_ij_l = int(gb_ij_x_new[indecc])\n         gb_ij_m = int(gb_ij_y_new[indecc])\n@@ -248,10 +248,8 @@\n         norm_xx = (phi[normal_ii, gb_ij_l, gb_ij_m] - phi[normal_ii, gb_ij_l_m, gb_ij_m]) / dx\n         norm_yy = (phi[normal_ii, gb_ij_l, gb_ij_m] - phi[normal_ii, gb_ij_l, gb_ij_m_m]) / dy\n         LL_N = np.sqrt(norm_xx ** 2 + norm_yy ** 2)\n-        norm_vec = -np.array([norm_xx, norm_yy, 0.])\n-        \n-        \n-        vvv += np.sign(np.dot(np.cross(tan_vec, norm_vec), np.array([0., 0., 1.])))\n+        cross_z = -gb_x_dd * norm_yy + gb_y_dd * norm_xx\n+        vvv += np.sign(cross_z)\n     \n     return vvv\n \n@@ -700,8 +698,8 @@\n         return x - NN\n     if x <= -NNN / 2:\n         return x + NN\n-    if abs(x) < NNN / 2:\n-        return x\n+    # The three finite scalar branches are exhaustive for native integer offsets.\n+    return x\n     \n     \n     \n",
+  "actual_fixture_validation": {
+    "schema": "qiu-modern-port-v2-semantics-comparison",
+    "passed": true,
+    "execution_threads": 1,
+    "oracle": "pristine find_gb.py_func and sort_gb.py_func in same modern runtime",
+    "repeat_exact": true,
+    "patched_find_gb_nopython_signatures": [
+      "(Array(float64, 3, 'C', False, aligned=True), Array(int64, 2, 'C', False, aligned=True), Array(int64, 3, 'C', False, aligned=True), int64, int64, int64, int64, int64, float64, Array(float64, 2, 'C', False, aligned=True), Array(float64, 2, 'C', False, aligned=True), Array(float64, 2, 'C', False, aligned=True), Array(float64, 2, 'C', False, aligned=True), Array(float64, 2, 'C', False, aligned=True), Array(float64, 2, 'C', False, aligned=True), float64, float64, float64, float64, int64, int64, Array(float64, 2, 'C', False, aligned=True), Array(float64, 2, 'C', False, aligned=True), Array(float64, 2, 'C', False, aligned=True), Array(float64, 2, 'C', False, aligned=True), Array(float64, 2, 'C', False, aligned=True), Array(float64, 2, 'C', False, aligned=True), Array(float64, 1, 'C', False, aligned=True), float64, List(UniTuple(int64 x 2), True), List(UniTuple(int64 x 3), True)) -> UniTuple(list(array(int64, 1d, C))<iv=None> x 2)"
+    ],
+    "fields": [
+      {
+        "field": "barrier_pair_term",
+        "exact": true
+      },
+      {
+        "field": "boundary_pairs",
+        "exact": true
+      },
+      {
+        "field": "capillary_pair_term",
+        "exact": true
+      },
+      {
+        "field": "gb_offsets",
+        "exact": true
+      },
+      {
+        "field": "gb_x",
+        "exact": true
+      },
+      {
+        "field": "gb_y",
+        "exact": true
+      },
+      {
+        "field": "line_records",
+        "exact": true
+      },
+      {
+        "field": "pair_beta_first",
+        "exact": true
+      },
+      {
+        "field": "pair_beta_second",
+        "exact": true
+      },
+      {
+        "field": "pair_cell_x",
+        "exact": true
+      },
+      {
+        "field": "pair_cell_y",
+        "exact": true
+      },
+      {
+        "field": "pair_phase_i",
+        "exact": true
+      },
+      {
+        "field": "pair_phase_j",
+        "exact": true
+      },
+      {
+        "field": "pair_reference_first",
+        "exact": true
+      },
+      {
+        "field": "pair_reference_second",
+        "exact": true
+      },
+      {
+        "field": "sigma11",
+        "exact": true
+      },
+      {
+        "field": "sigma11_b",
+        "exact": true
+      },
+      {
+        "field": "sigma12",
+        "exact": true
+      },
+      {
+        "field": "sigma12_b",
+        "exact": true
+      },
+      {
+        "field": "sigma22",
+        "exact": true
+      },
+      {
+        "field": "sigma22_b",
+        "exact": true
+      },
+      {
+        "field": "signed_elastic_pair_force",
+        "exact": true
+      }
+    ]
+  }
+}

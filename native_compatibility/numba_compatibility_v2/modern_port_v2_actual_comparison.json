@@ -1,0 +1,100 @@
+{
+  "schema": "qiu-modern-port-v2-semantics-comparison",
+  "passed": true,
+  "execution_threads": 1,
+  "oracle": "pristine find_gb.py_func and sort_gb.py_func in same modern runtime",
+  "repeat_exact": true,
+  "patched_find_gb_nopython_signatures": [
+    "(Array(float64, 3, 'C', False, aligned=True), Array(int64, 2, 'C', False, aligned=True), Array(int64, 3, 'C', False, aligned=True), int64, int64, int64, int64, int64, float64, Array(float64, 2, 'C', False, aligned=True), Array(float64, 2, 'C', False, aligned=True), Array(float64, 2, 'C', False, aligned=True), Array(float64, 2, 'C', False, aligned=True), Array(float64, 2, 'C', False, aligned=True), Array(float64, 2, 'C', False, aligned=True), float64, float64, float64, float64, int64, int64, Array(float64, 2, 'C', False, aligned=True), Array(float64, 2, 'C', False, aligned=True), Array(float64, 2, 'C', False, aligned=True), Array(float64, 2, 'C', False, aligned=True), Array(float64, 2, 'C', False, aligned=True), Array(float64, 2, 'C', False, aligned=True), Array(float64, 1, 'C', False, aligned=True), float64, List(UniTuple(int64 x 2), True), List(UniTuple(int64 x 3), True)) -> UniTuple(list(array(int64, 1d, C))<iv=None> x 2)"
+  ],
+  "fields": [
+    {
+      "field": "barrier_pair_term",
+      "exact": true
+    },
+    {
+      "field": "boundary_pairs",
+      "exact": true
+    },
+    {
+      "field": "capillary_pair_term",
+      "exact": true
+    },
+    {
+      "field": "gb_offsets",
+      "exact": true
+    },
+    {
+      "field": "gb_x",
+      "exact": true
+    },
+    {
+      "field": "gb_y",
+      "exact": true
+    },
+    {
+      "field": "line_records",
+      "exact": true
+    },
+    {
+      "field": "pair_beta_first",
+      "exact": true
+    },
+    {
+      "field": "pair_beta_second",
+      "exact": true
+    },
+    {
+      "field": "pair_cell_x",
+      "exact": true
+    },
+    {
+      "field": "pair_cell_y",
+      "exact": true
+    },
+    {
+      "field": "pair_phase_i",
+      "exact": true
+    },
+    {
+      "field": "pair_phase_j",
+      "exact": true
+    },
+    {
+      "field": "pair_reference_first",
+      "exact": true
+    },
+    {
+      "field": "pair_reference_second",
+      "exact": true
+    },
+    {
+      "field": "sigma11",
+      "exact": true
+    },
+    {
+      "field": "sigma11_b",
+      "exact": true
+    },
+    {
+      "field": "sigma12",
+      "exact": true
+    },
+    {
+      "field": "sigma12_b",
+      "exact": true
+    },
+    {
+      "field": "sigma22",
+      "exact": true
+    },
+    {
+      "field": "sigma22_b",
+      "exact": true
+    },
+    {
+      "field": "signed_elastic_pair_force",
+      "exact": true
+    }
+  ]
+}
