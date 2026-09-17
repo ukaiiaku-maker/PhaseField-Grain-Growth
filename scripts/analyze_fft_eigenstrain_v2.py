@@ -35,6 +35,8 @@ def main() -> None:
     parser.add_argument("run", type=Path)
     parser.add_argument("output", type=Path)
     parser.add_argument("--result-archive", type=Path)
+    parser.add_argument("--run-id")
+    parser.add_argument("--slurm-job-id")
     args = parser.parse_args()
     run = args.run
     args.output.mkdir(parents=True, exist_ok=True)
@@ -182,9 +184,9 @@ def main() -> None:
     summary = {
         "schema": "fft-eigenstrain-v2-postanalysis-v1",
         "model_identity": "FFT_EIGENSTRAIN_V2",
-        "run_id": run_summary.get("run_id", "20260911T003946Z-nogit-c53868"),
-        "slurm_job_id": "55932457",
-        "source_commit_attested": "8bb7837677e6ca36fc9a952daf6aef601190b550",
+        "run_id": args.run_id or run_summary.get("run_id"),
+        "slurm_job_id": args.slurm_job_id,
+        "source_commit_attested": run_summary.get("source_commit"),
         "start_step": int(diagnostics.step.iloc[0]), "end_step": int(diagnostics.step.iloc[-1]),
         "end_time": float(t[-1]), "initial_grain_count": int(diagnostics.grain_count.iloc[0]),
         "final_grain_count": int(diagnostics.grain_count.iloc[-1]),
@@ -208,7 +210,7 @@ def main() -> None:
     report_path.write_text(
         "# FFT_EIGENSTRAIN_V2 post-simulation analysis\n\n"
         f"Classification: **{summary['classification']}**.\n\n"
-        f"Job `55932457` completed {summary['end_step']} steps through physical time "
+        f"Job `{summary['slurm_job_id']}` completed {summary['end_step']} steps through physical time "
         f"{summary['end_time']:.2f}, reducing the population from {summary['initial_grain_count']} "
         f"to {summary['final_grain_count']} grains. Total energy decreased at every recorded step; "
         f"the largest increment was {summary['maximum_total_energy_increment']:.3e}.\n\n"
@@ -219,8 +221,8 @@ def main() -> None:
         f"100-step loss of {max_late_100_step}. No disconnected grains were recorded. "
         "These diagnostics do not show the late non-self-similar collapse seen in the separate "
         "QIU_LEGACY_FORENSIC model.\n\n"
-        "This result is a single timestep calculation. The running dt/2 refinement remains a "
-        "separate trajectory, so timestep convergence is not claimed here.\n"
+        "This result is one member of a separate-timestep comparison; convergence is assessed "
+        "only in the paired comparison package.\n"
     )
     artifacts.append(report_path)
 

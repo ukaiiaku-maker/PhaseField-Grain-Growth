@@ -1,6 +1,6 @@
 # Local compact-support Gate-1 report
 
-Status: **RUNNING — classification pending**
+Status: **COMPLETE — `COMPACT_SUPPORT_OPERATOR_KKT_FAILURE`**
 
 The user authorized the reduced compact-support qualification to run locally
 while the HPC3 two-worker ceiling prevented the prepared continuation from
@@ -35,10 +35,11 @@ The numerical package versions match the qualified HPC3 environment. The
 supervisor runs under `caffeinate` at nice level 10 and constrains OpenMP,
 OpenBLAS, MKL, NumExpr, Accelerate, and Numba to one thread.
 
-Supervisor PID `17159` is owned by durable tmux session
-`pfgg-compact-gate1-200027`. The frozen scientific entrypoint remains
-`scripts/qualify_compact_support.py`; no physical parameter, tolerance,
-timestep, stop criterion, or model implementation was changed.
+The campaign completed at 2026-09-16T02:01:42Z after all six frozen cases
+reached their preregistered endpoints. No local worker or tmux session remains.
+The scientific entrypoint was `scripts/qualify_compact_support.py`; no physical
+parameter, tolerance, timestep, stop criterion, or model implementation was
+changed.
 
 ## Checkpoint and restart evidence
 
@@ -49,11 +50,11 @@ from it. A later controlled supervisor restart produced and resumed exact
 step-1179 checkpoint (SHA-256 prefix `03f33cd2abbf`). The run is therefore
 durable across both scientific-worker and supervisor process termination.
 
-The first case, `dt-6.364933414836189e-05_kkt-1e-08`, reached its
-preregistered physical-time endpoint at step 3968 and time
-0.25256055790072346. Its last recorded energy increment is `-1.8086`, maximum
-KKT residual is `3.33e-16`, maximum/p95 exact support is `7/3`, and its
-late/early step-cost ratio is 1.108. Every per-case release target passes.
+Every case reached the A0-based physical-time ceiling. Coarse cases stopped at
+step 3968 and time 0.25256055790072346. Fine cases stopped at step 7872 or
+7936 and time 0.2505237792079889 or 0.2525605579007369. Across all six cases,
+maximum KKT residual was `4.44e-16`, maximum/p95 exact support was `7/3`, and
+every per-case energy, KKT, support, topology, and scaling target passed.
 
 Python 3.13 rejected the NumPy Boolean produced while serializing that case's
 otherwise complete summary. The exact terminal checkpoint was already atomic.
@@ -71,12 +72,30 @@ the shared deterministic step-zero Voronoi field. Their actual checkpoint
 parents are recorded as `deterministic_initial_state`, step and time zero;
 they are not concatenated to the terminal state of an earlier sibling.
 
-Each checkpoint record now contains the campaign run ID, case ID, actual
-parent identity, dt, KKT tolerance, case-local step/time, and continuous or
-replay role. The current fine-dt/KKT-1e-8 case checkpointed at its local step
-90 before an independent process restart.
+Each checkpoint record contains the campaign run ID, case ID, actual parent
+identity, dt, KKT tolerance, case-local step/time, and continuous or replay
+role. The principal KKT-1e-10 coarse and fine cases passed exact restart and
+restart-time equivalence. The campaign produced 282 checkpoint records. The
+terminal fine/KKT-1e-12 checkpoint is step 7872, time 0.2505237792079889,
+SHA-256 `8d307aa05840a32ff46801e8f1f38eb623faa0a658d53e1ade0bc4d678172095`.
 
-Final cross-case energy, support, KKT, runtime, morphology, scientific
-restart-equivalence, and Gate-1 classification will be written here after all
-six siblings reach their preregistered endpoints. A short HPC3 cross-platform
-confirmation will be prepared only if the local result qualifies.
+## Gate-1 classification
+
+The preregistered cross-tolerance bitwise equality criterion failed. At coarse
+dt, KKT tolerances `1e-10` and `1e-12` produced the same final field, while
+`1e-8` differed. At fine dt, `1e-8` and `1e-12` matched, while `1e-10`
+differed; that case also reached the next 64-step boundary. Thus the upstream
+classification is `COMPACT_SUPPORT_OPERATOR_TOLERANCE_NONCONVERGED`. Under the
+Gate-1 packaging policy, tolerance nonconvergence maps to the terminal
+classification `COMPACT_SUPPORT_OPERATOR_KKT_FAILURE`.
+
+This is a scientific gate failure despite the very small measured KKT
+residuals and the fact that all individual release targets passed. The local
+and HPC3 platform confirmations are not released. Native Qiu and anisotropic
+Qiu controls remain blocked.
+
+The machine-readable package is
+`results/local_compact_support_gate1_20260915T200027Z`. It contains energy,
+KKT, support, timestep, runtime, and morphology tables; checkpoint lineage and
+checksums; and `gate1_histories` and `morphology_histories` figures in PNG and
+PDF form.
