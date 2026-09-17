@@ -2,6 +2,18 @@
 
 Updated: 2026-09-16 18:30 PDT
 
+- KKT audit v2 supersedes only the old Gate-1 decision. At exact common time
+  `0.2505237792079889` (coarse step 3936, fine step 7872), all fine-timestep
+  tolerance states are bitwise identical and the coarse `1e-10`/`1e-12`
+  states are bitwise identical. Two independent 128-step `1e-10` replays are
+  also bitwise identical and reproduce the historical target. The old mismatch
+  combined unequal endpoint steps and unequal parent/platform lineage.
+- Revised audit classification: `COMPACT_SUPPORT_GATE_PACKAGING_MISALIGNMENT`.
+  Superseding gate classification:
+  `COMPACT_SUPPORT_OPERATOR_LOCALLY_QUALIFIED_V2`. Production tolerance is
+  `1e-10`. The intentional local/HPC platform pair v2 is the next gate; native
+  and anisotropic Qiu tasks remain blocked until it passes.
+
 - Branch: `codex/qiu-anisotropy-support-repair-v1`; integration base
   `88fd5dddd3fc425d0b920373cd3698080a3e7452`.
 - Model identities: `QIU_LEGACY_FORENSIC`, `FFT_EIGENSTRAIN_V2`,
