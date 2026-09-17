@@ -26,5 +26,15 @@ Its partial diagnostics were retrieved and the failure was recorded as
 operational. The repaired run `20260917T022751Z-nogit-0eb60c` uses the existing
 checksummed analysis environment (including `matplotlib 3.10.1`) and was
 submitted as job `56100055` after another identity reconciliation. The full
-baseline remains dependency-blocked until the replacement is checksum-verified
-and classified `QIU_SI_NATIVE_PREFLIGHT_PASSED`.
+baseline remains dependency-blocked.
+
+The replacement reached initialization and stress-kernel construction, then
+failed before its first accepted step when Numba compiled pristine
+`find_gb`. At `functions_4ref_new.py:118`, `np.concatenate` receives a tuple
+whose first item is a Python list of arrays and whose second item is a 2-D
+array; Numba 0.61.0 cannot type that signature in nopython mode. The retrieved
+archive SHA-256 is
+`b521e60c78111ecde5fe34798a412a838e3f2660e7e863574b9d13a1aa0bf65e`.
+The result is `QIU_SI_NATIVE_PREFLIGHT_FAILED` with zero accepted steps. The
+full native plan was not submitted, and no native or anisotropic downstream
+task was released.

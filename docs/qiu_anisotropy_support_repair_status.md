@@ -133,5 +133,8 @@ Updated: 2026-09-16 18:30 PDT
   replacement Slurm job `56100055` (run
   `20260917T022751Z-nogit-0eb60c`). The first environment-only attempt,
   `56099932`, failed before a scientific step because the base environment
-  lacked `matplotlib`; its diagnostics were retrieved. Full
-  anisotropic production remains blocked behind the short controls.
+  lacked `matplotlib`; its diagnostics were retrieved. The replacement reached
+  pristine native `find_gb` but failed Numba compilation at
+  `functions_4ref_new.py:118` before the first accepted step. It is classified
+  `QIU_SI_NATIVE_PREFLIGHT_FAILED`. The full native baseline remains
+  unsubmitted, and full anisotropic production remains blocked.
