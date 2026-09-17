@@ -19,6 +19,7 @@ PRISTINE_ARCHIVE_SHA256 = "2740e0af26bd3acd24bfbbca44b8b3cd56e2e3bacf97ef5648ab6
 PRISTINE_DRIVER_SHA256 = "03f8cee8834e5f9669dceb1c831590de55c5ef26f6cc41e0913c0fc89ee2cd17"
 PRISTINE_FUNCTIONS_SHA256 = "3fb625fcb88be515defb813df198f671b45f528e44f32ac7fabae36e1c926aaf"
 FAILING_EXPRESSION = "                        gb_unsort[qq] = np.concatenate(([TJ1, TJ2], gb_unsort[qq]))"
+FAILING_SINGLE_EXPRESSION = "                        gb_unsort[qq] = np.insert(gb_unsort[qq], 0, TJ1)"
 PATCHED_EXPRESSION = """                        # Numba typing compatibility repair: preserve the pristine
                         # [TJ1, TJ2, original rows...] order with one homogeneous array.
                         old_gb = gb_unsort[qq]
@@ -26,6 +27,13 @@ PATCHED_EXPRESSION = """                        # Numba typing compatibility rep
                         joined_gb[0, :] = TJ1
                         joined_gb[1, :] = TJ2
                         joined_gb[2:, :] = old_gb
+                        gb_unsort[qq] = joined_gb"""
+PATCHED_SINGLE_EXPRESSION = """                        # This branch is unreachable for the archived TJ discovery rule
+                        # (which retains only arrays with >1 row), but Numba still types it.
+                        old_gb = gb_unsort[qq]
+                        joined_gb = np.empty((old_gb.shape[0] + 1, old_gb.shape[1]), dtype=old_gb.dtype)
+                        joined_gb[0, :] = TJ1
+                        joined_gb[1:, :] = old_gb
                         gb_unsort[qq] = joined_gb"""
 
 
@@ -68,7 +76,11 @@ def prepend_junction_rows_compatibility(boundary: np.ndarray, first: np.ndarray,
 def patch_functions_source(pristine: str) -> str:
     if pristine.count(FAILING_EXPRESSION) != 1:
         raise ValueError("pristine failing expression is absent or ambiguous")
-    return pristine.replace(FAILING_EXPRESSION, PATCHED_EXPRESSION)
+    if pristine.count(FAILING_SINGLE_EXPRESSION) != 1:
+        raise ValueError("pristine single-row insertion is absent or ambiguous")
+    return pristine.replace(FAILING_EXPRESSION, PATCHED_EXPRESSION).replace(
+        FAILING_SINGLE_EXPRESSION, PATCHED_SINGLE_EXPRESSION
+    )
 
 
 def generate(archive: Path, output: Path) -> dict:
@@ -91,7 +103,7 @@ def generate(archive: Path, output: Path) -> dict:
     record = {
         "schema": "qiu-native-compatibility-patch-v1",
         "source_variant": "numba_compatibility_v1",
-        "reason": "Numba 0.61 cannot type heterogeneous list/2-D-array np.concatenate input",
+        "reason": "Numba 0.61 cannot type the heterogeneous np.concatenate input or the dead single-row np.insert branch in find_gb",
         "affected_function": "find_gb",
         "pristine": {"archive_sha256": PRISTINE_ARCHIVE_SHA256, "driver_sha256": PRISTINE_DRIVER_SHA256, "functions_sha256": PRISTINE_FUNCTIONS_SHA256},
         "patched": {"driver_sha256": sha256_bytes(driver), "functions_sha256": sha256_bytes(patched)},
