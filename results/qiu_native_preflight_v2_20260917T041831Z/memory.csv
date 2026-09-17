@@ -1,0 +1,4 @@
+record_type,identifier,maximum_resident_kbytes
+checkpoint,0,406584
+checkpoint,1,542108
+segment,compile-and-step-1,545064

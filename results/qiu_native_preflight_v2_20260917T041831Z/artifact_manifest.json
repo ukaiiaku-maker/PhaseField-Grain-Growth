@@ -1,0 +1,85 @@
+{
+  "schema": "qiu-native-preflight-v2-artifacts",
+  "artifacts": [
+    {
+      "path": "checkpoints/checkpoint_manifest.json",
+      "sha256": "37ff5a4c15b16c6bb087165cfa0bdf6c109cdc3967b17be092d229675170b34d",
+      "bytes": 2175
+    },
+    {
+      "path": "checkpoints/compilation_manifest.json",
+      "sha256": "ab5fe38b86129f041e21f35af06edcb62614e442aa4cf932321640c921fd00cc",
+      "bytes": 7739
+    },
+    {
+      "path": "checkpoints/native-state-step000000.npz",
+      "sha256": "eb60b24a2f120a079d28755885a20a1316cf8e6cad9cf6c21d14a2053063c882",
+      "bytes": 2301612
+    },
+    {
+      "path": "checkpoints/native-state-step000001.npz",
+      "sha256": "278381ff6b66cdd95f1dca7e77d2d7d64ec502547aa0d3b67fdc52d8c3d9ce7a",
+      "bytes": 3615213
+    },
+    {
+      "path": "driver_exit_code.txt",
+      "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+      "bytes": 2
+    },
+    {
+      "path": "environment_manifest.json",
+      "sha256": "1314b3dc1e863c4d25d8f75abf9c2625a7dab498cc7015edb4d2f9ca0601ac50",
+      "bytes": 291
+    },
+    {
+      "path": "memory.csv",
+      "sha256": "0bdfdd5c2f7e7c987d5689cd686993cf25593cb1cd83c4849aad108e0f51b3fe",
+      "bytes": 125
+    },
+    {
+      "path": "native_compatibility_patch.json",
+      "sha256": "e339f32265a030488f1d77bca8581bb10224d3662a0b2ea5a53b06e9bf34f10b",
+      "bytes": 2775
+    },
+    {
+      "path": "native_state_summary.csv",
+      "sha256": "7eb7748df469d51a3c62e6cdde75ae38716e54f3b1dce042f13aa9b5b09a5ec4",
+      "bytes": 949
+    },
+    {
+      "path": "native_stderr.log",
+      "sha256": "733196f7191403b6e67469dbefc20bb31ece8080011982daaf6ad1c45bbcd5dd",
+      "bytes": 34865
+    },
+    {
+      "path": "native_stdout.log",
+      "sha256": "031f981cf0f3b4c14f91c18c595832d86ca20b26e89d7d3aa780de5763189b71",
+      "bytes": 102
+    },
+    {
+      "path": "pip.log",
+      "sha256": "416159f130990ec910ef3ce803d10b05afbd98ab004499caa525ae748988c86b",
+      "bytes": 123
+    },
+    {
+      "path": "preflight_build_manifest.json",
+      "sha256": "3f2f9558bf58c2d88ec8056a378879b4bd47f3ed8229d09d638bb26a4c34b000",
+      "bytes": 593
+    },
+    {
+      "path": "preflight_decision.json",
+      "sha256": "ab63fbcb1e62d0726e5c7af9c427517cbca27af633b130434a7eb85a53f606c9",
+      "bytes": 599
+    },
+    {
+      "path": "runtime.csv",
+      "sha256": "09555a2fdc078f994a9d8a6961d094c3a985e0b21812c8ef91f1d8fc1df7c662",
+      "bytes": 84
+    },
+    {
+      "path": "time.txt",
+      "sha256": "c6da59408d438e75cc28c09454c13156e6b52d4d0c44364e69633d537ac96ab8",
+      "bytes": 863
+    }
+  ]
+}

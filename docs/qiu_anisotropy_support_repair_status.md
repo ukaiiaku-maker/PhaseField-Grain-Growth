@@ -1,6 +1,6 @@
 # Qiu anisotropy and support-repair status
 
-Updated: 2026-09-16 18:30 PDT
+Updated: 2026-09-16 21:27 PDT
 
 - KKT audit v2 supersedes only the old Gate-1 decision. At exact common time
   `0.2505237792079889` (coarse step 3936, fine step 7872), all fine-timestep
@@ -135,6 +135,32 @@ Updated: 2026-09-16 18:30 PDT
   `56099932`, failed before a scientific step because the base environment
   lacked `matplotlib`; its diagnostics were retrieved. The replacement reached
   pristine native `find_gb` but failed Numba compilation at
-  `functions_4ref_new.py:118` before the first accepted step. It is classified
-  `QIU_SI_NATIVE_PREFLIGHT_FAILED`. The full native baseline remains
-  unsubmitted, and full anisotropic production remains blocked.
+  `functions_4ref_new.py:118` before the first accepted step. Its historical
+  classification is superseded by
+  `QIU_SI_NATIVE_PREFLIGHT_OPERATIONAL_COMPATIBILITY_FAILURE` because zero
+  accepted steps occurred.
+- The bounded compatibility audit tested exactly two historical environments.
+  Both `anaconda/2022.05` and `anaconda/2021.11` run the untouched 10-step
+  native smoke, but only through deprecated object-mode fallback in `find_gb`.
+  The minimal homogeneous-array patch has function-module SHA-256
+  `1d656039b8dca20bac8f056ad195fdc201775331e73e0f6f5da1e866622f1f78`.
+  It matches an independent oracle on five synthetic fixtures and 64 actual
+  initialization operations. Pristine and patched downstream GB order,
+  references, beta, line density, stresses, and pair terms are exactly equal
+  in the historical environment. Modern Numba proceeds past the repaired
+  assembly and then rejects unchanged boundary-sorter constructs. Extending
+  the patch would violate the mission's array-assembly-only constraint.
+- Bounded V2 compiler-gate preflight run
+  `20260917T041831Z-nogit-8512a3`, Slurm job `56102284`, tests the pristine
+  historical path and is explicitly ineligible for baseline use. It completed
+  at exit `0:0` and was retrieved twice with stable runner checksums. Finite
+  exact-state checkpoints were recorded at accepted steps 0 and 1, with
+  SHA-256 values `eb60b24a2f120a079d28755885a20a1316cf8e6cad9cf6c21d14a2053063c882`
+  and `278381ff6b66cdd95f1dca7e77d2d7d64ec502547aa0d3b67fdc52d8c3d9ce7a`.
+  `find_gb` and `sort_gb` have no nopython signatures, so the mandatory
+  no-object-mode gate fails. Classification is
+  `QIU_SI_NATIVE_ENVIRONMENT_INCOMPATIBLE`. The result archive SHA-256 is
+  `1a3c03d4f1905579d273207c3f94dce300b4b07552c7c29083a59b693ef8f413`.
+  The full native baseline plan `20260912T180419Z-nogit-a25f0c` remains
+  unsubmitted; A0 correspondence and all anisotropic production remain
+  blocked.

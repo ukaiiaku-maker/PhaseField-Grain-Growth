@@ -1,0 +1,16 @@
+JobID             State ExitCode    Elapsed  Timelimit  AllocCPUS        NodeList 
+------------ ---------- -------- ---------- ---------- ---------- --------------- 
+56102284      COMPLETED      0:0   00:01:21   01:00:00          8      hpc3-14-22 
+56102284.ba+  COMPLETED      0:0   00:01:21                     8      hpc3-14-22 
+56102284.ex+  COMPLETED      0:0   00:01:21                     8      hpc3-14-22 
+Job ID: 56102284
+Cluster: hpc3
+User/Group: sdillon1/sdillon1
+State: COMPLETED (exit code 0)
+Nodes: 1
+Cores per node: 8
+CPU Utilized: 00:01:39
+CPU Efficiency: 15.28% of 00:10:48 core-walltime
+Job Wall-clock time: 00:01:21
+Memory Utilized: 740.54 MB
+Memory Efficiency: 2.26% of 32.00 GB (32.00 GB/node)

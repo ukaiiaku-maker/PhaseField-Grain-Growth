@@ -1,0 +1,17 @@
+{
+  "schema": "qiu-native-preflight-v2-build",
+  "baseline_eligible": false,
+  "source_variant": "pristine_archive",
+  "pristine_driver_sha256": "03f8cee8834e5f9669dceb1c831590de55c5ef26f6cc41e0913c0fc89ee2cd17",
+  "functions_sha256": "3fb625fcb88be515defb813df198f671b45f528e44f32ac7fabae36e1c926aaf",
+  "instrumented_driver_sha256": "252028f1a4326c10e7f41cebde0db5ba69de0449838d7b21eedea8ce996afb54",
+  "instrumentation_sha256": "8addc8394d8476f9b60f643b52e44f8775d95bf21cc6ef23cc5808dec8976015",
+  "checkpoints": [
+    0,
+    1,
+    10,
+    100,
+    1000
+  ],
+  "restart_checkpoint": 100
+}

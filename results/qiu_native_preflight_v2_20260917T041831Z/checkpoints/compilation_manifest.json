@@ -1,0 +1,105 @@
+{
+  "dispatchers": {
+    "Initialize": {
+      "nopython_signatures": [
+        "(array(float64, 3d, C), array(float64, 2d, C), array(int64, 2d, C), array(int64, 3d, C), int64, int64, int64, int64, float64, int64, reflected list(float64)<iv=None>, reflected list(float64)<iv=None>, array(float64, 1d, C)) -> none"
+      ],
+      "signatures": [
+        "(array(float64, 3d, C), array(float64, 2d, C), array(int64, 2d, C), array(int64, 3d, C), int64, int64, int64, int64, float64, int64, reflected list(float64)<iv=None>, reflected list(float64)<iv=None>, array(float64, 1d, C))"
+      ]
+    },
+    "find_gb": {
+      "nopython_signatures": [],
+      "signatures": [
+        "(array(float64, 3d, C), array(int64, 2d, C), array(int64, 3d, C), int64, int64, int64, int64, int64, float64, array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), float64, float64, float64, float64, int64, int64, array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 1d, C), float64, reflected list(UniTuple(int64 x 2))<iv=None>, reflected list(UniTuple(int64 x 3))<iv=None>)"
+      ]
+    },
+    "sort_gb": {
+      "nopython_signatures": [],
+      "signatures": [
+        "(array(int64, 2d, A), bool, int64, int64, int64, int64, int64, array(float64, 3d, C))",
+        "(array(int64, 2d, C), bool, int64, int64, int64, int64, int64, array(float64, 3d, C))"
+      ]
+    },
+    "stress_field_line": {
+      "nopython_signatures": [
+        "(array(float64, 3d, C), int64, int64, reflected list(array(int64, 1d, C))<iv=None>, reflected list(array(int64, 1d, C))<iv=None>, array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 1d, C), reflected list(array(int64, 1d, C))<iv=None>, float64, bool, int64, float64, array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), float64, float64, float64, int64, int64) -> none"
+      ],
+      "signatures": [
+        "(array(float64, 3d, C), int64, int64, reflected list(array(int64, 1d, C))<iv=None>, reflected list(array(int64, 1d, C))<iv=None>, array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 1d, C), reflected list(array(int64, 1d, C))<iv=None>, float64, bool, int64, float64, array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), float64, float64, float64, int64, int64)"
+      ]
+    },
+    "stress_field_extend": {
+      "nopython_signatures": [
+        "(array(float64, 3d, C), int64, int64, int64, int64, reflected list(array(int64, 1d, C))<iv=None>, reflected list(array(int64, 1d, C))<iv=None>, array(int64, 2d, C), array(int64, 3d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C)) -> UniTuple(array(float64, 2d, C) x 3)"
+      ],
+      "signatures": [
+        "(array(float64, 3d, C), int64, int64, int64, int64, reflected list(array(int64, 1d, C))<iv=None>, reflected list(array(int64, 1d, C))<iv=None>, array(int64, 2d, C), array(int64, 3d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C))"
+      ]
+    },
+    "stress_field_bulk": {
+      "nopython_signatures": [
+        "(array(float64, 3d, C), int64, int64, array(int64, 1d, A), array(int64, 1d, A), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), float64, float64, float64, float64, float64, bool, int64, float64, array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), int64, int64) -> none",
+        "(array(float64, 3d, C), int64, int64, array(int64, 1d, C), array(int64, 1d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), float64, float64, float64, float64, float64, bool, int64, float64, array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), int64, int64) -> none"
+      ],
+      "signatures": [
+        "(array(float64, 3d, C), int64, int64, array(int64, 1d, A), array(int64, 1d, A), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), float64, float64, float64, float64, float64, bool, int64, float64, array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), int64, int64)",
+        "(array(float64, 3d, C), int64, int64, array(int64, 1d, C), array(int64, 1d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), float64, float64, float64, float64, float64, bool, int64, float64, array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), int64, int64)"
+      ]
+    },
+    "stress_field_bulk_single": {
+      "nopython_signatures": [
+        "(array(float64, 3d, C), int64, int64, array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), int64, int64) -> UniTuple(array(float64, 2d, C) x 6)"
+      ],
+      "signatures": [
+        "(array(float64, 3d, C), int64, int64, array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), int64, int64)"
+      ]
+    },
+    "update_nfmf": {
+      "nopython_signatures": [
+        "(array(float64, 3d, C), array(int64, 3d, C), array(int64, 2d, C), int64, int64, int64) -> none"
+      ],
+      "signatures": [
+        "(array(float64, 3d, C), array(int64, 3d, C), array(int64, 2d, C), int64, int64, int64)"
+      ]
+    },
+    "beta": {
+      "nopython_signatures": [
+        "(float64, float64) -> UniTuple(float64 x 2)"
+      ],
+      "signatures": [
+        "(float64, float64)"
+      ]
+    },
+    "update_PF": {
+      "nopython_signatures": [
+        "(array(float64, 3d, C), array(float64, 3d, C), int64, int64, int64, int64, float64, float64, float64, float64, array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), float64, array(float64, 1d, C), array(int64, 3d, C), array(int64, 2d, C), array(float64, 2d, C), array(float64, 1d, C), float64) -> array(float64, 3d, C)"
+      ],
+      "signatures": [
+        "(array(float64, 3d, C), array(float64, 3d, C), int64, int64, int64, int64, float64, float64, float64, float64, array(float64, 2d, C), array(float64, 2d, C), array(float64, 2d, C), float64, array(float64, 1d, C), array(int64, 3d, C), array(int64, 2d, C), array(float64, 2d, C), array(float64, 1d, C), float64)"
+      ]
+    },
+    "E_elastic": {
+      "nopython_signatures": [
+        "(array(float64, 3d, C), int64, int64, int64, int64, int64, int64, int64, int64, float64, float64, float64, float64, float64, float64, int64, int64) -> float64"
+      ],
+      "signatures": [
+        "(array(float64, 3d, C), int64, int64, int64, int64, int64, int64, int64, int64, float64, float64, float64, float64, float64, float64, int64, int64)"
+      ]
+    },
+    "grad": {
+      "nopython_signatures": [
+        "(array(float64, 3d, C), int64, int64, int64, int64, int64, int64, int64, int64, int64) -> UniTuple(float64 x 4)",
+        "(array(float64, 3d, C), int64, int64, uint64, int64, int64, int64, int64, int64, int64) -> UniTuple(float64 x 4)"
+      ],
+      "signatures": [
+        "(array(float64, 3d, C), int64, int64, int64, int64, int64, int64, int64, int64, int64)",
+        "(array(float64, 3d, C), int64, int64, uint64, int64, int64, int64, int64, int64, int64)"
+      ]
+    }
+  },
+  "object_mode_or_uncompiled": [
+    "find_gb",
+    "sort_gb"
+  ]
+}

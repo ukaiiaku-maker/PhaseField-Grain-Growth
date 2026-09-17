@@ -1,0 +1,24 @@
+{
+  "schema": "qiu-native-preflight-v2-decision",
+  "classification": "QIU_SI_NATIVE_ENVIRONMENT_INCOMPATIBLE",
+  "source_variant": "pristine_archive",
+  "baseline_eligible": false,
+  "accepted_checkpoints": [
+    0,
+    1
+  ],
+  "required_pass_checkpoints": [
+    0,
+    1,
+    10,
+    100,
+    1000
+  ],
+  "finite": true,
+  "object_mode_fallback": true,
+  "incompatible_dispatchers": [
+    "find_gb",
+    "sort_gb"
+  ],
+  "reason": "The historically compatible pristine environment executes find_gb only through deprecated object-mode fallback; the no-fallback acceptance gate therefore fails."
+}

@@ -56,3 +56,36 @@ logic, stress calculation, barrier, or phase-field update. The driver and its
 only call site are byte-identical to the archive. Synthetic empty, singleton,
 unequal-length, duplicate, and periodic-edge fixtures match the independent
 reference exactly, including in Numba nopython mode.
+
+## Environment and full-fixture result
+
+The two bounded historical tests both execute the pristine initialization and
+ten accepted steps. `anaconda/2022.05` provides Python 3.9.12, NumPy 1.21.5,
+Numba 0.55.1, and llvmlite 0.38.0; the retained smoke completes in 41.39 seconds.
+`anaconda/2021.11` provides Python 3.9.7, NumPy 1.20.3, Numba 0.54.1, and
+llvmlite 0.37.0; the retained smoke completes in 40.71 seconds. Both compile `find_gb`
+by deprecated object-mode fallback. They are historically runnable but fail
+the preflight's mandatory no-object-mode condition.
+
+The actual 500x500 initialization fixture has SHA-256
+`bf39aa567b85ce0128520e4ad590a5af16eb55070a23c941029f68acf3b5b507`.
+It contains 64 qualifying triple-junction prepend operations. Every operation
+matches the independent oracle exactly. Running pristine and patched
+`find_gb` in the same 2022.05 environment produces exact equality for the GB
+coordinates and IDs, selected references, beta values, reference-resolved
+line density, all three line and bulk stress components, capillary and barrier
+terms, and signed elastic pair values.
+
+The final `numba_compatibility_v1` function-module SHA-256 is
+`1d656039b8dca20bac8f056ad195fdc201775331e73e0f6f5da1e866622f1f78`.
+In the qualified modern environment (Python 3.13.5, NumPy 2.1.3, Numba
+0.61.0, llvmlite 0.44.0), the repaired array assembly compiles in nopython
+mode. Full `find_gb` compilation then stops in unchanged adjacent sorter code:
+first at the undecorated `clockorcounterclock` call, and, when that call is
+diagnostically annotated, at the sorter's built-in `abs` call on an array.
+Those changes lie outside the authorized array-assembly-only patch.
+
+The array repair is therefore proven equivalent, but neither permitted source
+variant has a no-object-mode execution environment. The compatibility result
+is `QIU_SI_NATIVE_ENVIRONMENT_INCOMPATIBLE`; no production source variant is
+selected.
