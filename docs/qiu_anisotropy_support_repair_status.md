@@ -110,12 +110,24 @@ Updated: 2026-09-16 18:30 PDT
   step-1024 restarts would contradict the executable and their checkpoint
   metadata. Every preserved checkpoint now records its actual parent, dt, KKT
   tolerance, case-local step/time, and continuous or replay role.
-- Gate-1 result: all per-case energy, KKT, support, topology, and scaling
-  targets pass; maximum measured KKT residual is `4.44e-16`; principal restart
-  equivalence passes. Final fields are not bitwise identical across the three
-  KKT tolerances, so the upstream tolerance classification is
-  `COMPACT_SUPPORT_OPERATOR_TOLERANCE_NONCONVERGED` and the packaged
-  classification is `COMPACT_SUPPORT_OPERATOR_KKT_FAILURE`.
-- Next scientific action: diagnose the tolerance-dependent terminal states.
-  The local/HPC platform pair, native Qiu baseline, and anisotropic Qiu
-  controls remain blocked. No downstream job has been submitted.
+- The matched-time version-2 audit supersedes only that classification. At
+  `t*=0.2505237792079889` (coarse step 3936, fine step 7872), all three fine
+  fields are bitwise identical and the `1e-10`/`1e-12` coarse fields are
+  bitwise identical. The loose coarse lineage differs by only
+  `5.0417530025313027e-17` RMS with no discrete or morphology difference.
+  Independent same-tolerance replays are bitwise identical. The stop was
+  endpoint/package and lineage misalignment, classified
+  `COMPACT_SUPPORT_GATE_PACKAGING_MISALIGNMENT`; Gate 1 is superseded by
+  `COMPACT_SUPPORT_OPERATOR_LOCALLY_QUALIFIED_V2`. Production KKT is `1e-10`.
+- Platform confirmation used the same exact step-7744 parent and ran 128 steps
+  locally and on HPC3. Job `56099749`, run
+  `20260917T020427Z-nogit-6f9ac5`, was retrieved twice with stable verified
+  checksums. macOS and Linux fields differ by `7.809703850438097e-18` RMS and
+  `1.9984014443252818e-15` maximum; active sets, candidate graphs, support
+  events, timesteps, morphology, and labels agree. Classification is
+  `PLATFORM_NUMERICALLY_EQUIVALENT`.
+- The pristine archived native Qiu path is independent of the generic
+  compact-support operator. A separate maximum-1,000-step preflight is prepared
+  as run `20260917T021402Z-nogit-c1b280`. The full native plan remains blocked
+  behind a verified `QIU_SI_NATIVE_PREFLIGHT_PASSED` result, and full
+  anisotropic production remains blocked behind the short controls.
