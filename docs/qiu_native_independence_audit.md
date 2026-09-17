@@ -18,3 +18,8 @@ state plus completion marker. It verifies archive and source hashes before
 execution. Its artifacts state `baseline_eligible: false`; it is not the
 promoted native baseline. The immutable 200,000-step plan remains
 `20260912T180419Z-nogit-a25f0c` and has no Slurm identity.
+
+After an exact identity and remote-directory reconciliation found no prior
+submission, the orchestrator submitted the preflight as Slurm job `56099932`.
+The full baseline remains dependency-blocked until the retrieved preflight is
+checksum-verified and classified `QIU_SI_NATIVE_PREFLIGHT_PASSED`.

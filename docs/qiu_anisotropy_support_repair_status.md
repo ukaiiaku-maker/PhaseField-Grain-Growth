@@ -129,5 +129,6 @@ Updated: 2026-09-16 18:30 PDT
 - The pristine archived native Qiu path is independent of the generic
   compact-support operator. A separate maximum-1,000-step preflight is prepared
   as run `20260917T021402Z-nogit-c1b280`. The full native plan remains blocked
-  behind a verified `QIU_SI_NATIVE_PREFLIGHT_PASSED` result, and full
+  behind a verified `QIU_SI_NATIVE_PREFLIGHT_PASSED` result. The preflight is
+  Slurm job `56099932`; full
   anisotropic production remains blocked behind the short controls.
