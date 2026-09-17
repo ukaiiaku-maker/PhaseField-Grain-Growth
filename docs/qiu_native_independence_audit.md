@@ -20,6 +20,11 @@ promoted native baseline. The immutable 200,000-step plan remains
 `20260912T180419Z-nogit-a25f0c` and has no Slurm identity.
 
 After an exact identity and remote-directory reconciliation found no prior
-submission, the orchestrator submitted the preflight as Slurm job `56099932`.
-The full baseline remains dependency-blocked until the retrieved preflight is
-checksum-verified and classified `QIU_SI_NATIVE_PREFLIGHT_PASSED`.
+submission, the first preflight attempt, job `56099932`, stopped before any
+scientific step because the selected base environment lacked `matplotlib`.
+Its partial diagnostics were retrieved and the failure was recorded as
+operational. The repaired run `20260917T022751Z-nogit-0eb60c` uses the existing
+checksummed analysis environment (including `matplotlib 3.10.1`) and was
+submitted as job `56100055` after another identity reconciliation. The full
+baseline remains dependency-blocked until the replacement is checksum-verified
+and classified `QIU_SI_NATIVE_PREFLIGHT_PASSED`.

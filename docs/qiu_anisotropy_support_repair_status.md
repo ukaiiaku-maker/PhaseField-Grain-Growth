@@ -130,5 +130,8 @@ Updated: 2026-09-16 18:30 PDT
   compact-support operator. A separate maximum-1,000-step preflight is prepared
   as run `20260917T021402Z-nogit-c1b280`. The full native plan remains blocked
   behind a verified `QIU_SI_NATIVE_PREFLIGHT_PASSED` result. The preflight is
-  Slurm job `56099932`; full
+  replacement Slurm job `56100055` (run
+  `20260917T022751Z-nogit-0eb60c`). The first environment-only attempt,
+  `56099932`, failed before a scientific step because the base environment
+  lacked `matplotlib`; its diagnostics were retrieved. Full
   anisotropic production remains blocked behind the short controls.
