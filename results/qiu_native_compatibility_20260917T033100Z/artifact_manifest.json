@@ -1,0 +1,85 @@
+{
+  "schema": "qiu-native-compatibility-artifacts-v1",
+  "artifacts": [
+    {
+      "path": "compatibility_decision.json",
+      "sha256": "b725ef69da61db29dde97723b31f78817fab5273058777e8c459517e295befd2",
+      "bytes": 673
+    },
+    {
+      "path": "environment_manifest.json",
+      "sha256": "223ce8c05c08064a319c981879e8dc673f2c1a297de414e52f626e20c05eb026",
+      "bytes": 7323
+    },
+    {
+      "path": "find_gb_actual_downstream_comparison.json",
+      "sha256": "f6749e7296286f6bd6e380c376c98f4e76ee1d6e2ea7f48d55f082db71f71472",
+      "bytes": 4189
+    },
+    {
+      "path": "find_gb_actual_oracle.json",
+      "sha256": "593ea285965fbbe169410f43125aaa65f9e573fae2e68adcf45af0faf9724249",
+      "bytes": 15620
+    },
+    {
+      "path": "find_gb_comparison.csv",
+      "sha256": "dbb199c01206184768757fc031ec76b49e079a54ea22f7ca3b094ceb7c09c71e",
+      "bytes": 355
+    },
+    {
+      "path": "find_gb_fixture_manifest.json",
+      "sha256": "653792bace5a36c56c8a09a475b7f003891e0dc09a866ccc5316c95108c644f8",
+      "bytes": 2259
+    },
+    {
+      "path": "fixtures/empty.npz",
+      "sha256": "ca4789479abd21941f269804dd707b7ecdedabf487f3b91de989f4b6baf704dc",
+      "bytes": 786
+    },
+    {
+      "path": "fixtures/find_gb_actual_patched.npz",
+      "sha256": "3ba5684e974791fd3d2b286e948421b9c3230e4dbebfd9d3fbb588d67bcb6d11",
+      "bytes": 1146407
+    },
+    {
+      "path": "fixtures/find_gb_actual_pristine.npz",
+      "sha256": "3ba5684e974791fd3d2b286e948421b9c3230e4dbebfd9d3fbb588d67bcb6d11",
+      "bytes": 1146407
+    },
+    {
+      "path": "fixtures/find_gb_initialization_fixture.npz",
+      "sha256": "bf39aa567b85ce0128520e4ad590a5af16eb55070a23c941029f68acf3b5b507",
+      "bytes": 9965593
+    },
+    {
+      "path": "fixtures/one_component.npz",
+      "sha256": "060b09f795313d9def212371d5f7ebb3191f8bef9e1f7480f1f17460b5cbe859",
+      "bytes": 797
+    },
+    {
+      "path": "fixtures/periodic_edge.npz",
+      "sha256": "99050a625947a701b2d89168b8f2f2eb5ae404ada3e49479fe274650bcbdec63",
+      "bytes": 791
+    },
+    {
+      "path": "fixtures/repeated_rows.npz",
+      "sha256": "04edd99fe91ae42ec431907713aa229495eebfbbda7d557b53e7eda235168b23",
+      "bytes": 792
+    },
+    {
+      "path": "fixtures/unequal_component.npz",
+      "sha256": "f01e26285ce2d444bd4e093c66b18b68b4c023985c7645db2fb5552a56383279",
+      "bytes": 814
+    },
+    {
+      "path": "native_compatibility_patch.json",
+      "sha256": "c92f97a5ada2e43f16c66f66061afccc060aa66261505a8f17cbe58f5f3217c6",
+      "bytes": 3644
+    },
+    {
+      "path": "pristine_environment_matrix.csv",
+      "sha256": "c91ce68ffb027bbf913fb586430f5cba542f8be49709e556433b308d56cfb28d",
+      "bytes": 6271
+    }
+  ]
+}

@@ -1,0 +1,192 @@
+{
+  "schema": "qiu-find-gb-actual-fixture-comparison",
+  "pass": true,
+  "fields": [
+    {
+      "field": "gb_offsets",
+      "shape": "(17,)",
+      "dtype": "int64",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "gb_x",
+      "shape": "(5216,)",
+      "dtype": "int64",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "gb_y",
+      "shape": "(5216,)",
+      "dtype": "int64",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "boundary_pairs",
+      "shape": "(16, 2)",
+      "dtype": "int16",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "line_records",
+      "shape": "(5216,)",
+      "dtype": "[('boundary_id', '<i4'), ('point', '<i4'), ('phase_i', '<i2'), ('phase_j', '<i2'), ('x', '<i4'), ('y', '<i4'), ('lower_reference', 'i1'), ('upper_reference', 'i1'), ('beta1', '<f8'), ('beta2', '<f8'), ('line_density_x', '<f8'), ('line_density_y', '<f8')]",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "sigma11",
+      "shape": "(500, 500)",
+      "dtype": "float64",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "sigma12",
+      "shape": "(500, 500)",
+      "dtype": "float64",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "sigma22",
+      "shape": "(500, 500)",
+      "dtype": "float64",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "sigma11_b",
+      "shape": "(500, 500)",
+      "dtype": "float64",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "sigma12_b",
+      "shape": "(500, 500)",
+      "dtype": "float64",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "sigma22_b",
+      "shape": "(500, 500)",
+      "dtype": "float64",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "pair_cell_x",
+      "shape": "(346416,)",
+      "dtype": "int32",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "pair_cell_y",
+      "shape": "(346416,)",
+      "dtype": "int32",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "pair_phase_i",
+      "shape": "(346416,)",
+      "dtype": "int16",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "pair_phase_j",
+      "shape": "(346416,)",
+      "dtype": "int16",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "signed_elastic_pair_force",
+      "shape": "(346416,)",
+      "dtype": "float64",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "capillary_pair_term",
+      "shape": "(346416,)",
+      "dtype": "float64",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "barrier_pair_term",
+      "shape": "(346416,)",
+      "dtype": "float64",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "pair_beta_first",
+      "shape": "(346416,)",
+      "dtype": "float64",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "pair_beta_second",
+      "shape": "(346416,)",
+      "dtype": "float64",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "pair_reference_first",
+      "shape": "(346416,)",
+      "dtype": "float64",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "pair_reference_second",
+      "shape": "(346416,)",
+      "dtype": "float64",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    },
+    {
+      "field": "find_gb_nopython_signatures",
+      "shape": "(0,)",
+      "dtype": "float64",
+      "exact": true,
+      "max_abs": 0.0,
+      "pass": true
+    }
+  ],
+  "pristine_sha256": "3ba5684e974791fd3d2b286e948421b9c3230e4dbebfd9d3fbb588d67bcb6d11",
+  "patched_sha256": "3ba5684e974791fd3d2b286e948421b9c3230e4dbebfd9d3fbb588d67bcb6d11"
+}

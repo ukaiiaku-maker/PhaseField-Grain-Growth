@@ -1,0 +1,20 @@
+{
+  "schema": "qiu-native-compatibility-decision-v1",
+  "classification": "QIU_SI_NATIVE_ENVIRONMENT_INCOMPATIBLE",
+  "historical_pristine_runnable": true,
+  "historical_pristine_nopython": false,
+  "minimal_array_patch_equivalent": true,
+  "minimal_array_patch_modern_runnable": false,
+  "production_source_variant": null,
+  "reason": "No tested environment executes the allowed source variants without object-mode fallback or additional out-of-scope source changes.",
+  "hpc_evidence": [
+    {
+      "run_id": "20260917T035009Z-nogit-0bcfc8",
+      "job_id": "56102107"
+    },
+    {
+      "run_id": "20260917T040837Z-nogit-5e69b3",
+      "job_id": "56102237"
+    }
+  ]
+}

@@ -25,6 +25,11 @@ def atomic_write_text(path: str | Path, text: str) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary, destination)
+        directory_fd = os.open(destination.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
         temporary = None
     finally:
         if temporary is not None:
@@ -55,6 +60,11 @@ def atomic_savez_compressed(path: str | Path, **arrays: np.ndarray) -> None:
             handle.flush()
             os.fsync(handle.fileno())
         os.replace(temporary, destination)
+        directory_fd = os.open(destination.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
         temporary = None
     finally:
         if temporary is not None:

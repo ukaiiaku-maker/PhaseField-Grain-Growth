@@ -1,0 +1,903 @@
+{
+  "schema": "qiu-find-gb-actual-fixture-oracle",
+  "pass": true,
+  "operation_count": 64,
+  "records": [
+    {
+      "pair": [
+        0,
+        1
+      ],
+      "triple": [
+        0,
+        1,
+        9
+      ],
+      "rows": 190,
+      "sha256": "fa3b5148a180e00ee7238bb4ed72249200c351d5537890d6df88a640fec7b34e",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        9
+      ],
+      "triple": [
+        0,
+        1,
+        9
+      ],
+      "rows": 454,
+      "sha256": "dbe2b69f578fdcf5acb9faa7bae8a6def757e463f1bdf723581c084d026f90d7",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        1
+      ],
+      "triple": [
+        0,
+        1,
+        10
+      ],
+      "rows": 190,
+      "sha256": "357ed67729772564b3e2da381429e39f187c0984ba6cbd11a2540ac3ce3e8dac",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        10
+      ],
+      "triple": [
+        0,
+        1,
+        10
+      ],
+      "rows": 454,
+      "sha256": "439f284f5f4413c9f07090024391d783c6a7cfb2e7f70178ed8fed914013bc07",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        1
+      ],
+      "triple": [
+        0,
+        1,
+        13
+      ],
+      "rows": 190,
+      "sha256": "ba7ef40fcb29e522a8fbc9fc64e9a142709c8aeac743d03bd729052c0aaa5651",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        13
+      ],
+      "triple": [
+        0,
+        1,
+        13
+      ],
+      "rows": 454,
+      "sha256": "9093414f7eb8bc5b494f8f0586b4b59ecc8bbfde736e305c2e723775f752c7f6",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        1
+      ],
+      "triple": [
+        0,
+        1,
+        14
+      ],
+      "rows": 190,
+      "sha256": "33cca167f85a0b3d779dae93c44966458fc2565da59fee8243a3ae02668c5f2d",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        14
+      ],
+      "triple": [
+        0,
+        1,
+        14
+      ],
+      "rows": 454,
+      "sha256": "4f8be12c7f56405cd9fdc4ff9dbd296b16b6c7993191aacb46164aa1193d054f",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        2
+      ],
+      "triple": [
+        0,
+        2,
+        9
+      ],
+      "rows": 190,
+      "sha256": "4409930039c656264e6aaa5a1e6bd530938377e0af47ee2db3611c4319b45b38",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        9
+      ],
+      "triple": [
+        0,
+        2,
+        9
+      ],
+      "rows": 454,
+      "sha256": "b68402630575ef290baa3ac8630a356acbe53fdfaae0a03561368318dd05a103",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        2
+      ],
+      "triple": [
+        0,
+        2,
+        10
+      ],
+      "rows": 190,
+      "sha256": "445ed690ab4bccce33f3f7ec757496b97d7580d0227d41806e795885c2b7b7f5",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        10
+      ],
+      "triple": [
+        0,
+        2,
+        10
+      ],
+      "rows": 454,
+      "sha256": "a4b099667f8857a73112b3f4227894e8c6a09b76e1e7834e6eabda2d418fb647",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        2
+      ],
+      "triple": [
+        0,
+        2,
+        15
+      ],
+      "rows": 190,
+      "sha256": "af58a95c4274e9f677d0a04a132d7bd5e3e0425b014acaa54aa484e4ddf12fab",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        15
+      ],
+      "triple": [
+        0,
+        2,
+        15
+      ],
+      "rows": 454,
+      "sha256": "7370f21b83592412f175fa9578159e11ecc07e6c77fbe6808e3883bf2e25ac05",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        2
+      ],
+      "triple": [
+        0,
+        2,
+        16
+      ],
+      "rows": 190,
+      "sha256": "d518ed69075945fd1714dbcee91c04cd1a03fb1421999fcaadcf8a3f8979aac7",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        16
+      ],
+      "triple": [
+        0,
+        2,
+        16
+      ],
+      "rows": 454,
+      "sha256": "1d37f1aa1f4d441aafa0b4c50978f2cefd325dc41aad57d369c6448075d15e85",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        3
+      ],
+      "triple": [
+        0,
+        3,
+        11
+      ],
+      "rows": 190,
+      "sha256": "88479ae6cc7fb774144610e81da1828b1581f1cbbba230b928085763511be46c",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        11
+      ],
+      "triple": [
+        0,
+        3,
+        11
+      ],
+      "rows": 454,
+      "sha256": "c00b3f2703c6b60508053d27c80fd49abb49ee417c577b9d3f61f2ba8dc5d040",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        3
+      ],
+      "triple": [
+        0,
+        3,
+        12
+      ],
+      "rows": 190,
+      "sha256": "42c434d25d337a809147b441f4a14b7a0160faf248a825fe632aed455c7a0f29",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        12
+      ],
+      "triple": [
+        0,
+        3,
+        12
+      ],
+      "rows": 454,
+      "sha256": "0fa36051822584b3acf4d442be4e6d5bca6828f7b399197446a8090e4ec01bdf",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        3
+      ],
+      "triple": [
+        0,
+        3,
+        13
+      ],
+      "rows": 190,
+      "sha256": "d702d2559469c03adf69524cf560ee3c043e9291132bf61b2036609c2e15bc2e",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        13
+      ],
+      "triple": [
+        0,
+        3,
+        13
+      ],
+      "rows": 454,
+      "sha256": "2662cc9d6e22457f9ab1ed54b4bdf90f6e708dcacda0831ea584036901ad2724",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        3
+      ],
+      "triple": [
+        0,
+        3,
+        14
+      ],
+      "rows": 190,
+      "sha256": "7bd7ae3a50ba8a0cd7e88212f2c73d1f3bd41b1547030278da2dc585ee685ae5",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        14
+      ],
+      "triple": [
+        0,
+        3,
+        14
+      ],
+      "rows": 454,
+      "sha256": "e8eb4509143bf27053829c412f3a07a738812e37f0ff278be4eb0baae97a6045",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        4
+      ],
+      "triple": [
+        0,
+        4,
+        11
+      ],
+      "rows": 190,
+      "sha256": "4a29d5d02a8b53aaf643b95bb9d7334a0be6d5d3cd350c09147df559c1c79b1d",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        11
+      ],
+      "triple": [
+        0,
+        4,
+        11
+      ],
+      "rows": 454,
+      "sha256": "4b324b987c112bb85a428174632cda799732a0bc8d8f2d4f0805aeb102352af6",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        4
+      ],
+      "triple": [
+        0,
+        4,
+        12
+      ],
+      "rows": 190,
+      "sha256": "3b7c117439fc88bd9779909d9652570251b8f94163b4673cc4f988c86bae1db0",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        12
+      ],
+      "triple": [
+        0,
+        4,
+        12
+      ],
+      "rows": 454,
+      "sha256": "06fe372604d2c832913d0decc4d1bfe760893a20d593f6718c6ab2b574441853",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        4
+      ],
+      "triple": [
+        0,
+        4,
+        15
+      ],
+      "rows": 190,
+      "sha256": "9d569ccc9aa7c05edda0704ec059ff08f11ebae9e08d41fd8bb208bf0309e416",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        15
+      ],
+      "triple": [
+        0,
+        4,
+        15
+      ],
+      "rows": 454,
+      "sha256": "dd56f4f3842cbe7f323d3f722578bf2435453f9306f7ee5c2ef1ed705123e411",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        4
+      ],
+      "triple": [
+        0,
+        4,
+        16
+      ],
+      "rows": 190,
+      "sha256": "2d4c67144248c5d7b2a01be07dba6d23c9c3fe3890916065342affac8a95ec95",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        16
+      ],
+      "triple": [
+        0,
+        4,
+        16
+      ],
+      "rows": 454,
+      "sha256": "f8f772afbeac5456fa90711a4d2b2e64401755551caf767bd140f02cd3eb299d",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        5
+      ],
+      "triple": [
+        0,
+        5,
+        9
+      ],
+      "rows": 190,
+      "sha256": "bc194588b6d5506a0fff370f095fa918fe66598ed89c3e9254025f1530349e48",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        9
+      ],
+      "triple": [
+        0,
+        5,
+        9
+      ],
+      "rows": 454,
+      "sha256": "2d288341d1bb5b3d54140699ef0ab4325c6b1b502078ea42229613e3bce7e374",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        5
+      ],
+      "triple": [
+        0,
+        5,
+        11
+      ],
+      "rows": 190,
+      "sha256": "7e3b52a854ab3c9928ae27497bca5eee445370cd4684af332f59d5363456d3a2",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        11
+      ],
+      "triple": [
+        0,
+        5,
+        11
+      ],
+      "rows": 454,
+      "sha256": "6439aa801bc4ca07d93380042a44062a7a95eab28a76ebcf9965db03eccf7132",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        5
+      ],
+      "triple": [
+        0,
+        5,
+        13
+      ],
+      "rows": 190,
+      "sha256": "cbf1aad5ec43e538735e933d749f71c591b7ca639dcbaced44e828b23e5ee945",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        13
+      ],
+      "triple": [
+        0,
+        5,
+        13
+      ],
+      "rows": 454,
+      "sha256": "5c1d6abb93e08693812b079744db791d071500a7aff33ca01ccc05abd30a9401",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        5
+      ],
+      "triple": [
+        0,
+        5,
+        15
+      ],
+      "rows": 190,
+      "sha256": "d4ad848f7c3e8fec05683a1fb8483e69e61bb3717922e1145446d918edec8818",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        15
+      ],
+      "triple": [
+        0,
+        5,
+        15
+      ],
+      "rows": 454,
+      "sha256": "c47511215f1bd6fcd0e44b314516413c4b962ce57c53a0f30ed5e14f4cca0b7c",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        6
+      ],
+      "triple": [
+        0,
+        6,
+        10
+      ],
+      "rows": 190,
+      "sha256": "0444b520767aa09b6de1d16bf21ef5a5ac06ae7d0892be2a82e3773f9d6d4530",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        10
+      ],
+      "triple": [
+        0,
+        6,
+        10
+      ],
+      "rows": 454,
+      "sha256": "1bb40a33ea92b0b4d7f804d4bf65b2cb14b107dcc2ececb96902cad15b2a545e",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        6
+      ],
+      "triple": [
+        0,
+        6,
+        12
+      ],
+      "rows": 190,
+      "sha256": "45a975cf12c1d9fbb9240e127394761534586fa4ff7944858c1788fe80ca088f",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        12
+      ],
+      "triple": [
+        0,
+        6,
+        12
+      ],
+      "rows": 454,
+      "sha256": "fd18186ab000838980d4cd23a7b54c8ca5d55089ea64542b753957daeb01d250",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        6
+      ],
+      "triple": [
+        0,
+        6,
+        13
+      ],
+      "rows": 190,
+      "sha256": "95509e0c7a43259a96d2443868a29bea0064f0d66f86636a28dcbdfaeae138a3",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        13
+      ],
+      "triple": [
+        0,
+        6,
+        13
+      ],
+      "rows": 454,
+      "sha256": "ac1e46cdf3a4f742990d10f1f4d0d7d9a436b4e766ac57bcf1dafc659846c695",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        6
+      ],
+      "triple": [
+        0,
+        6,
+        15
+      ],
+      "rows": 190,
+      "sha256": "8f0040f326a3835edd17408e91915cc7a5ecae750a28a82fc0447352c20c951c",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        15
+      ],
+      "triple": [
+        0,
+        6,
+        15
+      ],
+      "rows": 454,
+      "sha256": "949f0f70d20355f4fce024287884332055e90e2fb0551b7b296ed3b352fffda7",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        7
+      ],
+      "triple": [
+        0,
+        7,
+        9
+      ],
+      "rows": 190,
+      "sha256": "49587ca9a1d105d87299010e41baee43227053a8d8af898f9bdfd7c6d17f330f",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        9
+      ],
+      "triple": [
+        0,
+        7,
+        9
+      ],
+      "rows": 454,
+      "sha256": "72d2989ecc6e2881adddba964bcaee037fa506de4f1c4eacea44d88fb40277c6",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        7
+      ],
+      "triple": [
+        0,
+        7,
+        11
+      ],
+      "rows": 190,
+      "sha256": "633ef677e6ef7a3e4abb9e71a0ab24a0f56c79139dd7a0c05af5af2b828dee6a",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        11
+      ],
+      "triple": [
+        0,
+        7,
+        11
+      ],
+      "rows": 454,
+      "sha256": "ef98f8efa5b6f4bae0f59c2d3d49812fbca30d5cd20fe8ca9eb8e77b8ef94de8",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        7
+      ],
+      "triple": [
+        0,
+        7,
+        14
+      ],
+      "rows": 190,
+      "sha256": "b7d83c512811876bbd0acfdaf055d99a676c60b6a91eeb0d20491a39f2bd2f65",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        14
+      ],
+      "triple": [
+        0,
+        7,
+        14
+      ],
+      "rows": 454,
+      "sha256": "b665dfc59033b455aa804f7fa12ac27f671d8a5618bd5731fd010981ffa24751",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        7
+      ],
+      "triple": [
+        0,
+        7,
+        16
+      ],
+      "rows": 190,
+      "sha256": "b3d9a9d850b4108e59a4581d91a83b60894c3ac0c746a940f272e3c6b72607b4",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        16
+      ],
+      "triple": [
+        0,
+        7,
+        16
+      ],
+      "rows": 454,
+      "sha256": "a02aa5bc4e2a339c19bd6434fae981ee6357c30c8a64053354db5e90aa46794a",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        8
+      ],
+      "triple": [
+        0,
+        8,
+        10
+      ],
+      "rows": 190,
+      "sha256": "7a128e0d69023929ac48d39d5993773328df46d62daaccf6d7249c328e8fb1d5",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        10
+      ],
+      "triple": [
+        0,
+        8,
+        10
+      ],
+      "rows": 454,
+      "sha256": "ca4ab5bcd2f78eb9a52e978f920c343f4e6cf30bfe2a3bc67500b7feff78304a",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        8
+      ],
+      "triple": [
+        0,
+        8,
+        12
+      ],
+      "rows": 190,
+      "sha256": "b33d097d67badd83cfd89795aa0854383a2d55c10b3dfd0ba6d55d9807d3e74f",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        12
+      ],
+      "triple": [
+        0,
+        8,
+        12
+      ],
+      "rows": 454,
+      "sha256": "18ffe486de3b2a2590538595be9e47b67721f06f756dc41301019b721f3596b3",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        8
+      ],
+      "triple": [
+        0,
+        8,
+        14
+      ],
+      "rows": 190,
+      "sha256": "983616d1ce9ed6f6db17a4a851f07a8ae59df6a3531bca54b018152fe33755b9",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        14
+      ],
+      "triple": [
+        0,
+        8,
+        14
+      ],
+      "rows": 454,
+      "sha256": "822162c968d75eda8ebb8be0d771f9b81fd27d85ccffcd43ca0698ba3d54888e",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        8
+      ],
+      "triple": [
+        0,
+        8,
+        16
+      ],
+      "rows": 190,
+      "sha256": "77901cc58394ce0f52e0d46eaa6fbc992ab1ea5f374365e135c3498127033482",
+      "exact": true
+    },
+    {
+      "pair": [
+        0,
+        16
+      ],
+      "triple": [
+        0,
+        8,
+        16
+      ],
+      "rows": 454,
+      "sha256": "656d1a2b912098d3f97ee11aa5c4a864e2793100a79eeae0ed04958b27515a02",
+      "exact": true
+    }
+  ]
+}

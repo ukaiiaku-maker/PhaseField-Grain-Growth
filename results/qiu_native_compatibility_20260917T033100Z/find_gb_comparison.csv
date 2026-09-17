@@ -1,0 +1,6 @@
+fixture,shape_equal,dtype_equal,exact_equal,maximum_absolute_difference,maximum_relative_difference,row_order_equal,duplicate_count_equal
+empty,True,True,True,0,0,True,True
+one_component,True,True,True,0,0,True,True
+unequal_component,True,True,True,0,0,True,True
+repeated_rows,True,True,True,0,0,True,True
+periodic_edge,True,True,True,0,0,True,True

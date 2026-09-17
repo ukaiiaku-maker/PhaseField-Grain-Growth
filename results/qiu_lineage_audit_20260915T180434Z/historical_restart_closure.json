@@ -1,0 +1,30 @@
+{
+  "schema": "anisotropic-historical-restart-closure-v1",
+  "run_id": "20260915T181129Z-nogit-2b882f",
+  "authoritative_slurm_job_id": "56040138",
+  "duplicate_cancelled_slurm_job_id": "56040137",
+  "terminal_state": "COMPLETED",
+  "application_exit": 0,
+  "finalization_exit": 0,
+  "start_step": 126,
+  "start_physical_time": 0.004009908051346792,
+  "end_step": 128,
+  "end_physical_time": 0.004073557385495154,
+  "source_commit": "1316cc89dbabfb41cb883b0d4a4c74738cc2bef6",
+  "source_archive_sha256": "f9507613c56b664b0b9d57953cbd9ad27bba741494e8bc71e9b8e98288197cf9",
+  "start_checkpoint_sha256": "dfa0d876ea9d3106463b510ea6f5bf063f82dd11d39552918f5171329b205cfd",
+  "result_archive_sha256": "f0b4d488e297da133a51acc81321ebf13a74433f1f9f0f9d38f877943a5c2e12",
+  "continuous_final_npz_sha256": "c58e156275bdb4263e80af750cafc76517c99f8112b5451d380d50e7f1572379",
+  "restart_final_npz_sha256": "8109f2282b7fc291eb4cd8f5adf607abc03176c24558cd06ddc5afdb152c3e44",
+  "array_correspondence": {
+    "eta": "bitwise_identical",
+    "active_phases": "bitwise_identical",
+    "orientations": "bitwise_identical",
+    "mobility_scale": "bitwise_identical"
+  },
+  "restart_exact": true,
+  "restart_time_exact": true,
+  "retrieval": "runner_checksum_verified",
+  "extracted_copy": "/Users/sdillon/HPC3/anisotropic-phase1-support-repair/extracted-20260915T1832Z-historical-restart-close",
+  "historical_outputs_modified": false
+}

@@ -1,0 +1,211 @@
+{
+  "classification": "ANISOTROPIC_IMPLEMENTATION_UNRESOLVED",
+  "job_id": "55932951",
+  "initial_sha256": "106819770289d156b0ff6a35d356a9aa172258f428325ec50c5f62f380ea56f6",
+  "initial_metadata_sha256": "ff66cb5f938b5b70fe9e611674956f1e45f30f0979714507a853750f61e1a9bb",
+  "matched_isotropic_initial_state": true,
+  "pf_coupling_qualified": false,
+  "production_release": false,
+  "scientific_evolution_performed": false,
+  "network": {
+    "vertices": 43540,
+    "edges": 44340,
+    "polylines": 2400,
+    "closed_loops": 0,
+    "total_length": 19434.31874897115,
+    "unique_pairs": 2400,
+    "reconstruction": "piecewise-linear upper envelope; fixed cell diagonal",
+    "continuum_geometry_converged": false
+  },
+  "ladder": {
+    "A0_ISOTROPIC": {
+      "gamma": {
+        "min": 1.0,
+        "p05": 1.0,
+        "median": 1.0,
+        "p95": 1.0,
+        "max": 1.0,
+        "mean": 1.0,
+        "ratio95_05": 1.0
+      },
+      "mobility": {
+        "min": 4.0,
+        "p05": 4.0,
+        "median": 4.0,
+        "p95": 4.0,
+        "max": 4.0,
+        "mean": 4.0,
+        "ratio95_05": 1.0
+      },
+      "stiffness": {
+        "min": 1.0,
+        "p05": 1.0,
+        "median": 1.0,
+        "p95": 1.0,
+        "max": 1.0,
+        "mean": 1.0,
+        "ratio95_05": 1.0
+      },
+      "reduced_mobility": {
+        "min": 4.0,
+        "p05": 4.0,
+        "median": 4.0,
+        "p95": 4.0,
+        "max": 4.0,
+        "mean": 4.0,
+        "ratio95_05": 1.0
+      },
+      "law": {
+        "strength": {
+          "g_min": 1.0,
+          "inclination_weight": 0.0,
+          "support_power": 2,
+          "mobility_exponent": 0.0
+        },
+        "gamma0": 1.0,
+        "mobility0": 4.0,
+        "energy_normalization": 1.0,
+        "mobility_normalization": 1.0
+      },
+      "dense_min_stiffness": 1.0,
+      "dense_actual_pair_max_stiffness": 1.0,
+      "pearson": null,
+      "rank_correlation": 1.0,
+      "constitutive_gates": {
+        "energy_range": false,
+        "mobility_range": false,
+        "reduced_mobility_range": false,
+        "stiffness_margin": true
+      },
+      "all_constitutive_gates": false,
+      "edge_polyline_energy_relative_error": 0.0
+    },
+    "A1_MODERATE": {
+      "gamma": {
+        "min": 0.8032839682472922,
+        "p05": 0.8452707389321032,
+        "median": 1.0084384514134181,
+        "p95": 1.1143677428230978,
+        "max": 1.1266416567913793,
+        "mean": 1.0000000000000002,
+        "ratio95_05": 1.3183559911596678
+      },
+      "mobility": {
+        "min": 3.523934150707739,
+        "p05": 3.5627476078706493,
+        "median": 3.936988920325591,
+        "p95": 4.696969653787351,
+        "max": 4.942475098363787,
+        "mean": 4.0,
+        "ratio95_05": 1.318355991148807
+      },
+      "stiffness": {
+        "min": 0.3302695083506602,
+        "p05": 0.33444931863615585,
+        "median": 0.6204365472071567,
+        "p95": 2.3672224310165677,
+        "max": 3.639067399663341,
+        "mean": 0.9847409445885625,
+        "ratio95_05": 7.077970559694415
+      },
+      "reduced_mobility": {
+        "min": 1.3895832855796122,
+        "p05": 1.3992949362740363,
+        "median": 2.401522844254966,
+        "p95": 9.64590038604787,
+        "max": 17.986000004103524,
+        "mean": 4.008502651394803,
+        "ratio95_05": 6.893400480482285
+      },
+      "law": {
+        "strength": {
+          "g_min": 0.8,
+          "inclination_weight": 0.65,
+          "support_power": 8,
+          "mobility_exponent": 1.0
+        },
+        "gamma0": 1.0,
+        "mobility0": 4.0,
+        "energy_normalization": 1.1078418017561684,
+        "mobility_normalization": 0.9925527524942722
+      },
+      "dense_min_stiffness": 0.33026947900787634,
+      "dense_actual_pair_max_stiffness": 3.64100808602048,
+      "pearson": -0.9961174407488214,
+      "rank_correlation": -1.0,
+      "constitutive_gates": {
+        "energy_range": true,
+        "mobility_range": false,
+        "reduced_mobility_range": true,
+        "stiffness_margin": true
+      },
+      "all_constitutive_gates": false,
+      "edge_polyline_energy_relative_error": 1.8719353397886955e-16
+    },
+    "A2_STRONG": {
+      "gamma": {
+        "min": 0.6652372343559098,
+        "p05": 0.7393367618139759,
+        "median": 1.0120533716428655,
+        "p95": 1.2158691422888712,
+        "max": 1.2368626300677308,
+        "mean": 1.0,
+        "ratio95_05": 1.6445403570975081
+      },
+      "mobility": {
+        "min": 2.417577964174112,
+        "p05": 2.501783660140607,
+        "median": 3.6109094074295958,
+        "p95": 6.766106396929358,
+        "max": 8.357383399240009,
+        "mean": 4.0,
+        "ratio95_05": 2.704512985966614
+      },
+      "stiffness": {
+        "min": 0.12829644788667924,
+        "p05": 0.12988325880523272,
+        "median": 0.19803361068461076,
+        "p95": 4.883831409162185,
+        "max": 8.159628723515477,
+        "mean": 0.9757245961504901,
+        "ratio95_05": 37.60170058934051
+      },
+      "reduced_mobility": {
+        "min": 0.4731335910990867,
+        "p05": 0.4864384937570874,
+        "median": 0.7014127329148275,
+        "p95": 20.30093408934297,
+        "max": 68.19314563787019,
+        "mean": 4.221653243306263,
+        "ratio95_05": 41.73381496300874
+      },
+      "law": {
+        "strength": {
+          "g_min": 0.65,
+          "inclination_weight": 0.85,
+          "support_power": 16,
+          "mobility_exponent": 2.0
+        },
+        "gamma0": 1.0,
+        "mobility0": 4.0,
+        "energy_normalization": 1.2060485247581734,
+        "mobility_normalization": 0.924620319961451
+      },
+      "dense_min_stiffness": 0.12829642333925464,
+      "dense_actual_pair_max_stiffness": 8.180781917909036,
+      "pearson": -0.9730280191960424,
+      "rank_correlation": -1.0,
+      "constitutive_gates": {
+        "energy_range": true,
+        "mobility_range": true,
+        "reduced_mobility_range": true,
+        "stiffness_margin": true
+      },
+      "all_constitutive_gates": true,
+      "edge_polyline_energy_relative_error": 1.8719353397886957e-16
+    }
+  },
+  "A3_status": "NOT_RELEASED: A2 numerical qualification must pass before escalation",
+  "normalization_status": "PROVISIONAL_POLYGONAL: reconstruction convergence pending",
+  "elapsed_seconds": 71.47805430996232
+}
