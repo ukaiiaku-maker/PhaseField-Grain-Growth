@@ -9,7 +9,10 @@ import json
 import shutil
 from pathlib import Path
 
-from scripts.build_qiu_native_preflight_v3 import PRISTINE_DRIVER_SHA256, instrument as preflight_instrument
+try:
+    from scripts.build_qiu_native_preflight_v3 import PRISTINE_DRIVER_SHA256, instrument as preflight_instrument
+except ModuleNotFoundError:  # Direct ``python scripts/...`` execution.
+    from build_qiu_native_preflight_v3 import PRISTINE_DRIVER_SHA256, instrument as preflight_instrument
 
 
 PRISTINE_FUNCTIONS_SHA256 = "3fb625fcb88be515defb813df198f671b45f528e44f32ac7fabae36e1c926aaf"
