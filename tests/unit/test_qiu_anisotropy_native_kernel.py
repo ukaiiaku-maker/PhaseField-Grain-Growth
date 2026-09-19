@@ -55,3 +55,14 @@ def test_native_mobility_kernel_matches_pair_law():
     expected=_pair_law(theta,0.1,0.7,1.0,pmobi,0.65,0.85,16,2.0,1.0910512514090829,0.93,1.07)[2]
     actual=f.qiu_anisotropic_mobility(phi,0,1,l,m,lp,lm,mp,mm,1.0,0.1,0.7,pmobi,0.65,0.85,16,2.0,1.0910512514090829,0.93,1.07)
     np.testing.assert_allclose(actual,expected,rtol=2e-15,atol=2e-15)
+
+
+def test_singleton_boundary_criterion_hit_has_zero_line_extent():
+    f = load_functions()
+    phi = np.zeros((2, 4, 5))
+    x, y = f.sort_gb(
+        np.asarray([[2, 3]], dtype=np.int64), False, 0,
+        4, 5, 1.0, 1.0, phi,
+    )
+    assert x.dtype == np.int64 and y.dtype == np.int64
+    assert x.size == 0 and y.size == 0

@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 
 CONTROLS={"QIU_SI_4REF_A0_PORT":0,"QIU_SI_4REF_ANISO_E":1,"QIU_SI_4REF_ANISO_M":2,"QIU_SI_4REF_ANISO_EM_INV":3}
-IDENTITIES={"PF_Codes.zip":"2740e0af26bd3acd24bfbbca44b8b3cd56e2e3bacf97ef5648ab69b84989bf90","sparse-0.19.2-py2.py3-none-any.whl":"2fcad7b83dacb5c70123a7de76db3626cbdaf567fcf12bdbf637aca6c4ee1bbe","build/Bicrystal-4reference-el-pf-control-v1.py":"a1d3b971041c4e13aa288c72867690ce5d0e29265b11daab0e52418453d75db1","build/functions_4ref_new.py":"9ce5fb1eec86498cc84cc6bed7c6e25dd37abcb87cecad096064b5a9e1acb78a","build/control_build_manifest.json":"96a816a9423236a25a951cd5a3ef3f5dc097cb34010540846d52946bf20d8dc5","build/qiu_native_preflight_v3_instrumentation.py":"a94dddb70806b86a76dac16a12b76c8b0d00d537940f9d33b4717f857d98b943"}
+IDENTITIES={"PF_Codes.zip":"2740e0af26bd3acd24bfbbca44b8b3cd56e2e3bacf97ef5648ab69b84989bf90","sparse-0.19.2-py2.py3-none-any.whl":"2fcad7b83dacb5c70123a7de76db3626cbdaf567fcf12bdbf637aca6c4ee1bbe","build/Bicrystal-4reference-el-pf-control-v1.py":"a1d3b971041c4e13aa288c72867690ce5d0e29265b11daab0e52418453d75db1","build/functions_4ref_new.py":"04975b4b7e3ebcb7e6ac2a235892f5e8a530176c5facf3dec537c04d884a1dbd","build/control_build_manifest.json":"6f73c15f5e19744bb5d84cce5b10573159ced91c87f9dc2bfa7c08df1178d650","build/qiu_native_preflight_v3_instrumentation.py":"a94dddb70806b86a76dac16a12b76c8b0d00d537940f9d33b4717f857d98b943"}
 def sha(path): return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def step(path):
  with np.load(path,allow_pickle=False) as z:return int(z["accepted_step"])
@@ -43,7 +43,7 @@ comp=json.loads((c/'compilation_manifest.json').read_text());assert comp['object
 r=c/f'native-restart-step{{target:06d}}.npz';assert r.is_file()
 with np.load(r,allow_pickle=False) as z:assert int(z['accepted_step'])==target
 d={{'schema':'qiu-control-segment-v1','classification':'QIU_SI_CONTROL_WINDOW_PASSED','control':control,'control_code':{CONTROLS[control]},'segment_start':start,'segment_target':target,'parent_checkpoint_sha256':'{parent_sha}','end_checkpoint_sha256':hashlib.sha256(r.read_bytes()).hexdigest(),'energy_normalization':{energy_norm!r},'mobility_normalization':{mobility_norm!r},'execution_threads':1,'finite':True}}
-(root/'segment_decision.json').write_text(json.dumps(d,indent=2)+'\n')
+(root/'segment_decision.json').write_text(json.dumps(d,indent=2)+'\\n')
 PY
 find output -type f -print0|sort -z|xargs -0 sha256sum >output/payload-files.sha256
 '''

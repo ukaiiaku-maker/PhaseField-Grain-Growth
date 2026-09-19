@@ -31,3 +31,11 @@ def test_segment_bounds_are_preregistered_in_wrapper():
     wrapper=wrapper_text(199750,200000,"parent/restart.npz","b"*64)
     assert "target=200000" in wrapper
     assert "range(((start//250)+1)*250,target+1,250)" in wrapper
+
+
+def test_generated_wrapper_embedded_python_compiles():
+    wrapper = wrapper_text(0, 4000, "", "")
+    chunks = wrapper.split("\"$python_bin\" - <<'PY'\n")[1:]
+    assert chunks
+    for chunk in chunks:
+        compile(chunk.split("\nPY\n", 1)[0], "<generated-wrapper>", "exec")

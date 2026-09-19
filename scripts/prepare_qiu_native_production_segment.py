@@ -86,11 +86,11 @@ for item in manifest['checkpoints']:
 restart=cdir/'{expected_restart}'
 with np.load(restart,allow_pickle=False) as state: assert int(state['accepted_step'])==target
 decision={{'schema':'qiu-native-production-segment-v1','classification':'QIU_SI_NATIVE_BASELINE_SEGMENT_PASSED','logical_trajectory':'QIU_SI_NATIVE_BASELINE_V2','segment_start':start,'segment_target':target,'parent_checkpoint_sha256':'{parent_sha256}','end_checkpoint':restart.name,'end_checkpoint_sha256':hashlib.sha256(restart.read_bytes()).hexdigest(),'execution_threads':1,'finite':True}}
-(root/'segment_decision.json').write_text(json.dumps(decision,indent=2)+'\n')
+(root/'segment_decision.json').write_text(json.dumps(decision,indent=2)+'\\n')
 artifacts=[]
 for p in sorted(x for x in root.rglob('*') if x.is_file() and x.name not in {{'artifact_manifest.json','payload-files.sha256'}}):
  artifacts.append({{'path':str(p.relative_to(root)),'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'bytes':p.stat().st_size}})
-(root/'artifact_manifest.json').write_text(json.dumps({{'schema':'qiu-native-production-segment-artifacts-v1','artifacts':artifacts}},indent=2)+'\n')
+(root/'artifact_manifest.json').write_text(json.dumps({{'schema':'qiu-native-production-segment-artifacts-v1','artifacts':artifacts}},indent=2)+'\\n')
 PY
 find output -type f ! -name payload-files.sha256 -print0 | sort -z | xargs -0 sha256sum >output/payload-files.sha256
 '''

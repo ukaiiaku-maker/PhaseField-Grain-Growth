@@ -168,6 +168,14 @@ def sort_gb(gb_ij, flag, normal_ii, nx, ny, dx, dy, phi):
     gb_ij_x = gb_ij[:, 0]
     gb_ij_y = gb_ij[:, 1]
 
+    # A single contour pixel has zero line extent.  The archived sorter removes
+    # both endpoints, so passing this degenerate case to it attempted to delete
+    # an endpoint from an already-empty array.  Anisotropic evolution can create
+    # this transient one-pixel criterion hit even though the A0 trajectory does
+    # not.  Preserve the physical zero-length interpretation explicitly.
+    if gb_ij_x.size <= 1:
+        return np.empty(0, dtype=gb_ij_x.dtype), np.empty(0, dtype=gb_ij_y.dtype)
+
     gb_ij_x_new = np.empty(1, dtype=gb_ij_x.dtype)
     gb_ij_y_new = np.empty(1, dtype=gb_ij_y.dtype)
 

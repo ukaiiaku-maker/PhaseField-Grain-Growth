@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 
 CONTROL="QIU_SI_4REF_ANISO_EM_INV_DT_HALF"
-IDENTITIES={"PF_Codes.zip":"2740e0af26bd3acd24bfbbca44b8b3cd56e2e3bacf97ef5648ab69b84989bf90","sparse-0.19.2-py2.py3-none-any.whl":"2fcad7b83dacb5c70123a7de76db3626cbdaf567fcf12bdbf637aca6c4ee1bbe","build/Bicrystal-4reference-el-pf-control-v1.py":"34ffa08f24aeeaac4f28409170bcbfd89ca39a4564809ffea13ab2b06ee7b27d","build/functions_4ref_new.py":"9ce5fb1eec86498cc84cc6bed7c6e25dd37abcb87cecad096064b5a9e1acb78a","build/control_build_manifest.json":"d63fb5aacbaca387dbf4dece94f6bc24db767fd1752bedc4262fc4bc55e31e17"}
+IDENTITIES={"PF_Codes.zip":"2740e0af26bd3acd24bfbbca44b8b3cd56e2e3bacf97ef5648ab69b84989bf90","sparse-0.19.2-py2.py3-none-any.whl":"2fcad7b83dacb5c70123a7de76db3626cbdaf567fcf12bdbf637aca6c4ee1bbe","build/Bicrystal-4reference-el-pf-control-v1.py":"34ffa08f24aeeaac4f28409170bcbfd89ca39a4564809ffea13ab2b06ee7b27d","build/functions_4ref_new.py":"04975b4b7e3ebcb7e6ac2a235892f5e8a530176c5facf3dec537c04d884a1dbd","build/control_build_manifest.json":"1bd8218a6a064f1791f504bcb7892457fbfd067b412c8f76dc00e47ed7c192eb"}
 def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 def step(path):
  with np.load(path,allow_pickle=False) as z:return int(z["accepted_step"])
@@ -43,7 +43,7 @@ comp=json.loads((c/'compilation_manifest.json').read_text());assert comp['object
 r=c/f'native-restart-step{{target:06d}}.npz';assert r.is_file()
 with np.load(r,allow_pickle=False) as z:assert int(z['accepted_step'])==target
 d={{'schema':'qiu-timestep-segment-v1','classification':'QIU_SI_TIMESTEP_SEGMENT_PASSED','control':'{CONTROL}','accepted_dt':0.05,'segment_start':start,'segment_target':target,'parent_checkpoint_sha256':'{parent_sha}','end_checkpoint_sha256':hashlib.sha256(r.read_bytes()).hexdigest(),'energy_normalization':{energy!r},'mobility_normalization':{mobility!r},'execution_threads':1,'finite':True}}
-(root/'segment_decision.json').write_text(json.dumps(d,indent=2)+'\n')
+(root/'segment_decision.json').write_text(json.dumps(d,indent=2)+'\\n')
 PY
 find output -type f -print0|sort -z|xargs -0 sha256sum >output/payload-files.sha256
 '''

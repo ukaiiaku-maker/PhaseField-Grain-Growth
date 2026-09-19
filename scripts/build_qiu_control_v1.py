@@ -16,7 +16,7 @@ except ModuleNotFoundError:
 
 
 DRIVER_SHA256="03f8cee8834e5f9669dceb1c831590de55c5ef26f6cc41e0913c0fc89ee2cd17"
-FUNCTIONS_SHA256="9ce5fb1eec86498cc84cc6bed7c6e25dd37abcb87cecad096064b5a9e1acb78a"
+FUNCTIONS_SHA256="04975b4b7e3ebcb7e6ac2a235892f5e8a530176c5facf3dec537c04d884a1dbd"
 
 
 def sha256(path: Path) -> str: return hashlib.sha256(path.read_bytes()).hexdigest()
