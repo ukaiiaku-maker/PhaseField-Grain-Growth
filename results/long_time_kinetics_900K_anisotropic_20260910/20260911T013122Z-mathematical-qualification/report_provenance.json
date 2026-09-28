@@ -1,0 +1,12 @@
+{
+  "generator": "report_anisotropic_qualification.py",
+  "generator_sha256": "7e53ad58f2096a983448e83642e936ca213582e97b3e15e109010ac3cdaa2474",
+  "retrieved_output": "/Users/sdillon/HPC3/anisotropic-phase1-state/hpc3-results/pfgg-anisotropic-cahn-hoffman-v1/20260911T013122Z-nogit-e7f36e/decoded/output",
+  "earlier_outputs": [
+    "/Users/sdillon/HPC3/anisotropic-phase1-state/hpc3-results/pfgg-anisotropic-cahn-hoffman-v1/20260911T010258Z-nogit-ae4ebc/decoded/output"
+  ],
+  "python_version": "3.13.5",
+  "matplotlib_version": "3.10.0",
+  "scientific_evolution_or_constitutive_reevaluation": false,
+  "operations": "compact JSON/XML evidence assembly and lightweight summary plotting"
+}

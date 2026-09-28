@@ -1,0 +1,14 @@
+{
+  "analysis_script": "scripts/analyze_anisotropic_postfix.py",
+  "analysis_script_sha256": "2dc9bc5ea4b62f37f11f4d66f9a8df92c3a687cd63c6b021f08e5b027ebd77ea",
+  "case_summary_sha256": {
+    "A0": "91e3108d65c634df6eefa134fbee7bcb23d091791f508bec7dd07704744282d1",
+    "A2_energy_only": "c283826a03a6c876643db4846466e377de651837285cd94c734038502cfefcd7"
+  },
+  "fine_checkpoint_sha256": "32963dd9bf37f5666790876e67c84ae851a9106b4d70ad3422a807e8a07ea6a3",
+  "fine_continuous_state_sha256": "c58e156275bdb4263e80af750cafc76517c99f8112b5451d380d50e7f1572379",
+  "input_root": "/Users/sdillon/HPC3/anisotropic-phase1-state/extracted-20260915T0825Z/output/postfix",
+  "result_archive_sha256": "b1d3eec6b0b693641958c78fcc73bf2bd7a83bc827eff861fdd661cfd116fc42",
+  "schema": "anisotropic-postfix-analysis-provenance-v1",
+  "scientific_source_commit": "1316cc89dbabfb41cb883b0d4a4c74738cc2bef6"
+}

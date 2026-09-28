@@ -1,0 +1,142 @@
+{
+  "dirty_patch": "",
+  "fetch_status": "verified",
+  "git_commit": "",
+  "input_bundle": "/Users/sdillon/HPC3/qiu-qualification-20260910/.hpc3/bundles/20260917T041831Z-nogit-8512a3-source.tar.gz",
+  "input_bundle_checksum": "f0f0df5b264b3a0c9299fb09f62eb734db80ad08231ebd7d8b36f8b1f2ec5ddf",
+  "input_checksums": {
+    "PF_Codes.zip": "2740e0af26bd3acd24bfbbca44b8b3cd56e2e3bacf97ef5648ab69b84989bf90",
+    "build/Bicrystal-4reference-el-pf-preflight-v2.py": "252028f1a4326c10e7f41cebde0db5ba69de0449838d7b21eedea8ce996afb54",
+    "build/functions_4ref_new.py": "3fb625fcb88be515defb813df198f671b45f528e44f32ac7fabae36e1c926aaf",
+    "build/preflight_build_manifest.json": "3f2f9558bf58c2d88ec8056a378879b4bd47f3ed8229d09d638bb26a4c34b000",
+    "build/qiu_native_preflight_v2_instrumentation.py": "8addc8394d8476f9b60f643b52e44f8775d95bf21cc6ef23cc5808dec8976015",
+    "native_compatibility_patch.json": "e339f32265a030488f1d77bca8581bb10224d3662a0b2ea5a53b06e9bf34f10b",
+    "run_native_preflight_v2_incompatibility.sh": "5132bedab232736f6a22ee970423fc0989e9c663d8110c5a79aa663b5cf378f4",
+    "sparse-0.13.0-py2.py3-none-any.whl": "95ed0b649a0663b1488756ad4cf242b0a9bb2c9a25bc752a7c6ca9fbe8258966"
+  },
+  "input_files_from": "",
+  "input_files_from_checksum": "",
+  "job_id": "56102284",
+  "last_status_raw": "56102284|COMPLETED|0:0|00:01:21|01:00:00|hpc3-14-22\nMARKERS=1 COMPLETE_MARKERS=1\n",
+  "local_source_path": "/Users/sdillon/HPC3/qiu-qualification-20260910/qiu-native-preflight-v2-incompatibility",
+  "manifest": {
+    "checkpoint_command": [],
+    "contains_sensitive_data": false,
+    "entrypoint": [
+      "bash",
+      "run_native_preflight_v2_incompatibility.sh"
+    ],
+    "environment": {
+      "PYTHONHASHSEED": "0"
+    },
+    "input_mode": "archive",
+    "input_paths": [
+      "run_native_preflight_v2_incompatibility.sh",
+      "PF_Codes.zip",
+      "sparse-0.13.0-py2.py3-none-any.whl",
+      "native_compatibility_patch.json",
+      "build"
+    ],
+    "modules": [],
+    "name": "pfgg-qiu-native-preflight-v2",
+    "notifications": {
+      "email": "sdillon1@uci.edu",
+      "enabled": false,
+      "events": [
+        "FAIL",
+        "END"
+      ]
+    },
+    "output_paths": [
+      "output"
+    ],
+    "remote_inputs": {},
+    "resources": {
+      "account": "SDILLON1_LAB",
+      "constraint": "",
+      "cpus_per_task": 8,
+      "gres": "",
+      "memory": "32G",
+      "nodes": 1,
+      "ntasks": 1,
+      "partition": "standard",
+      "qos": "",
+      "temporary_space": "100G",
+      "time": "01:00:00"
+    },
+    "result_mode": "archive",
+    "scratch_mode": "local",
+    "sweep": null,
+    "working_directory": "."
+  },
+  "manifest_path": "/Users/sdillon/HPC3/qiu-qualification-20260910/qiu-native-preflight-v2-incompatibility/job.toml",
+  "project": "pfgg-qiu-qualification",
+  "remote_path": "/pub/sdillon1/codex-runs/pfgg-qiu-qualification/20260917T041831Z-nogit-8512a3",
+  "resources": {
+    "account": "SDILLON1_LAB",
+    "constraint": "",
+    "cpus_per_task": 8,
+    "gres": "",
+    "memory": "32G",
+    "nodes": 1,
+    "ntasks": 1,
+    "partition": "standard",
+    "qos": "",
+    "temporary_space": "100G",
+    "time": "01:00:00"
+  },
+  "result_checksums": {
+    "control/submit.sh": "d176ad437b4c843823eb1d36a5379c15ce023d0aac17402b4ff6b6be0b7bbfc5",
+    "input/source.tar.gz": "f0f0df5b264b3a0c9299fb09f62eb734db80ad08231ebd7d8b36f8b1f2ec5ddf",
+    "logs/hpc3-20260917T041831Z-nogit-8512a3-slurm-56102284.err": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "logs/hpc3-20260917T041831Z-nogit-8512a3-slurm-56102284.out": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "results/checksums-single.sha256": "cdd476b1d394a52437c6ce4ce4a2d9d259ba094c0cc3d79ef82f7f737081bc02",
+    "results/results-single.tar.gz": "1a3c03d4f1905579d273207c3f94dce300b4b07552c7c29083a59b693ef8f413",
+    "status/final-single.json": "55f7cb85a2866c64c606c5e9615356e8b088162a322ca5412a6b915c63b00477"
+  },
+  "run_id": "20260917T041831Z-nogit-8512a3",
+  "sacct": "JobID             State ExitCode    Elapsed  Timelimit  AllocCPUS        NodeList \n------------ ---------- -------- ---------- ---------- ---------- --------------- \n56102284      COMPLETED      0:0   00:01:21   01:00:00          8      hpc3-14-22 \n56102284.ba+  COMPLETED      0:0   00:01:21                     8      hpc3-14-22 \n56102284.ex+  COMPLETED      0:0   00:01:21                     8      hpc3-14-22 \nJob ID: 56102284\nCluster: hpc3\nUser/Group: sdillon1/sdillon1\nState: COMPLETED (exit code 0)\nNodes: 1\nCores per node: 8\nCPU Utilized: 00:01:39\nCPU Efficiency: 15.28% of 00:10:48 core-walltime\nJob Wall-clock time: 00:01:21\nMemory Utilized: 740.54 MB\nMemory Efficiency: 2.26% of 32.00 GB (32.00 GB/node)\n",
+  "safe_environment": {
+    "LANG": "C.UTF-8",
+    "LC_ALL": "C.UTF-8"
+  },
+  "seff": "Job ID: 56102284\nCluster: hpc3\nUser/Group: sdillon1/sdillon1\nState: COMPLETED (exit code 0)\nNodes: 1\nCores per node: 8\nCPU Utilized: 00:01:39\nCPU Efficiency: 15.28% of 00:10:48 core-walltime\nJob Wall-clock time: 00:01:21\nMemory Utilized: 740.54 MB\nMemory Efficiency: 2.26% of 32.00 GB (32.00 GB/node)\n",
+  "source_snapshot": "",
+  "source_snapshot_checksum": "",
+  "state": "RETRIEVED",
+  "state_history": [
+    {
+      "at": "2026-09-17T04:18:31.885123+00:00",
+      "detail": "local plan created",
+      "state": "PREPARED"
+    },
+    {
+      "at": "2026-09-17T04:19:10.528257+00:00",
+      "detail": "input and control files uploaded through transfer host",
+      "state": "UPLOADED"
+    },
+    {
+      "at": "2026-09-17T04:19:11.515785+00:00",
+      "detail": "Slurm job 56102284",
+      "state": "SUBMITTED"
+    },
+    {
+      "at": "2026-09-17T04:20:32.670950+00:00",
+      "detail": "Slurm state RUNNING",
+      "state": "RUNNING"
+    },
+    {
+      "at": "2026-09-17T04:21:36.672378+00:00",
+      "detail": "Slurm state COMPLETED",
+      "state": "COMPLETED"
+    },
+    {
+      "at": "2026-09-17T04:22:39.912057+00:00",
+      "detail": "downloaded through transfer host and checksums verified",
+      "state": "RETRIEVED"
+    }
+  ],
+  "submission_timestamp": "2026-09-17T04:19:11.515721+00:00",
+  "submit_script": "#!/bin/bash\n#SBATCH --job-name=pfgg-qiu-native-preflight-v2\n#SBATCH --comment=20260917T041831Z-nogit-8512a3\n#SBATCH --account=SDILLON1_LAB\n#SBATCH --partition=standard\n#SBATCH --time=01:00:00\n#SBATCH --nodes=1\n#SBATCH --ntasks=1\n#SBATCH --cpus-per-task=8\n#SBATCH --mem=32G\n#SBATCH --output=/tmp/hpc3-20260917T041831Z-nogit-8512a3-slurm-%j.out\n#SBATCH --error=/tmp/hpc3-20260917T041831Z-nogit-8512a3-slurm-%j.err\n#SBATCH --chdir=/tmp\n#SBATCH --tmp=100G\n\nset -Eeuo pipefail\numask 027\nexport HPC3_RUN_DIR=/pub/sdillon1/codex-runs/pfgg-qiu-qualification/20260917T041831Z-nogit-8512a3\nexport HPC3_INPUT_DIR=\"$HPC3_RUN_DIR/input\"\nexport HPC3_OUTPUT_DIR=\"$HPC3_RUN_DIR/results\"\nexport HPC3_RUN_ID=20260917T041831Z-nogit-8512a3\nhpc3_retry() {\n  local attempt=1\n  until \"$@\"; do\n    if [ \"$attempt\" -ge 40 ]; then return 1; fi\n    printf \"HPC3 transient I/O failure (attempt %d/40): %s\\n\" \"$attempt\" \"$*\" >&2\n    attempt=$((attempt + 1))\n    sleep 15\n  done\n}\nhpc3_retry mkdir -p \"$HPC3_OUTPUT_DIR\" \"$HPC3_RUN_DIR/status\"\ntask_suffix=\"${SLURM_ARRAY_TASK_ID:-single}\"\ntask_results=\"$HPC3_OUTPUT_DIR/$task_suffix\"\nhpc3_retry mkdir -p \"$task_results\"\nexport PYTHONHASHSEED=0\n: \"${TMPDIR:?Slurm did not provide TMPDIR}\"\nexport HPC3_WORK_DIR=\"$TMPDIR/hpc3-$HPC3_RUN_ID-$task_suffix\"\nstage_hpc3_input() {\n  rm -rf \"$HPC3_WORK_DIR\"\n  mkdir -p \"$HPC3_WORK_DIR\"\n  tar -xzf \"$HPC3_INPUT_DIR/source.tar.gz\" -C \"$HPC3_WORK_DIR\"\n}\nhpc3_retry stage_hpc3_input\ncd \"$HPC3_WORK_DIR\"/.\nmarker=\"$HPC3_RUN_DIR/status/final-$task_suffix.json\"\noutput_patterns=(output)\ntask_results=\"$TMPDIR/hpc3-result-stage-$HPC3_RUN_ID-$task_suffix\"\nrm -rf \"$task_results\"\nmkdir -p \"$task_results\"\nnode_log_stem=\"hpc3-20260917T041831Z-nogit-8512a3-slurm-${SLURM_JOB_ID}\"\npreserve_node_logs() { hpc3_retry cp -f \"/tmp/$node_log_stem.out\" \"/tmp/$node_log_stem.err\" \"$HPC3_RUN_DIR/logs/\"; }\ncopy_result_item() { src=\"$1\"; dest=\"$2\"; partial=\"$dest.partial.$$\"; rm -rf \"$partial\"; mkdir -p \"$(dirname \"$dest\")\"; cp -R \"$src\" \"$partial\"; rm -rf \"$dest\"; mv \"$partial\" \"$dest\"; }\nscratch_emergency_finalize() {\n  original_rc=$?; trap - EXIT; set +e\n  if [ ! -f \"$marker\" ]; then\n    for pattern in \"${output_patterns[@]}\"; do while IFS= read -r -d \"\" item; do rel=\"${item#./}\"; hpc3_retry copy_result_item \"$item\" \"$task_results/$rel\"; done < <(find . -path \"./$pattern\" -print0 2>/dev/null); done\n    partial_archive=\"$TMPDIR/partial-results-$task_suffix.tar.gz\"\n    (cd \"$task_results\" && tar -czf \"$partial_archive\" .)\n    hpc3_retry cp -f \"$partial_archive\" \"$HPC3_OUTPUT_DIR/partial-results-$task_suffix.tar.gz\" || true\n    preserve_node_logs || true\n    emergency_tmp=\"$marker.tmp.$$\"\n    printf '{\"run_id\":\"%s\",\"job_id\":\"%s\",\"task\":\"%s\",\"application_exit\":%d,\"finalization_exit\":1,\"complete\":false,\"partial\":true}\\n' \"$HPC3_RUN_ID\" \"${SLURM_JOB_ID:-}\" \"$task_suffix\" \"$original_rc\" >\"$emergency_tmp\"\n    mv \"$emergency_tmp\" \"$marker\"\n  fi\n  exit \"$original_rc\"\n}\ntrap scratch_emergency_finalize EXIT\nstart_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)\nhostname_value=$(hostname)\nmodule list 2>\"$task_results/modules.txt\" || true\nprintf \"run_id=%s\\njob_id=%s\\nhost=%s\\nstart=%s\\n\" \"$HPC3_RUN_ID\" \"${SLURM_JOB_ID:-}\" \"$hostname_value\" \"$start_time\" >\"$task_results/provenance.txt\"\nset +e\nbash run_native_preflight_v2_incompatibility.sh\napp_rc=$?\nset -e\nfinalize_rc=0\nchecksum_scopes=(\"$task_suffix\")\nfor pattern in \"${output_patterns[@]}\"; do\n  while IFS= read -r -d \"\" item; do\n    rel=\"${item#./}\"\n    hpc3_retry mkdir -p \"$task_results/$(dirname \"$rel\")\" || finalize_rc=$?\n    hpc3_retry copy_result_item \"$item\" \"$task_results/$rel\" || finalize_rc=$?\n  done < <(find . -path \"./$pattern\" -print0 2>/dev/null)\ndone\nlocal_archive=\"$TMPDIR/results-$task_suffix.tar.gz\"\n(cd \"$task_results\" && tar -czf \"$local_archive\" .) || finalize_rc=$?\nhpc3_retry cp -f \"$local_archive\" \"$HPC3_OUTPUT_DIR/results-$task_suffix.tar.gz\" || finalize_rc=$?\nrm -rf \"$task_results\"\nhpc3_retry mkdir -p \"$HPC3_OUTPUT_DIR/$task_suffix\" || finalize_rc=$?\nchecksum_scopes=(\"results-$task_suffix.tar.gz\")\nchecksum_file=\"$HPC3_OUTPUT_DIR/checksums-$task_suffix.sha256\"\nif command -v sha256sum >/dev/null; then (cd \"$HPC3_OUTPUT_DIR\" && for scope in \"${checksum_scopes[@]}\"; do find \"$scope\" -type f -print0; done | sort -z | xargs -0 sha256sum) >\"$checksum_file\" || finalize_rc=$?; else (cd \"$HPC3_OUTPUT_DIR\" && for scope in \"${checksum_scopes[@]}\"; do find \"$scope\" -type f -exec shasum -a 256 {} \\;; done) >\"$checksum_file\" || finalize_rc=$?; fi\nend_time=$(date -u +%Y-%m-%dT%H:%M:%SZ)\npreserve_node_logs || finalize_rc=$?\ncomplete=false; [ \"$app_rc\" -eq 0 ] && [ \"$finalize_rc\" -eq 0 ] && complete=true\ntmp_marker=\"$marker.tmp.$$\"\nprintf '{\"run_id\":\"%s\",\"job_id\":\"%s\",\"task\":\"%s\",\"host\":\"%s\",\"start\":\"%s\",\"end\":\"%s\",\"application_exit\":%d,\"finalization_exit\":%d,\"complete\":%s}\\n' \"$HPC3_RUN_ID\" \"${SLURM_JOB_ID:-}\" \"$task_suffix\" \"$hostname_value\" \"$start_time\" \"$end_time\" \"$app_rc\" \"$finalize_rc\" \"$complete\" >\"$tmp_marker\"\nmv \"$tmp_marker\" \"$marker\"\n[ \"$finalize_rc\" -eq 0 ] || exit \"$finalize_rc\"\nexit \"$app_rc\"\n",
+  "working_tree_dirty": false
+}

@@ -1,0 +1,112 @@
+{
+  "base_commit": "9f66c8d7a5a266687284d8da35aefbc6062808f7",
+  "source_production_commit": "4761ef957715ba2faa84f015a0e4f4c4cd21c7aa",
+  "verified_modest_artifacts": [
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/B0-T900-s5101/manifest.json",
+      "sha256": "ed03ec9ad757b97f0d39485fcdde8671b8cee0258a25e9f90500fc7569f8aaee"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/B0-T900-s5101/performance.json",
+      "sha256": "a95226dc7e9f6004d35947bd6bd551a87ea268454e4e8a5938d2062c570956f9"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/B0-T900-s5101/energy.json",
+      "sha256": "7f026331d53d91cbba7c38d10b146f890553b218b83ef2ff29c2482abb49618f"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/G-T900-s5101/manifest.json",
+      "sha256": "8a52a0022609f0ee1fd8cd7ef7bdd3d709baa3232477955776c738c138cf963c"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/G-T900-s5101/performance.json",
+      "sha256": "2af709a9ec25585393ac069d6cef02acf8d7c8c3707987bdf964357d19fff95a"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/G-T900-s5101/energy.json",
+      "sha256": "f0566a3fb3941acedc036a79ba1f24a8b3bede427e11399587810c2f7c879f5b"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/GSC_GBTJ_Ks025-T900-s5101/manifest.json",
+      "sha256": "26148dd535087229344a35a765886065c1b82d6b98b835d4bb1b00e06ad0bad8"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/GSC_GBTJ_Ks025-T900-s5101/performance.json",
+      "sha256": "febd228ebe6ff10f3e02d64a6bc3a210c30566b78001ddc69972ddb54fa52c6f"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/GSC_GBTJ_Ks025-T900-s5101/energy.json",
+      "sha256": "9b1e3bb852c0d71ba804027ab07733b157195255667e20024eba1fa98887a4a2"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/GT-T900-s5101/manifest.json",
+      "sha256": "7dbebf7f88080df49313770a9abeb185b1092e9d9f6049b5634efe6958663c4d"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/GT-T900-s5101/performance.json",
+      "sha256": "2a111a20cd13ec132f82280f47989823e8a803e664f544b4158744e68cae06c6"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/GT-T900-s5101/energy.json",
+      "sha256": "f18d0b8ceeaa881572034f6f08853e00b51dfb2f3c6bfed4263251f6e9dfa5c3"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/GTC_GB-T900-s5101/manifest.json",
+      "sha256": "d2b9d12f7cd555a6491de052b92c7f81bfc36f7dfd6a672086c45460f38a15e6"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/GTC_GB-T900-s5101/performance.json",
+      "sha256": "d7ccb47336ae0ed605329f60fa159f4de89c242d395cc007c6004c85083ba644"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/GTC_GB-T900-s5101/energy.json",
+      "sha256": "930ecda9a51d8e9532b70f67e708a53d61acd474e6b9b507ae0139d6e79b1da9"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/GTSC_GBTJ_Ks025-T900-s5101/manifest.json",
+      "sha256": "9176b3214d3b3361727418d297a00a1d9ff15687588cfe90683c1ad1ff8058cc"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/GTSC_GBTJ_Ks025-T900-s5101/performance.json",
+      "sha256": "5af97e02fc412bcb8a3516dac05f36e5c9530402fc0e34cc9cc51b8720302ea2"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/GTSC_GBTJ_Ks025-T900-s5101/energy.json",
+      "sha256": "c1815bcc3da4bcff6cc0874355d327e7e76a28450f0bdc15514b6ed4e7566c48"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/GTSC_GBTJ_Ks030_LONG-T900-s5101/manifest.json",
+      "sha256": "af8df235f42f5d08e49b16ab7597f8c554385adafb74b394fb7d9ed83307d8a2"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/GTSC_GBTJ_Ks030_LONG-T900-s5101/performance.json",
+      "sha256": "b30ce10d59e7a9002b683f9d6479cd6e02f2ce8971c8b33d43baf42ea73f0d14"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/GTSC_GBTJ_Ks030_LONG-T900-s5101/energy.json",
+      "sha256": "213b937652805523c7ca9118fb80bc8305a6afad043cfcef85c6da4882009f43"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/T-T900-s5101/manifest.json",
+      "sha256": "cc4f77ea4135d3427f7740de1ceaec3c312d671ed400028508c18ef47a7d34ac"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/T-T900-s5101/performance.json",
+      "sha256": "2a4119e97e5c7100fbe3e8d60196e9f7454bd9de6ee553ddd24061c3046765ff"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/long_time_kinetics_900K_20260824/20260825T012949Z-6d83ee5c82/T-T900-s5101/energy.json",
+      "sha256": "f12165986e483063687b8bf1dce896d86b3f1bcdacb353e782d099d8ebbcc6ed"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/initial_conditions/seed-5101-5ba2f47025f7d22a.npz",
+      "sha256": "106819770289d156b0ff6a35d356a9aa172258f428325ec50c5f62f380ea56f6"
+    },
+    {
+      "path": "/Users/sdillon/PF-graingrowth/results/initial_conditions/seed-5101-5ba2f47025f7d22a.json",
+      "sha256": "ff66cb5f938b5b70fe9e611674956f1e45f30f0979714507a853750f61e1a9bb"
+    }
+  ],
+  "large_artifacts": "not rehashed locally; deferred to compute allocation",
+  "matched_isotropic_initial_state": true
+}

@@ -1,0 +1,27 @@
+{
+  "schema": "anisotropic-phase1-diffuse-pf-decision-v1",
+  "classification": "ANISOTROPIC_PF_TJ_ENERGY_GATE_FAILED",
+  "production_release": false,
+  "reduced_polycrystal_release": false,
+  "failed_gate": "diffuse A2 triple-junction discrete energy descent",
+  "failure_scope": "current active-set/projection anisotropic PF formulation",
+  "timestep_instability_excluded": true,
+  "reason": "Energy jumps persisted without convergence when the accepted timestep was reduced by a factor of eight.",
+  "qualification_job": {
+    "slurm_job_id": "55949185",
+    "runner_run_id": "20260911T235728Z-nogit-26d715",
+    "source_commit": "8d274f814f7af9ddcd9639274aefdf415df0010f"
+  },
+  "refinement_job": {
+    "slurm_job_id": "55949331",
+    "runner_run_id": "20260912T001247Z-nogit-ff8282",
+    "source_commit": "403b1a43c7df91990e25e42712b59fd6e73f8694",
+    "source_archive_sha256": "f8406bc63e9313e388399b23717ad2036fdbaca1cd5d0205e61be9a6922527ca",
+    "result_archive_sha256": "b70bb2188ac817112794eade58b98b0ef4c8b311bec7d86913e9f8957c9ab01e",
+    "application_exit": 1,
+    "finalization_exit": 0,
+    "elapsed_seconds": 142,
+    "actual_cpu_seconds": 138,
+    "max_rss_mb": 300.09
+  }
+}

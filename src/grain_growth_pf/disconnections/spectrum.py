@@ -36,13 +36,24 @@ def isotropic_surrogate_library(
                         + h_coefficient_ev * (abs(h) / h0) ** 2
                         + float(rng.normal(0, disorder_std_ev))
                     )
+                    vacancy_count = (
+                        0.0
+                        if family == "easy"
+                        else sign * (0.5 if family == "intermediate" else 1.0)
+                    )
                     modes.append(DisconnectionMode(
-                        f"{family}:b{si}:d{di}:h{h:g}", b, h,
-                        (0.0 if family == "easy" else sign * (0.5 if family == "intermediate" else 1.0)),
-                        max(barrier, 0.0), attempt_frequency, site_multiplicity,
+                        f"{family}:b{si}:d{di}:h{h:g}",
+                        b,
+                        h,
+                        vacancy_count,
+                        max(barrier, 0.0),
+                        attempt_frequency,
+                        site_multiplicity,
                         activation_volume_normal=h,
                         activation_volume_shear=magnitude,
-                        delta_s=magnitude, delta_q=(0.0 if family == "easy" else abs(sign * (0.5 if family == "intermediate" else 1.0))),
+                        activation_vacancies=vacancy_count,
+                        delta_s=magnitude,
+                        delta_q=abs(vacancy_count),
                         family=family,
                     ))
     return modes

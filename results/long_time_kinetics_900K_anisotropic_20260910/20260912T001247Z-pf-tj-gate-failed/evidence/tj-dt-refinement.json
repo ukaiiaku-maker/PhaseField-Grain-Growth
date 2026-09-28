@@ -1,0 +1,85 @@
+{
+  "schema": "anisotropic-diffuse-tj-timestep-refinement-v1",
+  "job_id": "55949331",
+  "rows": [
+    {
+      "factor": 1.0,
+      "stability_limit": 6.36493341483619e-05,
+      "requested_dt": 6.36493341483619e-05,
+      "steps": 1257,
+      "initial_energy": 145.2275088451253,
+      "final_energy": 110.27015464970768,
+      "maximum_energy_increase": 2.6432486007842755,
+      "positive_energy_steps": 603,
+      "largest_increase_step": {
+        "step": 588,
+        "time": 0.03742580847923644,
+        "dt": 6.36493341483619e-05,
+        "energy_before": 116.37175337475516,
+        "energy_after": 119.01500197553943
+      },
+      "constraint_error": 2.220446049250313e-16,
+      "finite": true
+    },
+    {
+      "factor": 0.5,
+      "stability_limit": 6.36493341483619e-05,
+      "requested_dt": 3.182466707418095e-05,
+      "steps": 2514,
+      "initial_energy": 145.2275088451253,
+      "final_energy": 109.37886187012828,
+      "maximum_energy_increase": 2.761353669275877,
+      "positive_energy_steps": 1231,
+      "largest_increase_step": {
+        "step": 1003,
+        "time": 0.03192014107540307,
+        "dt": 3.182466707418095e-05,
+        "energy_before": 117.28364235320386,
+        "energy_after": 120.04499602247974
+      },
+      "constraint_error": 2.220446049250313e-16,
+      "finite": true
+    },
+    {
+      "factor": 0.25,
+      "stability_limit": 6.36493341483619e-05,
+      "requested_dt": 1.5912333537090473e-05,
+      "steps": 5028,
+      "initial_energy": 145.2275088451253,
+      "final_energy": 109.14235544435374,
+      "maximum_energy_increase": 3.6639230978159674,
+      "positive_energy_steps": 2423,
+      "largest_increase_step": {
+        "step": 127,
+        "time": 0.0020208663592104865,
+        "dt": 1.5912333537090473e-05,
+        "energy_before": 125.8102322426735,
+        "energy_after": 129.47415534048946
+      },
+      "constraint_error": 2.220446049250313e-16,
+      "finite": true
+    },
+    {
+      "factor": 0.125,
+      "stability_limit": 6.36493341483619e-05,
+      "requested_dt": 7.956166768545237e-06,
+      "steps": 10056,
+      "initial_energy": 145.2275088451253,
+      "final_energy": 107.74026912966575,
+      "maximum_energy_increase": 3.3039439959333237,
+      "positive_energy_steps": 4862,
+      "largest_increase_step": {
+        "step": 256,
+        "time": 0.0020367786927475854,
+        "dt": 7.956166768545237e-06,
+        "energy_before": 126.26373695934801,
+        "energy_after": 129.56768095528133
+      },
+      "constraint_error": 2.220446049250313e-16,
+      "finite": true
+    }
+  ],
+  "monotone_at_finest": false,
+  "positive_spike_decreases_with_dt": false,
+  "passed": false
+}

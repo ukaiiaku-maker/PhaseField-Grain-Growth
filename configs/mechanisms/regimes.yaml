@@ -44,6 +44,21 @@ regimes:
     compatibility_model: off
     mechanics_backend: none
     parameters: {nucleation_prefactor: 100000.0, exchange_prefactor: 100000.0, transport_prefactor: 100000.0, nucleation_barrier_ev: 0.45, exchange_barrier_ev: 0.55, transport_barrier_ev: 0.65}
+  legacy_corrected_C:
+    modules: [free_volume, serial_climb]
+    compatibility_model: off
+    mechanics_backend: none
+    parameters: {climb_source: swept_area_legacy}
+  C_GB:
+    modules: [area_loss_climb, gb_defect_sink]
+    compatibility_model: off
+    mechanics_backend: none
+    parameters: {climb_source: gb_area_loss, defect_sink_model: gb_only}
+  C_GBTJ:
+    modules: [area_loss_climb, gb_defect_sink, tj_defect_sink]
+    compatibility_model: off
+    mechanics_backend: none
+    parameters: {climb_source: gb_area_loss, defect_sink_model: competing_gb_tj}
   SC1: {modules: [shear_memory, free_volume, independent_and], compatibility_model: explicit_modes, mechanics_backend: local_memory}
   SC2: {modules: [mixed_shear_climb_event], compatibility_model: explicit_modes, mechanics_backend: local_memory}
   SC3: {modules: [parallel_mode_competition, shear_memory, free_volume], compatibility_model: explicit_modes, mechanics_backend: qiu_full_field}

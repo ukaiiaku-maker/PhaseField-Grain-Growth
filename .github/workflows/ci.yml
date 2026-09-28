@@ -13,4 +13,5 @@ jobs:
           cache: pip
       - run: python -m pip install -e '.[test,analysis]'
       - run: pytest -q
-
+        env:
+          PYTHONPATH: .:scripts

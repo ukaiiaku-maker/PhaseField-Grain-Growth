@@ -1,0 +1,7 @@
+regime,path,source_sha,starting_step,ending_step,starting_time,ending_time,starting_grains,ending_grains,status
+B0,results/jerky_area_loss_diagnostic_20260822/20260823T002904Z-457cf9e522/B0-T900-s5101,124f6398cc0ce7bb11b02184f056a73a57bc6152-dirty,0,548,0.0,21.91999999999971,200,150,completed
+G,results/jerky_area_loss_diagnostic_20260822/20260823T002904Z-457cf9e522/G-T900-s5101,124f6398cc0ce7bb11b02184f056a73a57bc6152-dirty,0,800,0.0,31.999999999999496,200,153,completed
+C_GB,results/jerky_area_loss_diagnostic_20260822/20260823T002904Z-457cf9e522/C_GB-T900-s5101,124f6398cc0ce7bb11b02184f056a73a57bc6152-dirty,0,655,0.0,26.19999999999962,200,150,completed
+C_GBTJ,results/jerky_area_loss_diagnostic_20260822/20260823T002904Z-457cf9e522/C_GBTJ-T900-s5101,124f6398cc0ce7bb11b02184f056a73a57bc6152-dirty,0,590,0.0,23.599999999999675,200,150,completed
+GTSC_GB,results/jerky_area_loss_diagnostic_20260822/20260823T002904Z-457cf9e522/GTSC_GB-T900-s5101,124f6398cc0ce7bb11b02184f056a73a57bc6152-dirty,0,800,0.0,31.999999999999496,200,167,completed
+GTSC_GBTJ,results/jerky_area_loss_diagnostic_20260822/20260823T002904Z-457cf9e522/GTSC_GBTJ-T900-s5101,124f6398cc0ce7bb11b02184f056a73a57bc6152-dirty,0,800,0.0,31.999999999999496,200,164,completed

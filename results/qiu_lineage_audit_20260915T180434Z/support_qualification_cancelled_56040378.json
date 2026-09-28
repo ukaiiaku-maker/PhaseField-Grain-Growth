@@ -1,0 +1,12 @@
+{
+  "schema": "compact-support-qualification-cancellation-v1",
+  "run_id": "20260915T182600Z-nogit-0d1663",
+  "slurm_job_id": "56040378",
+  "state": "CANCELLED_BY_OWNER",
+  "elapsed": "00:01:29",
+  "reason": "prequalification source audit found global-phase scans in the energy-gradient assembly",
+  "gate_effect": "result is ineligible for scientific classification",
+  "duplicate_trajectory": false,
+  "replacement_requirement": "energy and kinetics must use the same frozen stencil-local candidate graph",
+  "partial_evidence_policy": "retain as cancelled implementation evidence; never promote"
+}

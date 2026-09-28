@@ -8,6 +8,7 @@ import pandas as pd
 from grain_growth_pf.config import ModelConfig, PFConfig
 from grain_growth_pf.disconnections.mode import ModeDriving
 from grain_growth_pf.pf.initial_conditions import prepare_initial_condition
+from grain_growth_pf.mechanics.local_shear_memory import LocalShearMemory
 from grain_growth_pf.simulation import EventResolvedSimulation
 from grain_growth_pf.stochastic.multihit import MultiHitProcess, poisson_completion_probability
 
@@ -40,6 +41,88 @@ def test_event_resolved_smoke_writes_reproducible_schema(tmp_path):
     assert tracks
     assert "random_hazard_threshold" in fields
     assert "burgers_vector_b" in fields
+
+
+def test_adaptive_accepted_dt_advances_physical_shear_clock(monkeypatch, tmp_path):
+    observed_dt = []
+    migrate = LocalShearMemory.migrate
+
+    def record_dt(self, beta, normal_displacement, dt):
+        observed_dt.append(dt)
+        return migrate(self, beta, normal_displacement, dt)
+
+    monkeypatch.setattr(LocalShearMemory, "migrate", record_dt)
+    config = ModelConfig(
+        regime="accepted-dt", seed=17,
+        pf=PFConfig(
+            shape=(12, 12), interface_width=3, time_step=0.04,
+            intrinsic_mobility=100.0, adaptive_stepping=True,
+        ),
+        active_modules=("shear_memory",), output_cadence=1,
+        max_steps=1, termination_grains=1,
+        parameters={"initial_grains": 3, "equilibration_steps": 0},
+    )
+    simulation = EventResolvedSimulation(config, tmp_path / "accepted-dt")
+    observed_dt.clear()
+    accepted = simulation.solver.stable_dt()
+    assert accepted < config.pf.time_step
+    simulation.run()
+    assert observed_dt
+    assert all(value == accepted for value in observed_dt)
+    assert simulation._accepted_step_start_time == 0.0
+    assert simulation.solver.time == accepted
+    with (tmp_path / "accepted-dt" / "timesteps.csv").open() as handle:
+        rows = list(csv.DictReader(handle))
+    assert len(rows) == 1
+    assert float(rows[0]["accepted_dt"]) == accepted
+    assert float(rows[0]["requested_dt"]) == config.pf.time_step
+
+
+def test_physical_horizon_and_time_cadences_do_not_change_trajectory(tmp_path):
+    common = dict(
+        regime="physical-time", seed=22,
+        pf=PFConfig(
+            shape=(12, 12), interface_width=3, time_step=0.01,
+            intrinsic_mobility=0.1, adaptive_stepping=True,
+        ),
+        max_steps=10, termination_grains=1,
+    )
+    first = EventResolvedSimulation(
+        ModelConfig(
+            **common, output_cadence=1,
+            parameters={
+                "initial_grains": 3, "maximum_physical_time": 0.025,
+                "output_time_interval": 0.01, "energy_time_interval": 0.01,
+                "checkpoint_time_interval": 0.02,
+            },
+        ),
+        tmp_path / "physical-first",
+    )
+    second = EventResolvedSimulation(
+        ModelConfig(
+            **common, output_cadence=7,
+            parameters={
+                "initial_grains": 3, "maximum_physical_time": 0.025,
+                "output_time_interval": 0.02, "energy_time_interval": 0.02,
+                "checkpoint_time_interval": 0.015,
+            },
+        ),
+        tmp_path / "physical-second",
+    )
+    first.run()
+    second.run()
+    assert first.solver.time == second.solver.time == 0.025
+    assert first.solver.step_number == second.solver.step_number == 3
+    assert np.array_equal(first.solver.eta, second.solver.eta)
+    with (tmp_path / "physical-first" / "timesteps.csv").open() as handle:
+        rows = list(csv.DictReader(handle))
+    assert np.allclose(
+        [float(row["accepted_dt"]) for row in rows], [0.01, 0.01, 0.005],
+        rtol=0.0, atol=2e-18,
+    )
+    manifest = json.loads((tmp_path / "physical-first" / "manifest.json").read_text())
+    assert manifest["outcome_classification"] == "censored_physical_time_horizon"
+    assert manifest["final_physical_time"] == 0.025
 
 
 def test_qiu_full_field_backend_smoke(tmp_path):

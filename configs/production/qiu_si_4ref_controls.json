@@ -1,0 +1,52 @@
+{
+  "campaign": "QIU_SI_REFERENCE_ANISO",
+  "classification": "QIU_SI_ANISOTROPY_UNRESOLVED",
+  "native_archive": {
+    "sha256": "2740e0af26bd3acd24bfbbca44b8b3cd56e2e3bacf97ef5648ab69b84989bf90",
+    "driver_sha256": "03f8cee8834e5f9669dceb1c831590de55c5ef26f6cc41e0913c0fc89ee2cd17",
+    "functions_sha256": "3fb625fcb88be515defb813df198f671b45f528e44f32ac7fabae36e1c926aaf",
+    "owned_plan": "20260912T180419Z-nogit-a25f0c",
+    "policy": "consume_read_only_after_native_promotion"
+  },
+  "shared_native_parameters": {
+    "shape": [500, 500],
+    "order_parameters": 17,
+    "dx": 1.0,
+    "dy": 1.0,
+    "dt": 0.1,
+    "steps": 200000,
+    "interface_width": 5.0,
+    "reference_count": 4,
+    "gb_output_cadence": 250,
+    "stress_output_cadence": 250,
+    "native_scalar_mobility_expression": "2*pi^2/(8*eta)",
+    "native_barrier_eee": 20.0,
+    "orientations_degrees": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -22.6, -22.6, -22.6, -22.6, 28.1, 28.1, 28.1, 28.1]
+  },
+  "a2_candidate": {
+    "g_min": 0.65,
+    "inclination_weight": 0.85,
+    "support_power": 16,
+    "mobility_exponent": 2.0,
+    "angular_scale": 1.0910512514090829,
+    "energy_normalization": null,
+    "mobility_normalization": null,
+    "normalization_source": "PENDING_PROMOTED_NATIVE_INITIAL_BOUNDARY_NETWORK"
+  },
+  "controls": [
+    {"name": "QIU_SI_4REF_ISO_NATIVE", "executor": "immutable_archived_source", "anisotropic_energy": false, "anisotropic_mobility": false},
+    {"name": "QIU_SI_4REF_A0_PORT", "executor": "grain_growth_pf.pf.qiu_si", "anisotropic_energy": false, "anisotropic_mobility": false},
+    {"name": "QIU_SI_4REF_ANISO_E", "executor": "grain_growth_pf.pf.qiu_si", "anisotropic_energy": true, "anisotropic_mobility": false},
+    {"name": "QIU_SI_4REF_ANISO_M", "executor": "grain_growth_pf.pf.qiu_si", "anisotropic_energy": false, "anisotropic_mobility": true},
+    {"name": "QIU_SI_4REF_ANISO_EM_INV", "executor": "grain_growth_pf.pf.qiu_si", "anisotropic_energy": true, "anisotropic_mobility": true}
+  ],
+  "release_gates": {
+    "native_promoted": false,
+    "a0_matched_state_correspondence": false,
+    "qiu_pair_energy_force_correspondence": false,
+    "normalization_frozen": false,
+    "reduced_controls_passed": false,
+    "full_trajectory_authorized": false
+  },
+  "result_root": "qiu-si-reference-anisotropic"
+}

@@ -90,6 +90,20 @@ def test_restart_is_exact():
     assert continuous.time == restored.time
 
 
+def test_read_only_energy_diagnostic_cadence_cannot_change_trajectory():
+    cfg = PFConfig(shape=(24, 24), interface_width=4, time_step=0.04,
+                   intrinsic_mobility=0.2, adaptive_stepping=True)
+    eta = circular_grain(cfg.shape, 6, 4)
+    diagnosed = MultiphaseFieldSolver(eta.copy(), cfg)
+    sparse = MultiphaseFieldSolver(eta.copy(), cfg)
+    diagnosed_rows = [diagnosed.step() for _ in range(12)]
+    sparse_rows = [sparse.step(compute_energy=False) for _ in range(12)]
+    assert np.array_equal(diagnosed.eta, sparse.eta)
+    assert diagnosed.time == sparse.time
+    assert all(np.isfinite(row.interfacial_energy) for row in diagnosed_rows)
+    assert all(np.isnan(row.interfacial_energy) for row in sparse_rows)
+
+
 def test_extinct_grains_cannot_resurrect():
     eta, _, _ = voronoi_polycrystal((32, 32), 18, seed=10, width=2)
     cfg = PFConfig(shape=(32, 32), interface_width=3, time_step=0.04,

@@ -5,7 +5,7 @@ import gzip
 import json
 import os
 from pathlib import Path
-from typing import Any, Iterable, Iterator
+from typing import Any, Callable, Iterable, Iterator
 
 
 EVENT_FIELDS = (
@@ -18,13 +18,25 @@ EVENT_FIELDS = (
     "release_Delta_s", "release_Delta_q", "GB_area_change", "TJ_travel",
     "point_defect_quota", "normal_step_h", "burgers_vector_b", "Nv",
     "shear_strain_increment", "volumetric_strain_increment", "packet_size", "Git_SHA",
+    "sink_path", "signed_defect_quota", "inventory_before", "inventory_after",
+    "conservation_residual", "compatibility_norm", "compatibility_residual",
+    "tj_velocity_requested", "tj_velocity_compatible", "burgers_before",
+    "burgers_after", "residual_energy_change", "candidate_allowed",
+    "candidate_reason", "stage_residence_time", "work_applied",
+    "work_gb_internal", "work_tj_residual", "work_chemical",
+    "work_interfacial", "work_total",
 )
 
 _STRING_FIELDS = {
     "run_id", "event_id", "event_type", "grain_ids", "entity_id", "position",
     "barrier_type", "activation_volume", "burgers_vector_b", "Git_SHA",
+    "sink_path", "compatibility_residual", "tj_velocity_requested",
+    "tj_velocity_compatible", "burgers_before", "burgers_after",
+    "candidate_reason",
 }
-_INTEGER_FIELDS = {"step", "seed", "hit_count", "required_hits_K"}
+_INTEGER_FIELDS = {
+    "step", "seed", "hit_count", "required_hits_K", "candidate_allowed",
+}
 
 
 def event_ledger_path(run_dir: str | Path) -> Path:
@@ -108,6 +120,8 @@ class EventLedger:
         self._writer = None
         self._columns: dict[str, list[Any]] | None = None
         self._part_count = 0
+        self._event_fields = EVENT_FIELDS
+        self.observer: Callable[[dict[str, Any]], None] | None = None
         self._open()
 
     @property
@@ -121,8 +135,14 @@ class EventLedger:
             expected = [self.path / f"part-{index:08d}.parquet" for index in range(len(parts))]
             if parts != expected:
                 raise ValueError(f"non-contiguous Parquet event-ledger parts in {self.path}")
+            if parts:
+                import pyarrow.parquet as pq
+
+                # Exact continuation of an older run retains its original
+                # ledger schema. New area-loss roots use the expanded schema.
+                self._event_fields = tuple(pq.ParquetFile(parts[0]).schema_arrow.names)
             self._part_count = len(parts)
-            self._columns = {name: [] for name in EVENT_FIELDS}
+            self._columns = {name: [] for name in self._event_fields}
             return
         empty = not self.path.exists() or self.path.stat().st_size == 0
         if self.path.suffix == ".gz":
@@ -140,7 +160,7 @@ class EventLedger:
     def write(self, record: dict[str, Any]) -> None:
         if self.is_parquet:
             assert self._columns is not None
-            for name in EVENT_FIELDS:
+            for name in self._event_fields:
                 value = record.get(name)
                 if isinstance(value, str) and value == "":
                     value = None
@@ -151,12 +171,14 @@ class EventLedger:
                     except TypeError:
                         value = str(value)
                 self._columns[name].append(value)
-            return
-        row = {name: record.get(name, "") for name in EVENT_FIELDS}
-        self._writer.writerow(row)
+        else:
+            row = {name: record.get(name, "") for name in EVENT_FIELDS}
+            self._writer.writerow(row)
+        if self.observer is not None:
+            self.observer(dict(record))
 
     @staticmethod
-    def _parquet_schema():
+    def _parquet_schema(fields: Iterable[str] = EVENT_FIELDS):
         import pyarrow as pa
 
         return pa.schema([
@@ -166,18 +188,20 @@ class EventLedger:
                 else pa.int64() if name in _INTEGER_FIELDS
                 else pa.float64(),
             )
-            for name in EVENT_FIELDS
+            for name in fields
         ])
 
     def _checkpoint_parquet(self) -> int:
         assert self._columns is not None
-        rows = len(self._columns[EVENT_FIELDS[0]])
+        rows = len(self._columns[self._event_fields[0]])
         if not rows:
             return self._part_count
         import pyarrow as pa
         import pyarrow.parquet as pq
 
-        table = pa.Table.from_pydict(self._columns, schema=self._parquet_schema())
+        table = pa.Table.from_pydict(
+            self._columns, schema=self._parquet_schema(self._event_fields)
+        )
         final_path = self.path / f"part-{self._part_count:08d}.parquet"
         temporary_path = self.path / f".{final_path.name}.{os.getpid()}.tmp"
         pq.write_table(table, temporary_path, compression="zstd", compression_level=1)
@@ -190,7 +214,7 @@ class EventLedger:
         finally:
             os.close(directory_fd)
         self._part_count += 1
-        self._columns = {name: [] for name in EVENT_FIELDS}
+        self._columns = {name: [] for name in self._event_fields}
         return self._part_count
 
     def checkpoint(self) -> int:
@@ -217,7 +241,7 @@ class EventLedger:
             for orphan in self.path.glob(".part-*.tmp"):
                 orphan.unlink()
             self._part_count = offset
-            self._columns = {name: [] for name in EVENT_FIELDS}
+            self._columns = {name: [] for name in self._event_fields}
             directory_fd = os.open(self.path, os.O_RDONLY)
             try:
                 os.fsync(directory_fd)

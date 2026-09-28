@@ -1,0 +1,507 @@
+/opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/decorators.py:253: RuntimeWarning: nopython is set for njit and is ignored
+  warnings.warn('nopython is set for njit and is ignored', RuntimeWarning)
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py:34: NumbaPerformanceWarning: [1m[1m
+The keyword argument 'parallel=True' was specified but no transformation for parallel execution was possible.
+
+To find out why, try turning on parallel diagnostics, see https://numba.readthedocs.io/en/stable/user/parallel.html#diagnostics for help.
+[1m
+File "build/functions_4ref_new.py", line 684:[0m
+[1m@nb.njit(parallel=True)
+[1mdef PBC_scalar(x, NN):
+[0m[1m^[0m[0m
+[0m[0m
+  ddddx = PBC_scalar(l-x_nuclei, nx)
+/opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/typed_passes.py:329: NumbaPerformanceWarning: [1m
+The keyword argument 'parallel=True' was specified but no transformation for parallel execution was possible.
+
+To find out why, try turning on parallel diagnostics, see https://numba.readthedocs.io/en/stable/user/parallel.html#diagnostics for help.
+[1m
+File "build/functions_4ref_new.py", line 18:[0m
+[1m@nb.njit(fastmath=False, parallel=True)
+[1mdef Initialize(phi,gb,nf,mf,nx,ny,dx,dy,eta,number_of_grain,x1_grain,x2_grain,r_nuclei):
+[0m[1m^[0m[0m
+[0m
+  warnings.warn(errors.NumbaPerformanceWarning(msg,
+/opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/ir_utils.py:2152: NumbaPendingDeprecationWarning: [1m
+Encountered the use of a type that is scheduled for deprecation: type 'reflected list' found for argument 'x1_grain' of function 'Initialize'.
+
+For more information visit https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-reflection-for-list-and-set-types
+[1m
+File "build/functions_4ref_new.py", line 18:[0m
+[1m@nb.njit(fastmath=False, parallel=True)
+[1mdef Initialize(phi,gb,nf,mf,nx,ny,dx,dy,eta,number_of_grain,x1_grain,x2_grain,r_nuclei):
+[0m[1m^[0m[0m
+[0m
+  warnings.warn(NumbaPendingDeprecationWarning(msg, loc=loc))
+/opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/ir_utils.py:2152: NumbaPendingDeprecationWarning: [1m
+Encountered the use of a type that is scheduled for deprecation: type 'reflected list' found for argument 'x2_grain' of function 'Initialize'.
+
+For more information visit https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-reflection-for-list-and-set-types
+[1m
+File "build/functions_4ref_new.py", line 18:[0m
+[1m@nb.njit(fastmath=False, parallel=True)
+[1mdef Initialize(phi,gb,nf,mf,nx,ny,dx,dy,eta,number_of_grain,x1_grain,x2_grain,r_nuclei):
+[0m[1m^[0m[0m
+[0m
+  warnings.warn(NumbaPendingDeprecationWarning(msg, loc=loc))
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py:635: NumbaPerformanceWarning: [1m[1m
+The keyword argument 'parallel=True' was specified but no transformation for parallel execution was possible.
+
+To find out why, try turning on parallel diagnostics, see https://numba.readthedocs.io/en/stable/user/parallel.html#diagnostics for help.
+[1m
+File "build/functions_4ref_new.py", line 684:[0m
+[1m@nb.njit(parallel=True)
+[1mdef PBC_scalar(x, NN):
+[0m[1m^[0m[0m
+[0m[0m
+  DDis_x0 = PBC_scalar(Ddis_x0, nx)
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py:636: NumbaPerformanceWarning: [1m[1m
+The keyword argument 'parallel=True' was specified but no transformation for parallel execution was possible.
+
+To find out why, try turning on parallel diagnostics, see https://numba.readthedocs.io/en/stable/user/parallel.html#diagnostics for help.
+[1m
+File "build/functions_4ref_new.py", line 684:[0m
+[1m@nb.njit(parallel=True)
+[1mdef PBC_scalar(x, NN):
+[0m[1m^[0m[0m
+[0m[0m
+  DDis_y0 = PBC_scalar(Ddis_y0, ny)
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py:80: NumbaWarning: [1m
+Compilation is falling back to object mode WITH looplifting enabled because Function "find_gb" failed type inference due to: [1m[1m[1mNo implementation of function Function(<function concatenate at 0x7fc4ecc33af0>) found for signature:
+ 
+ >>> concatenate(Tuple(list(array(int64, 1d, A))<iv=None>, array(int64, 2d, A)))
+ 
+There are 4 candidate implementations:
+[1m   - Of which 4 did not match due to:
+   Overload in function '_OverloadWrapper._build.<locals>.ol_generated': File: numba/core/overload_glue.py: Line 131.
+     With argument(s): '(Tuple(list(array(int64, 1d, A))<iv=None>, array(int64, 2d, A)))':[0m
+[1m    Rejected as the implementation raised a specific error:
+      TypingError: Failed in nopython mode pipeline (step: nopython frontend)
+    [1m[1m[1mNo implementation of function Function(<intrinsic stub>) found for signature:
+     
+     >>> stub(Tuple(list(array(int64, 1d, A))<iv=None>, array(int64, 2d, A)))
+     
+    There are 2 candidate implementations:
+    [1m  - Of which 2 did not match due to:
+      Intrinsic in function 'stub': File: numba/core/overload_glue.py: Line 35.
+        With argument(s): '(Tuple(list(array(int64, 1d, A))<iv=None>, array(int64, 2d, A)))':[0m
+    [1m   Rejected as the implementation raised a specific error:
+         TypeError: np.concatenate(): expecting a non-empty tuple of arrays, got Tuple(list(array(int64, 1d, A))<iv=None>, array(int64, 2d, A))[0m
+      raised from /opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/typing/npydecl.py:800
+    [0m
+    [0m[1mDuring: resolving callee type: Function(<intrinsic stub>)[0m
+    [0m[1mDuring: typing of call at <string> (3)
+    [0m
+    [1m
+    File "<string>", line 3:[0m
+    [1m<source missing, REPL/exec in use?>[0m
+[0m
+  raised from /opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/typeinfer.py:1086
+[0m
+[0m[1mDuring: resolving callee type: Function(<function concatenate at 0x7fc4ecc33af0>)[0m
+[0m[1mDuring: typing of call at /tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py (118)
+[0m
+[1m
+File "build/functions_4ref_new.py", line 118:[0m
+[1mdef find_gb(phi,nf,mf,nx,ny,dx,dy,number_of_grain, G, sigma11, sigma12, sigma22, sigma11_b, sigma12_b, sigma22_b, sigma12_ext, sigma11_ext, sigma22_ext, criterion, nstep, stress_step,sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,misorientation_list,ref_theta_i,idov2,idov3):
+    <source elided>
+                        TJ2 = TJ_unsort[pp][-1]
+[1m                        gb_unsort[qq] = np.concatenate(([TJ1, TJ2], gb_unsort[qq]))
+[0m                        [1m^[0m[0m
+[0m
+  @nb.jit(nopython = False,parallel=True)
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py:80: NumbaWarning: [1m
+Compilation is falling back to object mode WITHOUT looplifting enabled because Function "find_gb" failed type inference due to: [1m[1mCannot determine Numba type of <class 'numba.core.dispatcher.LiftedLoop'>[0m
+[1m
+File "build/functions_4ref_new.py", line 91:[0m
+[1mdef find_gb(phi,nf,mf,nx,ny,dx,dy,number_of_grain, G, sigma11, sigma12, sigma22, sigma11_b, sigma12_b, sigma22_b, sigma12_ext, sigma11_ext, sigma22_ext, criterion, nstep, stress_step,sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,misorientation_list,ref_theta_i,idov2,idov3):
+    <source elided>
+    
+[1m    for i,j in idov2:
+[0m    [1m^[0m[0m
+[0m[0m
+  @nb.jit(nopython = False,parallel=True)
+/opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/object_mode_passes.py:151: NumbaWarning: [1mFunction "find_gb" was compiled in object mode without forceobj=True, but has lifted loops.
+[1m
+File "build/functions_4ref_new.py", line 82:[0m
+[1mdef find_gb(phi,nf,mf,nx,ny,dx,dy,number_of_grain, G, sigma11, sigma12, sigma22, sigma11_b, sigma12_b, sigma22_b, sigma12_ext, sigma11_ext, sigma22_ext, criterion, nstep, stress_step,sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,misorientation_list,ref_theta_i,idov2,idov3):
+[1m    gb_x_all = []
+[0m    [1m^[0m[0m
+[0m
+  warnings.warn(errors.NumbaWarning(warn_msg,
+/opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/object_mode_passes.py:161: NumbaDeprecationWarning: [1m
+Fall-back from the nopython compilation path to the object mode compilation path has been detected, this is deprecated behaviour.
+
+For more information visit https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit
+[1m
+File "build/functions_4ref_new.py", line 82:[0m
+[1mdef find_gb(phi,nf,mf,nx,ny,dx,dy,number_of_grain, G, sigma11, sigma12, sigma22, sigma11_b, sigma12_b, sigma22_b, sigma12_ext, sigma11_ext, sigma22_ext, criterion, nstep, stress_step,sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,misorientation_list,ref_theta_i,idov2,idov3):
+[1m    gb_x_all = []
+[0m    [1m^[0m[0m
+[0m
+  warnings.warn(errors.NumbaDeprecationWarning(msg,
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py:80: NumbaWarning: [1m
+Compilation is falling back to object mode WITHOUT looplifting enabled because Function "find_gb" failed type inference due to: [1m[1mnon-precise type pyobject[0m
+[0m[1mDuring: typing of argument at /tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py (91)[0m
+[1m
+File "build/functions_4ref_new.py", line 91:[0m
+[1mdef find_gb(phi,nf,mf,nx,ny,dx,dy,number_of_grain, G, sigma11, sigma12, sigma22, sigma11_b, sigma12_b, sigma22_b, sigma12_ext, sigma11_ext, sigma22_ext, criterion, nstep, stress_step,sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,misorientation_list,ref_theta_i,idov2,idov3):
+    <source elided>
+    
+[1m    for i,j in idov2:
+[0m    [1m^[0m[0m
+[0m
+  @nb.jit(nopython = False,parallel=True)
+/opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/object_mode_passes.py:151: NumbaWarning: [1mFunction "find_gb" was compiled in object mode without forceobj=True.
+[1m
+File "build/functions_4ref_new.py", line 91:[0m
+[1mdef find_gb(phi,nf,mf,nx,ny,dx,dy,number_of_grain, G, sigma11, sigma12, sigma22, sigma11_b, sigma12_b, sigma22_b, sigma12_ext, sigma11_ext, sigma22_ext, criterion, nstep, stress_step,sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,misorientation_list,ref_theta_i,idov2,idov3):
+    <source elided>
+    
+[1m    for i,j in idov2:
+[0m    [1m^[0m[0m
+[0m
+  warnings.warn(errors.NumbaWarning(warn_msg,
+/opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/object_mode_passes.py:161: NumbaDeprecationWarning: [1m
+Fall-back from the nopython compilation path to the object mode compilation path has been detected, this is deprecated behaviour.
+
+For more information visit https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit
+[1m
+File "build/functions_4ref_new.py", line 91:[0m
+[1mdef find_gb(phi,nf,mf,nx,ny,dx,dy,number_of_grain, G, sigma11, sigma12, sigma22, sigma11_b, sigma12_b, sigma22_b, sigma12_ext, sigma11_ext, sigma22_ext, criterion, nstep, stress_step,sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,misorientation_list,ref_theta_i,idov2,idov3):
+    <source elided>
+    
+[1m    for i,j in idov2:
+[0m    [1m^[0m[0m
+[0m
+  warnings.warn(errors.NumbaDeprecationWarning(msg,
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py:80: NumbaWarning: [1m
+Compilation is falling back to object mode WITHOUT looplifting enabled because Function "find_gb" failed type inference due to: [1m[1m[1mNo implementation of function Function(<function concatenate at 0x7fc4ecc33af0>) found for signature:
+ 
+ >>> concatenate(Tuple(list(array(int64, 1d, A))<iv=None>, array(int64, 2d, F)))
+ 
+There are 4 candidate implementations:
+[1m     - Of which 4 did not match due to:
+     Overload in function '_OverloadWrapper._build.<locals>.ol_generated': File: numba/core/overload_glue.py: Line 131.
+       With argument(s): '(Tuple(list(array(int64, 1d, A))<iv=None>, array(int64, 2d, F)))':[0m
+[1m      Rejected as the implementation raised a specific error:
+        TypingError: Failed in nopython mode pipeline (step: nopython frontend)
+      [1m[1m[1mNo implementation of function Function(<intrinsic stub>) found for signature:
+       
+       >>> stub(Tuple(list(array(int64, 1d, A))<iv=None>, array(int64, 2d, F)))
+       
+      There are 2 candidate implementations:
+      [1m  - Of which 2 did not match due to:
+        Intrinsic in function 'stub': File: numba/core/overload_glue.py: Line 35.
+          With argument(s): '(Tuple(list(array(int64, 1d, A))<iv=None>, array(int64, 2d, F)))':[0m
+      [1m   Rejected as the implementation raised a specific error:
+           TypeError: np.concatenate(): expecting a non-empty tuple of arrays, got Tuple(list(array(int64, 1d, A))<iv=None>, array(int64, 2d, F))[0m
+        raised from /opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/typing/npydecl.py:800
+      [0m
+      [0m[1mDuring: resolving callee type: Function(<intrinsic stub>)[0m
+      [0m[1mDuring: typing of call at <string> (3)
+      [0m
+      [1m
+      File "<string>", line 3:[0m
+      [1m<source missing, REPL/exec in use?>[0m
+[0m
+  raised from /opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/typeinfer.py:1086
+[0m
+[0m[1mDuring: resolving callee type: Function(<function concatenate at 0x7fc4ecc33af0>)[0m
+[0m[1mDuring: typing of call at /tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py (118)
+[0m
+[1m
+File "build/functions_4ref_new.py", line 118:[0m
+[1mdef find_gb(phi,nf,mf,nx,ny,dx,dy,number_of_grain, G, sigma11, sigma12, sigma22, sigma11_b, sigma12_b, sigma22_b, sigma12_ext, sigma11_ext, sigma22_ext, criterion, nstep, stress_step,sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,misorientation_list,ref_theta_i,idov2,idov3):
+    <source elided>
+                        TJ2 = TJ_unsort[pp][-1]
+[1m                        gb_unsort[qq] = np.concatenate(([TJ1, TJ2], gb_unsort[qq]))
+[0m                        [1m^[0m[0m
+[0m
+  @nb.jit(nopython = False,parallel=True)
+/opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/object_mode_passes.py:151: NumbaWarning: [1mFunction "find_gb" was compiled in object mode without forceobj=True.
+[1m
+File "build/functions_4ref_new.py", line 111:[0m
+[1mdef find_gb(phi,nf,mf,nx,ny,dx,dy,number_of_grain, G, sigma11, sigma12, sigma22, sigma11_b, sigma12_b, sigma22_b, sigma12_ext, sigma11_ext, sigma22_ext, criterion, nstep, stress_step,sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,misorientation_list,ref_theta_i,idov2,idov3):
+    <source elided>
+    if len(TJ_unsort) > 0 and len(gb_unsort) >= 3:
+[1m        flag = True
+[0m        [1m^[0m[0m
+[0m
+  warnings.warn(errors.NumbaWarning(warn_msg,
+/opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/object_mode_passes.py:161: NumbaDeprecationWarning: [1m
+Fall-back from the nopython compilation path to the object mode compilation path has been detected, this is deprecated behaviour.
+
+For more information visit https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit
+[1m
+File "build/functions_4ref_new.py", line 111:[0m
+[1mdef find_gb(phi,nf,mf,nx,ny,dx,dy,number_of_grain, G, sigma11, sigma12, sigma22, sigma11_b, sigma12_b, sigma22_b, sigma12_ext, sigma11_ext, sigma22_ext, criterion, nstep, stress_step,sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,misorientation_list,ref_theta_i,idov2,idov3):
+    <source elided>
+    if len(TJ_unsort) > 0 and len(gb_unsort) >= 3:
+[1m        flag = True
+[0m        [1m^[0m[0m
+[0m
+  warnings.warn(errors.NumbaDeprecationWarning(msg,
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py:80: NumbaWarning: [1m
+Compilation is falling back to object mode WITHOUT looplifting enabled because Function "find_gb" failed type inference due to: [1m[1mnon-precise type pyobject[0m
+[0m[1mDuring: typing of argument at /tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py (123)[0m
+[1m
+File "build/functions_4ref_new.py", line 123:[0m
+[1mdef find_gb(phi,nf,mf,nx,ny,dx,dy,number_of_grain, G, sigma11, sigma12, sigma22, sigma11_b, sigma12_b, sigma22_b, sigma12_ext, sigma11_ext, sigma22_ext, criterion, nstep, stress_step,sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,misorientation_list,ref_theta_i,idov2,idov3):
+    <source elided>
+
+[1m    for dd in range(len(gb_unsort)):
+[0m    [1m^[0m[0m
+[0m
+  @nb.jit(nopython = False,parallel=True)
+/opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/object_mode_passes.py:151: NumbaWarning: [1mFunction "find_gb" was compiled in object mode without forceobj=True.
+[1m
+File "build/functions_4ref_new.py", line 123:[0m
+[1mdef find_gb(phi,nf,mf,nx,ny,dx,dy,number_of_grain, G, sigma11, sigma12, sigma22, sigma11_b, sigma12_b, sigma22_b, sigma12_ext, sigma11_ext, sigma22_ext, criterion, nstep, stress_step,sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,misorientation_list,ref_theta_i,idov2,idov3):
+    <source elided>
+
+[1m    for dd in range(len(gb_unsort)):
+[0m    [1m^[0m[0m
+[0m
+  warnings.warn(errors.NumbaWarning(warn_msg,
+/opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/object_mode_passes.py:161: NumbaDeprecationWarning: [1m
+Fall-back from the nopython compilation path to the object mode compilation path has been detected, this is deprecated behaviour.
+
+For more information visit https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-object-mode-fall-back-behaviour-when-using-jit
+[1m
+File "build/functions_4ref_new.py", line 123:[0m
+[1mdef find_gb(phi,nf,mf,nx,ny,dx,dy,number_of_grain, G, sigma11, sigma12, sigma22, sigma11_b, sigma12_b, sigma22_b, sigma12_ext, sigma11_ext, sigma22_ext, criterion, nstep, stress_step,sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,misorientation_list,ref_theta_i,idov2,idov3):
+    <source elided>
+
+[1m    for dd in range(len(gb_unsort)):
+[0m    [1m^[0m[0m
+[0m
+  warnings.warn(errors.NumbaDeprecationWarning(msg,
+/opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/typed_passes.py:329: NumbaPerformanceWarning: [1m
+The keyword argument 'parallel=True' was specified but no transformation for parallel execution was possible.
+
+To find out why, try turning on parallel diagnostics, see https://numba.readthedocs.io/en/stable/user/parallel.html#diagnostics for help.
+[1m
+File "build/functions_4ref_new.py", line 468:[0m
+[1m@nb.njit(parallel=True)
+[1mdef stress_field_bulk(phi, nx,ny, gb_x, gb_y, sigma11_b, sigma12_b, sigma22_b, beta1, beta2, OR1, OR2, ref_theta_i, flag, nstep, G, sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,dx,dy):
+[0m[1m^[0m[0m
+[0m
+  warnings.warn(errors.NumbaPerformanceWarning(msg,
+/opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/typed_passes.py:329: NumbaPerformanceWarning: [1m
+The keyword argument 'parallel=True' was specified but no transformation for parallel execution was possible.
+
+To find out why, try turning on parallel diagnostics, see https://numba.readthedocs.io/en/stable/user/parallel.html#diagnostics for help.
+[1m
+File "build/functions_4ref_new.py", line 468:[0m
+[1m@nb.njit(parallel=True)
+[1mdef stress_field_bulk(phi, nx,ny, gb_x, gb_y, sigma11_b, sigma12_b, sigma22_b, beta1, beta2, OR1, OR2, ref_theta_i, flag, nstep, G, sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,dx,dy):
+[0m[1m^[0m[0m
+[0m
+  warnings.warn(errors.NumbaPerformanceWarning(msg,
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py:140: NumbaPendingDeprecationWarning: [1m[1m
+Encountered the use of a type that is scheduled for deprecation: type 'reflected list' found for argument 'gb_x' of function 'stress_field_line'.
+
+For more information visit https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-reflection-for-list-and-set-types
+[1m
+File "build/functions_4ref_new.py", line 249:[0m
+[1m@nb.njit(nopython=True,parallel=True)
+[1mdef stress_field_line(phi, nx,ny, gb_x, gb_y, sigma11, sigma12, sigma22, misorientation_list, index_gb, ref_theta_i, flag, nstep, G, sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,sigma12_ext,sigma11_ext,sigma22_ext,dx,dy):
+[0m[1m^[0m[0m
+[0m[0m
+  stress_field_line(phi,nx,ny,gb_x_all, gb_y_all, sigma11, sigma12, sigma22, misorientation_list, index_gb_array,
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py:140: NumbaPendingDeprecationWarning: [1m[1m
+Encountered the use of a type that is scheduled for deprecation: type 'reflected list' found for argument 'gb_y' of function 'stress_field_line'.
+
+For more information visit https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-reflection-for-list-and-set-types
+[1m
+File "build/functions_4ref_new.py", line 249:[0m
+[1m@nb.njit(nopython=True,parallel=True)
+[1mdef stress_field_line(phi, nx,ny, gb_x, gb_y, sigma11, sigma12, sigma22, misorientation_list, index_gb, ref_theta_i, flag, nstep, G, sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,sigma12_ext,sigma11_ext,sigma22_ext,dx,dy):
+[0m[1m^[0m[0m
+[0m[0m
+  stress_field_line(phi,nx,ny,gb_x_all, gb_y_all, sigma11, sigma12, sigma22, misorientation_list, index_gb_array,
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py:140: NumbaPendingDeprecationWarning: [1m[1m
+Encountered the use of a type that is scheduled for deprecation: type 'reflected list' found for argument 'index_gb' of function 'stress_field_line'.
+
+For more information visit https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-reflection-for-list-and-set-types
+[1m
+File "build/functions_4ref_new.py", line 249:[0m
+[1m@nb.njit(nopython=True,parallel=True)
+[1mdef stress_field_line(phi, nx,ny, gb_x, gb_y, sigma11, sigma12, sigma22, misorientation_list, index_gb, ref_theta_i, flag, nstep, G, sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,sigma12_ext,sigma11_ext,sigma22_ext,dx,dy):
+[0m[1m^[0m[0m
+[0m[0m
+  stress_field_line(phi,nx,ny,gb_x_all, gb_y_all, sigma11, sigma12, sigma22, misorientation_list, index_gb_array,
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py:140: NumbaPerformanceWarning: [1m[1m
+The keyword argument 'parallel=True' was specified but no transformation for parallel execution was possible.
+
+To find out why, try turning on parallel diagnostics, see https://numba.readthedocs.io/en/stable/user/parallel.html#diagnostics for help.
+[1m
+File "build/functions_4ref_new.py", line 249:[0m
+[1m@nb.njit(nopython=True,parallel=True)
+[1mdef stress_field_line(phi, nx,ny, gb_x, gb_y, sigma11, sigma12, sigma22, misorientation_list, index_gb, ref_theta_i, flag, nstep, G, sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,sigma12_ext,sigma11_ext,sigma22_ext,dx,dy):
+[0m[1m^[0m[0m
+[0m[0m
+  stress_field_line(phi,nx,ny,gb_x_all, gb_y_all, sigma11, sigma12, sigma22, misorientation_list, index_gb_array,
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py:147: NumbaPendingDeprecationWarning: [1m[1m
+Encountered the use of a type that is scheduled for deprecation: type 'reflected list' found for argument 'gb__ij__x' of function '__numba_parfor_gufunc_0x7fc43c7503a0'.
+
+For more information visit https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-reflection-for-list-and-set-types
+[1m
+File "<string>", line 1:[0m
+[1m<source missing, REPL/exec in use?>[0m
+[0m[0m
+  stress_field_extend(phi, nx, ny, dx, dy, gb_x_all, gb_y_all, nf, mf, sigma11, sigma12, sigma22)
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py:147: NumbaPendingDeprecationWarning: [1m[1m
+Encountered the use of a type that is scheduled for deprecation: type 'reflected list' found for argument 'gb__ij__y' of function '__numba_parfor_gufunc_0x7fc43c7503a0'.
+
+For more information visit https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-reflection-for-list-and-set-types
+[1m
+File "<string>", line 1:[0m
+[1m<source missing, REPL/exec in use?>[0m
+[0m[0m
+  stress_field_extend(phi, nx, ny, dx, dy, gb_x_all, gb_y_all, nf, mf, sigma11, sigma12, sigma22)
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py:147: NumbaPendingDeprecationWarning: [1m[1m
+Encountered the use of a type that is scheduled for deprecation: type 'reflected list' found for argument 'gb_ij_x' of function 'stress_field_extend'.
+
+For more information visit https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-reflection-for-list-and-set-types
+[1m
+File "build/functions_4ref_new.py", line 437:[0m
+[1m@nb.njit(nopython=True, parallel=True)
+[1mdef stress_field_extend(phi, nx, ny, dx, dy, gb_ij_x, gb_ij_y, nf, mf, sigma11, sigma12, sigma22):
+[0m[1m^[0m[0m
+[0m[0m
+  stress_field_extend(phi, nx, ny, dx, dy, gb_x_all, gb_y_all, nf, mf, sigma11, sigma12, sigma22)
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py:147: NumbaPendingDeprecationWarning: [1m[1m
+Encountered the use of a type that is scheduled for deprecation: type 'reflected list' found for argument 'gb_ij_y' of function 'stress_field_extend'.
+
+For more information visit https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-reflection-for-list-and-set-types
+[1m
+File "build/functions_4ref_new.py", line 437:[0m
+[1m@nb.njit(nopython=True, parallel=True)
+[1mdef stress_field_extend(phi, nx, ny, dx, dy, gb_ij_x, gb_ij_y, nf, mf, sigma11, sigma12, sigma22):
+[0m[1m^[0m[0m
+[0m[0m
+  stress_field_extend(phi, nx, ny, dx, dy, gb_x_all, gb_y_all, nf, mf, sigma11, sigma12, sigma22)
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py:147: NumbaPendingDeprecationWarning: [1m[1m[1m
+Encountered the use of a type that is scheduled for deprecation: type 'reflected list' found for argument 'gb_x' of function 'judge'.
+
+For more information visit https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-reflection-for-list-and-set-types
+[1m
+File "build/functions_4ref_new.py", line 428:[0m
+[1m@nb.njit(parallel=True)
+[1mdef judge(x, y, gb_x, gb_y, Flag):
+[0m[1m^[0m[0m
+[0m[0m[0m
+  stress_field_extend(phi, nx, ny, dx, dy, gb_x_all, gb_y_all, nf, mf, sigma11, sigma12, sigma22)
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py:147: NumbaPendingDeprecationWarning: [1m[1m[1m
+Encountered the use of a type that is scheduled for deprecation: type 'reflected list' found for argument 'gb_y' of function 'judge'.
+
+For more information visit https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-reflection-for-list-and-set-types
+[1m
+File "build/functions_4ref_new.py", line 428:[0m
+[1m@nb.njit(parallel=True)
+[1mdef judge(x, y, gb_x, gb_y, Flag):
+[0m[1m^[0m[0m
+[0m[0m[0m
+  stress_field_extend(phi, nx, ny, dx, dy, gb_x_all, gb_y_all, nf, mf, sigma11, sigma12, sigma22)
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py:147: NumbaPerformanceWarning: [1m[1m[1m
+The keyword argument 'parallel=True' was specified but no transformation for parallel execution was possible.
+
+To find out why, try turning on parallel diagnostics, see https://numba.readthedocs.io/en/stable/user/parallel.html#diagnostics for help.
+[1m
+File "build/functions_4ref_new.py", line 428:[0m
+[1m@nb.njit(parallel=True)
+[1mdef judge(x, y, gb_x, gb_y, Flag):
+[0m[1m^[0m[0m
+[0m[0m[0m
+  stress_field_extend(phi, nx, ny, dx, dy, gb_x_all, gb_y_all, nf, mf, sigma11, sigma12, sigma22)
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/functions_4ref_new.py:147: NumbaPerformanceWarning: [1m[1m[1m
+The keyword argument 'parallel=True' was specified but no transformation for parallel execution was possible.
+
+To find out why, try turning on parallel diagnostics, see https://numba.readthedocs.io/en/stable/user/parallel.html#diagnostics for help.
+[1m
+File "build/functions_4ref_new.py", line 890:[0m
+[1m@nb.njit(nopython=False, fastmath=False, parallel=True)
+[1mdef grad(phi, c, l, m, l_p, l_m, m_p, m_m,dx,dy):
+[0m[1m^[0m[0m
+[0m[0m[0m
+  stress_field_extend(phi, nx, ny, dx, dy, gb_x_all, gb_y_all, nf, mf, sigma11, sigma12, sigma22)
+/opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/typed_passes.py:329: NumbaPerformanceWarning: [1m
+The keyword argument 'parallel=True' was specified but no transformation for parallel execution was possible.
+
+To find out why, try turning on parallel diagnostics, see https://numba.readthedocs.io/en/stable/user/parallel.html#diagnostics for help.
+[1m
+File "build/functions_4ref_new.py", line 140:[0m
+[1mdef find_gb(phi,nf,mf,nx,ny,dx,dy,number_of_grain, G, sigma11, sigma12, sigma22, sigma11_b, sigma12_b, sigma22_b, sigma12_ext, sigma11_ext, sigma22_ext, criterion, nstep, stress_step,sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,misorientation_list,ref_theta_i,idov2,idov3):
+    <source elided>
+
+[1m    stress_field_line(phi,nx,ny,gb_x_all, gb_y_all, sigma11, sigma12, sigma22, misorientation_list, index_gb_array,
+[0m    [1m^[0m[0m
+[0m
+  warnings.warn(errors.NumbaPerformanceWarning(msg,
+/opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/ir_utils.py:2152: NumbaPendingDeprecationWarning: [1m
+Encountered the use of a type that is scheduled for deprecation: type 'reflected list' found for argument 'gb_x_all' of function 'find_gb'.
+
+For more information visit https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-reflection-for-list-and-set-types
+[1m
+File "build/functions_4ref_new.py", line 140:[0m
+[1mdef find_gb(phi,nf,mf,nx,ny,dx,dy,number_of_grain, G, sigma11, sigma12, sigma22, sigma11_b, sigma12_b, sigma22_b, sigma12_ext, sigma11_ext, sigma22_ext, criterion, nstep, stress_step,sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,misorientation_list,ref_theta_i,idov2,idov3):
+    <source elided>
+
+[1m    stress_field_line(phi,nx,ny,gb_x_all, gb_y_all, sigma11, sigma12, sigma22, misorientation_list, index_gb_array,
+[0m    [1m^[0m[0m
+[0m
+  warnings.warn(NumbaPendingDeprecationWarning(msg, loc=loc))
+/opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/ir_utils.py:2152: NumbaPendingDeprecationWarning: [1m
+Encountered the use of a type that is scheduled for deprecation: type 'reflected list' found for argument 'gb_y_all' of function 'find_gb'.
+
+For more information visit https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-reflection-for-list-and-set-types
+[1m
+File "build/functions_4ref_new.py", line 140:[0m
+[1mdef find_gb(phi,nf,mf,nx,ny,dx,dy,number_of_grain, G, sigma11, sigma12, sigma22, sigma11_b, sigma12_b, sigma22_b, sigma12_ext, sigma11_ext, sigma22_ext, criterion, nstep, stress_step,sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,misorientation_list,ref_theta_i,idov2,idov3):
+    <source elided>
+
+[1m    stress_field_line(phi,nx,ny,gb_x_all, gb_y_all, sigma11, sigma12, sigma22, misorientation_list, index_gb_array,
+[0m    [1m^[0m[0m
+[0m
+  warnings.warn(NumbaPendingDeprecationWarning(msg, loc=loc))
+/opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/ir_utils.py:2152: NumbaPendingDeprecationWarning: [1m
+Encountered the use of a type that is scheduled for deprecation: type 'reflected list' found for argument 'index_gb_array' of function 'find_gb'.
+
+For more information visit https://numba.readthedocs.io/en/stable/reference/deprecation.html#deprecation-of-reflection-for-list-and-set-types
+[1m
+File "build/functions_4ref_new.py", line 140:[0m
+[1mdef find_gb(phi,nf,mf,nx,ny,dx,dy,number_of_grain, G, sigma11, sigma12, sigma22, sigma11_b, sigma12_b, sigma22_b, sigma12_ext, sigma11_ext, sigma22_ext, criterion, nstep, stress_step,sigma11_R1, sigma12_R1, sigma22_R1, sigma11_R2, sigma12_R2, sigma22_R2,misorientation_list,ref_theta_i,idov2,idov3):
+    <source elided>
+
+[1m    stress_field_line(phi,nx,ny,gb_x_all, gb_y_all, sigma11, sigma12, sigma22, misorientation_list, index_gb_array,
+[0m    [1m^[0m[0m
+[0m
+  warnings.warn(NumbaPendingDeprecationWarning(msg, loc=loc))
+/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/qiu_native_preflight_v2_instrumentation.py:58: NumbaPerformanceWarning: [1m[1m
+The keyword argument 'parallel=True' was specified but no transformation for parallel execution was possible.
+
+To find out why, try turning on parallel diagnostics, see https://numba.readthedocs.io/en/stable/user/parallel.html#diagnostics for help.
+[1m
+File "build/functions_4ref_new.py", line 799:[0m
+[1m@nb.njit(parallel=True)
+[1mdef E_elastic(phi, i, j, l, m, l_p, l_m, m_p, m_m, ref_theta_i, OR1, OR2, sigma11_v, sigma12_v, sigma22_v,dx,dy):
+[0m[1m^[0m[0m
+[0m[0m
+  signed_elastic = E_elastic(phi,i,j,l,m,l_p,l_m,m_p,m_m,ref_theta_i,misorientation_list[i],misorientation_list[j],sigma11[l,m],sigma12[l,m],sigma22[l,m],dx,dy)
+/opt/apps/anaconda/2022.05/lib/python3.9/site-packages/numba/core/typed_passes.py:329: NumbaPerformanceWarning: [1m
+The keyword argument 'parallel=True' was specified but no transformation for parallel execution was possible.
+
+To find out why, try turning on parallel diagnostics, see https://numba.readthedocs.io/en/stable/user/parallel.html#diagnostics for help.
+[1m
+File "build/functions_4ref_new.py", line 754:[0m
+[1m@nb.njit(nopython=False,parallel=True)
+[1mdef update_PF(phi, phi_new, nx, ny, dx, dy, g1, g2, eta, ref_theta_i, sigma11, sigma12, sigma22, pmobi, A, mf, nf, eij, misorientation_list, dt):
+[0m[1m^[0m[0m
+[0m
+  warnings.warn(errors.NumbaPerformanceWarning(msg,
+Traceback (most recent call last):
+  File "/tmp/sdillon1/56102284/hpc3-20260917T041831Z-nogit-8512a3-single/build/Bicrystal-4reference-el-pf-preflight-v2.py", line 245, in <module>
+    if _object_mode: raise RuntimeError("native dispatcher lacks a nopython signature: "+", ".join(_object_mode))
+RuntimeError: native dispatcher lacks a nopython signature: find_gb, sort_gb

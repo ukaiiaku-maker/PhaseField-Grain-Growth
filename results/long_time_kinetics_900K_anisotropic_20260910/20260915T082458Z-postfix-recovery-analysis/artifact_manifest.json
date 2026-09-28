@@ -1,0 +1,135 @@
+{
+  "artifacts": [
+    {
+      "bytes": 1321,
+      "path": "README.md",
+      "sha256": "2be6fca758d5ea604d46d902c58f60a02053c7814d8aa7a2e7ca3186680e6dc9"
+    },
+    {
+      "bytes": 2834,
+      "path": "amplitude_support.csv",
+      "sha256": "1831dae0bd5623b7e09266fff97c702cd59045f5bc79a86a4a5940ffd547771b"
+    },
+    {
+      "bytes": 17540,
+      "path": "amplitude_support.pdf",
+      "sha256": "4549acf8c19c71920b9779711b9489cf7a19da4a24b07e60398cc2d57e44da8b"
+    },
+    {
+      "bytes": 164633,
+      "path": "amplitude_support.png",
+      "sha256": "02597c4dae7662fe72ef39e8b327be0b5fdc9d262b08d395aba51c8d7ff95180"
+    },
+    {
+      "bytes": 21983,
+      "path": "analysis_summary.json",
+      "sha256": "d61fdbd2f6f59e252e3a98063826cf8819b2a2f5425f983761b9e26a8ec1e28b"
+    },
+    {
+      "bytes": 17518,
+      "path": "convergence_morphology.pdf",
+      "sha256": "9857577af2cb8722cf361259d93873ed1a2e1663eaf84f705d11c320f6d8eeda"
+    },
+    {
+      "bytes": 123561,
+      "path": "convergence_morphology.png",
+      "sha256": "f0d95786e77389968d49a2a89c14f6a2f0a51f8b1ddd50bd1da9ec7763ec7952"
+    },
+    {
+      "bytes": 21241,
+      "path": "energy_evolution.pdf",
+      "sha256": "6d0857181d1706b5081babdc765bb542c583ecb5ae12cac29ce97b236df539ce"
+    },
+    {
+      "bytes": 252094,
+      "path": "energy_evolution.png",
+      "sha256": "89f47e7d21af0a37500a5b2d7d4a4e631e23cb3b53dd8384964bfa65e99af16f"
+    },
+    {
+      "bytes": 19001,
+      "path": "energy_history.csv",
+      "sha256": "d24ee28a8cf8563478ff7cd5a83688164ed45788127e96c22ab106af160dd6e8"
+    },
+    {
+      "bytes": 19761,
+      "path": "energy_increments.csv",
+      "sha256": "f53edf95455b05527cbdf442b1f1cc104b9ca89a2cd3fe65d54dabdde0359b26"
+    },
+    {
+      "bytes": 30850,
+      "path": "grain_area_statistics.pdf",
+      "sha256": "cb151fe296eeb227cc5889f261222ec8be92f8941008989d1bed9e9e3d9aeef0"
+    },
+    {
+      "bytes": 248521,
+      "path": "grain_area_statistics.png",
+      "sha256": "ec00b2618d963e9e4ae5e90a1b4ea1c35b2e7e9f8f3d246378338a2048b6f0a2"
+    },
+    {
+      "bytes": 19947,
+      "path": "interface_orientation.csv",
+      "sha256": "10dfe7472faa8de302f11a1a69311ab9f0688747709e140fb760e0e145bd9633"
+    },
+    {
+      "bytes": 18674,
+      "path": "interface_orientation.pdf",
+      "sha256": "bb75be152ea667a6f150c9abc4cd8080143b60458879c4a043ad544ba1328f79"
+    },
+    {
+      "bytes": 379442,
+      "path": "interface_orientation.png",
+      "sha256": "c12ec1ad1ee85d5c3a7e4590356b337cb385c3d5b0d7cda58d009ee76c4a052f"
+    },
+    {
+      "bytes": 138132,
+      "path": "microstructure_fields.pdf",
+      "sha256": "91ba76c9ed7c888e4ce38c57e1ca2b03814985648599ea013449ce14827ef6c2"
+    },
+    {
+      "bytes": 341658,
+      "path": "microstructure_fields.png",
+      "sha256": "9611e2c37b78c08e8469bf4c58ce3c27dc96b89656c55a80899201c5136454a0"
+    },
+    {
+      "bytes": 428,
+      "path": "morphology_summary.csv",
+      "sha256": "32febd940b35ba9c3bd8dd4c550944c93dfc738812cdeefa7fa44699a4dc0dd2"
+    },
+    {
+      "bytes": 890,
+      "path": "provenance.json",
+      "sha256": "c0c9d69426d3bec9c788129929626990f46f807a5b8063f1e2b00ad299ac90d9"
+    },
+    {
+      "bytes": 18405,
+      "path": "runtime_scaling.pdf",
+      "sha256": "51c0d2adc2db006eb03ca2e1a95c8e3397250879d9d4995a5de6a31af5414f22"
+    },
+    {
+      "bytes": 182859,
+      "path": "runtime_scaling.png",
+      "sha256": "4212738792ebb92164174020842febd157b2cd11a601f036c9b7793239ac5c61"
+    },
+    {
+      "bytes": 21122,
+      "path": "support_growth.pdf",
+      "sha256": "c93d73c988c46f2aed9112af34d15c8da60843e31e9c7231fe914aab31c6ca4a"
+    },
+    {
+      "bytes": 235436,
+      "path": "support_growth.png",
+      "sha256": "484020bf69981acd146242d48ba124375854dd0bab10e45380df0ffdd1af8369"
+    },
+    {
+      "bytes": 27894,
+      "path": "support_history.csv",
+      "sha256": "0327ccdd9f5ac58b37c5c582c5d373bd6aab7b9fd1a7bf92fd68a57dfc2077c9"
+    },
+    {
+      "bytes": 1642,
+      "path": "timing_blocks.csv",
+      "sha256": "920d2d32975ec57e24e45590724acddf5fb975fc9319f40f9cf4dc9da7561ab2"
+    }
+  ],
+  "schema": "anisotropic-postfix-analysis-manifest-v1"
+}

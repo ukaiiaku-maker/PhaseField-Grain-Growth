@@ -1,0 +1,11 @@
+regime,temperature_K,seed,shear_stiffness,end_step,end_time,end_grains,status,movie_path
+GTC_GB,900,5101,0.20,1728,69.12,119,completed,results/jerky_shear_scale_900K_20260823/20260823T153124Z-39f3ffde01/GTC_GB-T900-s5101/microstructure.gif
+GTSC_GB_Ks010,900,5101,0.10,2265,90.60,120,completed,results/jerky_shear_scale_900K_20260823/20260823T153124Z-39f3ffde01/GTSC_GB_Ks010-T900-s5101/microstructure.gif
+GTSC_GB_Ks020,900,5101,0.20,3561,142.44,120,completed,results/jerky_shear_scale_900K_20260823/20260823T153124Z-39f3ffde01/GTSC_GB_Ks020-T900-s5101/microstructure.gif
+GTSC_GB_Ks040,900,5101,0.40,10000,400.00,155,completed_censored,results/jerky_shear_scale_900K_20260823/20260823T153124Z-39f3ffde01/GTSC_GB_Ks040-T900-s5101/microstructure.gif
+GSC_GBTJ_Ks010,900,5101,0.10,2049,81.96,120,completed,results/jerky_shear_scale_900K_20260823/20260823T153124Z-39f3ffde01/GSC_GBTJ_Ks010-T900-s5101/microstructure.gif
+GSC_GBTJ_Ks020,900,5101,0.20,3656,146.24,120,completed,results/jerky_shear_scale_900K_20260823/20260823T153124Z-39f3ffde01/GSC_GBTJ_Ks020-T900-s5101/microstructure.gif
+GSC_GBTJ_Ks040,900,5101,0.40,10000,400.00,156,completed_censored,results/jerky_shear_scale_900K_20260823/20260823T153124Z-39f3ffde01/GSC_GBTJ_Ks040-T900-s5101/microstructure.gif
+GTSC_GBTJ_Ks010,900,5101,0.10,1979,79.16,120,completed,results/jerky_shear_scale_900K_20260823/20260823T153124Z-39f3ffde01/GTSC_GBTJ_Ks010-T900-s5101/microstructure.gif
+GTSC_GBTJ_Ks020,900,5101,0.20,3763,150.52,120,completed,results/jerky_shear_scale_900K_20260823/20260823T153124Z-39f3ffde01/GTSC_GBTJ_Ks020-T900-s5101/microstructure.gif
+GTSC_GBTJ_Ks040,900,5101,0.40,10000,400.00,157,completed_censored,results/jerky_shear_scale_900K_20260823/20260823T153124Z-39f3ffde01/GTSC_GBTJ_Ks040-T900-s5101/microstructure.gif

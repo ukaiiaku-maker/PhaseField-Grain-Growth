@@ -1,0 +1,187 @@
+{
+  "schema_version": 1,
+  "classification": "QIU_ISOTROPIC_LINEAGE_INCOMPLETE",
+  "family_classifications": {
+    "QIU_LEGACY_FORENSIC": "QIU_ISOTROPIC_LINEAGE_DUPLICATED",
+    "FFT_EIGENSTRAIN_V2": "QIU_ISOTROPIC_LINEAGE_INCOMPATIBLE",
+    "QIU_SI_REFERENCE": "QIU_ISOTROPIC_LINEAGE_INCOMPLETE"
+  },
+  "authoritative_isotropic_baseline": "QIU_SI_REFERENCE",
+  "exact_continuation_chain_exists": false,
+  "reason": "The legacy diagnostic replay overlaps steps 9000-9984; FFT runs use distinct timesteps; the native SI plan is unsubmitted.",
+  "source_references": {
+    "audited_base": "9f66c8d7a5a266687284d8da35aefbc6062808f7",
+    "generic_science": "1316cc89dbabfb41cb883b0d4a4c74738cc2bef6",
+    "postfix_recovery": "88fd5dddd3fc425d0b920373cd3698080a3e7452",
+    "qiu_si_port": "97e6a9d602792cd2642d35d64396c7513e1a6d4c",
+    "qiu_qualification": "cef12338a7befed981052d16a87848c14c920365"
+  },
+  "records": [
+    {
+      "initial_field_sha256": "106819770289d156b0ff6a35d356a9aa172258f428325ec50c5f62f380ea56f6",
+      "orientation_reference_sha256": "9817b9d754a021ce9ff313e3e8d7bdf68582a4ea3af4641645be1e77055484c9",
+      "grid": [
+        384,
+        384
+      ],
+      "domain": [
+        384.0,
+        384.0
+      ],
+      "accepted_timestep": 0.04,
+      "model_identity": "QIU_LEGACY_FORENSIC",
+      "logical_trajectory_id": "QIU_LEGACY_FORENSIC_seed5101",
+      "segment_index": 0,
+      "run_id": "20260910T232437Z-nogit-f4803a",
+      "slurm_job_id": "55930486",
+      "source_commit": "147141b54227e7c80c457e9d80c1a2ca3475bf61",
+      "source_archive_sha256": "cb9669b98eedd478fe271ac0c67f6d65bbae61cce7c59b28f73b287ba952f492",
+      "resolved_configuration_sha256": "f2f744a3b7267cdb81d820bb5c45339d556bfdcff804665d66c2749626f9ae3f",
+      "mechanics_backend": "qiu_full_field_legacy_point_eigenstrain",
+      "start_step": 0,
+      "end_step": 9984,
+      "start_time": 0.0,
+      "end_time": 399.3600000000567,
+      "start_checkpoint_sha256": null,
+      "end_checkpoint_sha256": "4457d5a781f67389987a1ccba6822c1db2d2d31b7dff687859fff2f4ba7e0d52",
+      "predecessor_run_id": null,
+      "successor_run_id": null,
+      "terminal_state": "COMPLETED",
+      "scientific_classification": "REJECTED_FORENSIC_AVALANCHE",
+      "retrieval_state": "VERIFIED"
+    },
+    {
+      "initial_field_sha256": "106819770289d156b0ff6a35d356a9aa172258f428325ec50c5f62f380ea56f6",
+      "orientation_reference_sha256": "9817b9d754a021ce9ff313e3e8d7bdf68582a4ea3af4641645be1e77055484c9",
+      "grid": [
+        384,
+        384
+      ],
+      "domain": [
+        384.0,
+        384.0
+      ],
+      "accepted_timestep": 0.04,
+      "model_identity": "QIU_LEGACY_FORENSIC",
+      "logical_trajectory_id": "QIU_LEGACY_FORENSIC_seed5101_replay",
+      "segment_index": 0,
+      "run_id": "20260911T111913Z-nogit-06fc67",
+      "slurm_job_id": "55948258",
+      "source_commit": "bebd53b8706301715c216dafe224f2e0c4180aaa",
+      "source_archive_sha256": "d024b52083f7f1c4042d4d8a99987cff8c5c17160499c8d2bbbc2d4d1f8cffb5",
+      "resolved_configuration_sha256": "324568b7071d7445889ee44a9b9ad729fa05e8e278ad286fad1fa1926847c2a1",
+      "mechanics_backend": "qiu_full_field_legacy_point_eigenstrain",
+      "start_step": 9000,
+      "end_step": 9984,
+      "start_time": 360.0,
+      "end_time": 399.3600000000567,
+      "start_checkpoint_sha256": "bb7d4bdbd23c336f388ee28872155aea0ef280835bc87588edc8bae0b8c76e20",
+      "end_checkpoint_sha256": "33e0ef438f75d1d01d460bdb7719e434fa83fa9549b63e2f3de492fc1cfd95c4",
+      "predecessor_run_id": null,
+      "successor_run_id": null,
+      "terminal_state": "COMPLETED",
+      "scientific_classification": "OVERLAPPING_DIAGNOSTIC_REPLAY",
+      "retrieval_state": "VERIFIED"
+    },
+    {
+      "initial_field_sha256": "106819770289d156b0ff6a35d356a9aa172258f428325ec50c5f62f380ea56f6",
+      "orientation_reference_sha256": "9817b9d754a021ce9ff313e3e8d7bdf68582a4ea3af4641645be1e77055484c9",
+      "grid": [
+        384,
+        384
+      ],
+      "domain": [
+        384.0,
+        384.0
+      ],
+      "accepted_timestep": 0.04,
+      "model_identity": "FFT_EIGENSTRAIN_V2",
+      "logical_trajectory_id": "FFT_EIGENSTRAIN_V2_seed5101_dt004",
+      "segment_index": 0,
+      "run_id": "20260911T003946Z-nogit-c53868",
+      "slurm_job_id": "55932457",
+      "source_commit": "8bb7837677e6ca36fc9a952daf6aef601190b550",
+      "source_archive_sha256": "e9926fc38ba41502d4deefadc57b344826924bfd2e4c0d75f4299ee1a6b8d5b0",
+      "resolved_configuration_sha256": "ae96a1427ea01c33df8441dfb0cacd1ff4e7cd5c611c9c1326b3a533a3fb19ce",
+      "mechanics_backend": "fft_eigenstrain_v2",
+      "start_step": 0,
+      "end_step": 8379,
+      "start_time": 0.0,
+      "end_time": 335.16000000002384,
+      "start_checkpoint_sha256": null,
+      "end_checkpoint_sha256": "d190c50b68328629e3c28779df4e5dcc8f3f80670a54a507d74ee34ee3513665",
+      "predecessor_run_id": null,
+      "successor_run_id": null,
+      "terminal_state": "COMPLETED",
+      "scientific_classification": "SEPARATE_MODEL_BASE_TIMESTEP",
+      "retrieval_state": "VERIFIED",
+      "verified_result_archive_sha256": "1ef8e15ec70bf87ecf2a3175076035216c9aa01388ef5b10157d85d08e83a417"
+    },
+    {
+      "initial_field_sha256": "106819770289d156b0ff6a35d356a9aa172258f428325ec50c5f62f380ea56f6",
+      "orientation_reference_sha256": "9817b9d754a021ce9ff313e3e8d7bdf68582a4ea3af4641645be1e77055484c9",
+      "grid": [
+        384,
+        384
+      ],
+      "domain": [
+        384.0,
+        384.0
+      ],
+      "accepted_timestep": 0.02,
+      "model_identity": "FFT_EIGENSTRAIN_V2",
+      "logical_trajectory_id": "FFT_EIGENSTRAIN_V2_seed5101_dt002",
+      "segment_index": 0,
+      "run_id": "20260911T110924Z-nogit-6b926f",
+      "slurm_job_id": "55950433",
+      "source_commit": "a173624e4a0b3b3e5074166a2fe0229ed2f34398",
+      "source_archive_sha256": "c0ba9161a8f519436deec75c7017f03614fa04de43328221996b9efd0dd545b3",
+      "resolved_configuration_sha256": null,
+      "mechanics_backend": "fft_eigenstrain_v2",
+      "start_step": 0,
+      "end_step": null,
+      "start_time": 0.0,
+      "end_time": null,
+      "start_checkpoint_sha256": null,
+      "end_checkpoint_sha256": null,
+      "predecessor_run_id": null,
+      "successor_run_id": null,
+      "terminal_state": "RUNNING",
+      "scientific_classification": "SEPARATE_TIMESTEP_REFINEMENT",
+      "retrieval_state": "NOT_FETCHABLE_WHILE_RUNNING"
+    },
+    {
+      "model_identity": "QIU_SI_REFERENCE",
+      "logical_trajectory_id": null,
+      "segment_index": null,
+      "run_id": "20260912T180419Z-nogit-a25f0c",
+      "slurm_job_id": null,
+      "source_commit": null,
+      "source_archive_sha256": "2783b5c019323ee0fb04742e35226c18938b5ddc7b704a3990ecc6025097dbcd",
+      "resolved_configuration_sha256": null,
+      "initial_field_sha256": "2740e0af26bd3acd24bfbbca44b8b3cd56e2e3bacf97ef5648ab69b84989bf90",
+      "orientation_reference_sha256": null,
+      "mechanics_backend": "native_qiu_si_line_disconnection",
+      "grid": [
+        500,
+        500
+      ],
+      "domain": [
+        500.0,
+        500.0
+      ],
+      "accepted_timestep": 0.1,
+      "start_step": 0,
+      "end_step": null,
+      "start_time": 0.0,
+      "end_time": null,
+      "start_checkpoint_sha256": null,
+      "end_checkpoint_sha256": null,
+      "predecessor_run_id": null,
+      "successor_run_id": null,
+      "terminal_state": "PREPARED_UNSUBMITTED",
+      "scientific_classification": "AUTHORITATIVE_NATIVE_BASELINE_PENDING",
+      "retrieval_state": "NOT_SUBMITTED"
+    }
+  ]
+}

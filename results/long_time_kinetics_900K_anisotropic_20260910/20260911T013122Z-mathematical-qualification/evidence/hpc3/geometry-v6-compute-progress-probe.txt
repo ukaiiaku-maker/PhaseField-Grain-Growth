@@ -1,0 +1,17 @@
+total 68
+-rw-r----- 1 sdillon1 sdillon1  563 Sep 10 18:42 ENVIRONMENT_READY.json
+-rw-r----- 1 sdillon1 sdillon1 8198 Sep 10 18:42 base-conda-history.txt
+-rw-r----- 1 sdillon1 sdillon1 3297 Sep 10 18:42 cpu.txt
+-rw-r----- 1 sdillon1 sdillon1  563 Sep 10 18:42 environment-fingerprint.json
+-rw-r----- 1 sdillon1 sdillon1   58 Sep 10 18:42 environment-prefix.txt
+-rw-r----- 1 sdillon1 sdillon1  198 Sep 10 18:42 environment.sha256
+-rw-r----- 1 sdillon1 sdillon1  178 Sep 10 18:37 environment.txt
+-rw-r----- 1 sdillon1 sdillon1  514 Sep 10 18:37 inputs.sha256
+-rw-r----- 1 sdillon1 sdillon1 5336 Sep 10 18:42 numpy-build.txt
+-rw-r----- 1 sdillon1 sdillon1 1074 Sep 10 18:42 pip-freeze.txt
+-rw-r----- 1 sdillon1 sdillon1  368 Sep 10 18:42 runtime-libraries.txt
+-rw-r----- 1 sdillon1 sdillon1   41 Sep 10 18:37 source_commit.txt
+-rw-r----- 1 sdillon1 sdillon1   94 Sep 10 18:47 tests.log
+-rw-r----- 1 sdillon1 sdillon1  129 Sep 10 18:42 uname.txt
+........................................................................ [ 37%]
+..............

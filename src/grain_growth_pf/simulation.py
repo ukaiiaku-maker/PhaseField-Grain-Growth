@@ -54,6 +54,8 @@ class DomainPhysics:
     free_volume: FreeVolumeState = field(init=False)
     climb: SerialClimbCycle = field(init=False)
     blocked: bool = False
+    compatibility_pending: bool = False
+    area_loss_pending: bool = False
     previous_length: float = 0.0
     previous_area_i: float = 0.0
     previous_area_j: float = 0.0
@@ -89,7 +91,10 @@ class DomainPhysics:
                       "clock_threshold": self.climb.clock.threshold,
                       "clock_last_rate": self.climb.clock.last_rate,
                       "last_completion_time": self.climb.last_completion_time},
-            "blocked": self.blocked, "previous_length": self.previous_length,
+            "blocked": self.blocked,
+            "compatibility_pending": self.compatibility_pending,
+            "area_loss_pending": self.area_loss_pending,
+            "previous_length": self.previous_length,
             "previous_area_i": self.previous_area_i, "previous_area_j": self.previous_area_j,
             "previous_time": self.previous_time,
             "normal_displacement_ledger": self.normal_displacement_ledger,
@@ -119,6 +124,8 @@ class DomainPhysics:
         self.climb.clock.last_rate = state["climb"]["clock_last_rate"]
         self.climb.last_completion_time = state["climb"].get("last_completion_time")
         self.blocked = state["blocked"]
+        self.compatibility_pending = state.get("compatibility_pending", False)
+        self.area_loss_pending = state.get("area_loss_pending", False)
         self.previous_length = state["previous_length"]
         self.previous_area_i = state.get("previous_area_i", 0.0)
         self.previous_area_j = state.get("previous_area_j", 0.0)
@@ -148,7 +155,7 @@ class EventResolvedSimulation:
         used_cached_initial_condition = bool(initial_state_path)
         if initial_state_path:
             with np.load(initial_state_path) as state:
-                eta = state["eta"].copy()
+                eta = state["eta"]
                 seeds = state["seed_positions"].copy()
                 orientations = state["orientations"].copy()
                 active_original_ids = state["active_original_ids"].astype(int).copy()
@@ -170,7 +177,14 @@ class EventResolvedSimulation:
                 config.pf.intrinsic_mobility * np.exp(-barrier / (K_B_EV * config.pf.temperature))
             ))
         self.driving_field = np.zeros_like(eta)
-        self.solver = MultiphaseFieldSolver(eta, effective_pf, driving=None)
+        self.solver = MultiphaseFieldSolver(
+            eta, effective_pf, driving=None, orientations=orientations
+        )
+        # The event layer is advanced over the interval accepted by the PF
+        # solver.  ``run`` refreshes these values from StepDiagnostics before
+        # any physical clock is touched.
+        self._accepted_step_dt = float(effective_pf.time_step)
+        self._accepted_step_start_time = 0.0
         if not resume:
             write_manifest(self.output_dir / "manifest.json", config.to_dict(), "equilibrating", {
                 "initial_seed_positions": seeds.tolist(),
@@ -203,6 +217,7 @@ class EventResolvedSimulation:
                 self.solver.eta = self.solver.eta[active_original_ids].copy()
                 self.solver.active_phases = np.ones(len(active_original_ids), dtype=bool)
                 self.orientations = orientations[active_original_ids].copy()
+                self.solver.orientations = self.orientations.copy()
             self.solver.time = 0.0
             self.solver.step_number = 0
             self.driving_field = np.zeros_like(self.solver.eta)
@@ -273,6 +288,16 @@ class EventResolvedSimulation:
         ))
         if not resume or boundary_path.stat().st_size == 0:
             self.boundary_writer.writeheader()
+        timestep_path = self.output_dir / "timesteps.csv"
+        self.timestep_handle = timestep_path.open(
+            "a" if resume else "w", newline="", encoding="utf-8"
+        )
+        self.timestep_writer = csv.DictWriter(self.timestep_handle, fieldnames=(
+            "run_id", "step", "start_time", "end_time", "requested_dt",
+            "accepted_dt", "stability_limit",
+        ))
+        if not resume or timestep_path.stat().st_size == 0:
+            self.timestep_writer.writeheader()
         self.run_id = self.output_dir.name
         self.energy_records: list[dict[str, float]] = []
         self.accumulated_shear_strain = 0.0
@@ -295,6 +320,15 @@ class EventResolvedSimulation:
 
     def _driving(self, _eta: np.ndarray, _time: float) -> np.ndarray:
         return self.driving_field
+
+    def _capillary_pressure(self, segment: GBSegment) -> float:
+        """Return the same capillary pair drive used by PF migration."""
+        diffuse = self.solver.capillary_pressure(
+            segment.grain_i, segment.grain_j, segment.points.astype(int)
+        )
+        if diffuse is not None:
+            return diffuse
+        return float(self.config.pf.gb_energy * segment.curvature)
 
     def _new_domain(self, segment: GBSegment) -> DomainPhysics:
         p = self.config.parameters
@@ -415,7 +449,7 @@ class EventResolvedSimulation:
     def _activation_rates(self, domain: DomainPhysics, segment: GBSegment) -> tuple[
         list[DisconnectionMode], np.ndarray, float, np.ndarray, float, np.ndarray
     ]:
-        capillary = self.config.pf.gb_energy * segment.curvature
+        capillary = self._capillary_pressure(segment)
         candidates = [m for m in self.modes if (m.family != "easy" if domain.blocked else True)]
         if self.config.parameters.get("barrier_distribution") == "gb_character":
             candidates = assign_barriers(
@@ -644,8 +678,8 @@ class EventResolvedSimulation:
         modules = set(self.config.active_modules)
         strict = "tj_burgers_strict" in modules
         attached = self._signed_boundary_tjs(segment)
-        remaining = float(self.config.pf.time_step)
-        current_time = self.solver.time - remaining
+        remaining = self._accepted_step_dt
+        current_time = self._accepted_step_start_time
         tolerance = 16 * np.finfo(float).eps * max(1.0, remaining)
         while remaining > tolerance:
             if strict and any(
@@ -761,8 +795,9 @@ class EventResolvedSimulation:
         if modules.intersection({"serial_climb", "independent_and"}):
             if domain.climb.stage.value in {"inactive", "quota_completion"}:
                 domain.climb.activate(self.solver.time)
-            complete = domain.climb.advance(self.config.pf.time_step,
-                self.solver.time - self.config.pf.time_step, rn, re, rt)
+            complete = domain.climb.advance(
+                self._accepted_step_dt, self._accepted_step_start_time, rn, re, rt
+            )
             event_time = domain.climb.last_completion_time
             transition_rates = {
                 "exchange": ("climb_nucleation", rn),
@@ -777,8 +812,8 @@ class EventResolvedSimulation:
         else:
             rate = rn if modules.intersection({"nucleation_limited", "multihit_nucleation"}) else (re if "exchange_limited" in modules else rt)
             completions, hits = self._advance_activation(
-                domain, rate, self.config.pf.time_step,
-                self.solver.time - self.config.pf.time_step,
+                domain, rate, self._accepted_step_dt,
+                self._accepted_step_start_time,
                 stop_after_completion=True,
             )
             self._record_activation_hits(domain, rate, hits, segment=segment)
@@ -787,15 +822,53 @@ class EventResolvedSimulation:
         if complete:
             release = float(self.config.parameters.get("climb_release_quota", 1.0))
             domain.free_volume.accommodate(release)
-            domain.blocked = domain.free_volume.deficit > float(self.config.parameters.get("climb_trigger_quota", 0.25))
+            domain.blocked = (
+                domain.compatibility_pending
+                or domain.free_volume.deficit
+                > float(self.config.parameters.get("climb_trigger_quota", 0.25))
+            )
             mode, total, driving = self._activation_mode(domain, segment)
             self._record_event(domain, segment, mode, total, driving,
                                "climb_quota_completion", delta_length, event_time)
-            domain.blocked = domain.free_volume.deficit > float(self.config.parameters.get("climb_trigger_quota", 0.25))
+            domain.blocked = (
+                domain.compatibility_pending
+                or domain.free_volume.deficit
+                > float(self.config.parameters.get("climb_trigger_quota", 0.25))
+            )
+
+    def _tj_mode_driving(
+        self, tj: TripleJunction, mode: DisconnectionMode,
+    ) -> ModeDriving:
+        """Return conjugate driving forces for a TJ release.
+
+        The base event model has no local TJ work closure.  Specialized
+        simulations can provide one without changing the persistent TJ clock.
+        """
+        return ModeDriving(0.0, 0.0, 0.0)
+
+    def _record_tj_activation_work(
+        self,
+        domain: DomainPhysics,
+        tj: TripleJunction,
+        mode: DisconnectionMode,
+        driving: ModeDriving,
+        bare_barrier_ev: float,
+        effective_barrier_ev: float,
+        event_time: float,
+    ) -> None:
+        """Hook for specialized TJ activation-work diagnostics."""
+
+    def _tj_gate_radius_pixels(self) -> int:
+        """Legacy TJ gate radius; corrected closures override this in length units."""
+        return int(self.config.parameters.get("tj_correlation_radius", 2))
 
     def _update_tj_physics(self, mobility: np.ndarray) -> None:
         modules = set(self.config.active_modules)
-        enabled = bool(modules.intersection({"tj_compatibility", "tj_pinning", "tj_burgers_strict", "tj_burgers_residual", "tj_geometric_surrogate"}))
+        compatibility_enabled = bool(modules.intersection({
+            "tj_compatibility", "tj_pinning", "tj_burgers_strict",
+            "tj_burgers_residual", "tj_geometric_surrogate",
+        }))
+        enabled = compatibility_enabled or "tj_defect_sink" in modules
         if not enabled:
             self.tj_domains.clear()
             return
@@ -813,6 +886,11 @@ class EventResolvedSimulation:
             domain = self.tj_domains[key]
             delta_path = max(0.0, tj.travel_distance - domain.previous_length)
             domain.previous_length = tj.travel_distance
+            if not compatibility_enabled:
+                # A true TJ defect sink owns a separate, compatibility-checked
+                # renewal clock in MigrationClosureSimulation.  Keeping its
+                # domain here must not activate the legacy random TJ gate.
+                continue
             explicit_residual = bool(
                 modules.intersection({"tj_burgers_strict", "tj_burgers_residual"})
                 and np.linalg.norm(tj.residual_burgers) > 1e-10
@@ -835,7 +913,8 @@ class EventResolvedSimulation:
                     ),
                 )
                 increment = packet * np.asarray(mode.burgers)
-                barrier = float(self.config.parameters.get("tj_barrier_ev", 0.6))
+                bare_barrier = float(self.config.parameters.get("tj_barrier_ev", 0.6))
+                residual_barrier_shift = 0.0
                 if "tj_burgers_residual" in modules:
                     stiffness = float(
                         self.config.parameters.get("tj_residual_stiffness_ev", 1.0)
@@ -843,13 +922,18 @@ class EventResolvedSimulation:
                     before = float(tj.residual_burgers @ tj.residual_burgers)
                     after_vector = tj.residual_burgers + increment
                     after = float(after_vector @ after_vector)
-                    barrier += 0.5 * stiffness * (after - before)
-                effective_barrier = max(0.0, barrier)
+                    residual_barrier_shift = 0.5 * stiffness * (after - before)
+                driving = self._tj_mode_driving(tj, mode)
+                effective_barrier = max(
+                    0.0,
+                    bare_barrier + residual_barrier_shift
+                    - mode.activation_work_ev(driving),
+                )
                 rate = float(self.config.parameters.get("tj_attempt_frequency", 1e3)) * np.exp(
                     -effective_barrier / (K_B_EV * self.config.pf.temperature))
                 completions, hits = self._advance_activation(
-                    domain, rate, self.config.pf.time_step,
-                    self.solver.time - self.config.pf.time_step,
+                    domain, rate, self._accepted_step_dt,
+                    self._accepted_step_start_time,
                     stop_after_completion=True,
                 )
                 self._record_activation_hits(
@@ -859,6 +943,11 @@ class EventResolvedSimulation:
                     tj_travel=delta_path,
                 )
                 if completions:
+                    event_time = completions[0].time
+                    self._record_tj_activation_work(
+                        domain, tj, mode, driving, bare_barrier,
+                        effective_barrier, event_time,
+                    )
                     domain.event_counter += 1
                     if explicit_residual:
                         tj.add_burgers(increment)
@@ -866,13 +955,24 @@ class EventResolvedSimulation:
                         explicit_residual and np.linalg.norm(tj.residual_burgers) > 1e-10
                     )
                     self.ledger.write({
-                        "run_id": self.run_id, "time": completions[0].time,
+                        "run_id": self.run_id, "time": event_time,
                         "step": self.solver.step_number,
                         "temperature": self.config.pf.temperature, "seed": self.config.seed,
                         "event_id": f"{key}:{domain.event_counter}", "event_type": "tj_compatibility_release",
                         "grain_ids": ";".join(map(str, tj.grain_ids)), "entity_id": key,
                         "position": tj.position, "geometry_measure_Q": tj.travel_distance,
                         "TJ_travel": delta_path, "instantaneous_rate": rate,
+                        "barrier_type": "tj_compatibility",
+                        "DeltaG0": bare_barrier,
+                        "effective_DeltaG": effective_barrier,
+                        "activation_volume": (
+                            f"{mode.activation_volume_normal};"
+                            f"{mode.activation_volume_shear}"
+                        ),
+                        "local_shear_stress": driving.resolved_shear,
+                        "local_normal_free_volume_stress": (
+                            driving.vacancy_chemical_potential
+                        ),
                         "cumulative_hazard": domain.activation.clock.cumulative_hazard,
                         "random_hazard_threshold": domain.activation.clock.threshold,
                         "hit_count": domain.activation.hit_count, "required_hits_K": domain.hits,
@@ -880,7 +980,7 @@ class EventResolvedSimulation:
                     })
             if domain.blocked:
                 y, x = np.rint(tj.position).astype(int) % np.asarray(self.config.pf.shape)
-                radius = int(self.config.parameters.get("tj_correlation_radius", 2))
+                radius = self._tj_gate_radius_pixels()
                 for oy in range(-radius, radius + 1):
                     for ox in range(-radius, radius + 1):
                         mobility[(y + oy) % mobility.shape[0], (x + ox) % mobility.shape[1]] = 0.0
@@ -963,7 +1063,7 @@ class EventResolvedSimulation:
             segment.normal = tuple(normal)
             if "shear_memory" in modules or "shear_feedback" in modules:
                 beta = float(cfg.parameters.get("easy_beta", 0.35))
-                domain.shear.migrate(beta, normal_displacement, cfg.pf.time_step)
+                domain.shear.migrate(beta, normal_displacement, self._accepted_step_dt)
             if "qiu_reference_shear" in modules and self.full_field is not None and normal_displacement:
                 beta = float(cfg.parameters.get("easy_beta", 0.35))
                 tangent = np.asarray((-normal[1], normal[0]))
@@ -1000,8 +1100,8 @@ class EventResolvedSimulation:
                 )
                 total_rate = float(rates.sum())
                 completions, hits = self._advance_activation(
-                    domain, total_rate, cfg.pf.time_step,
-                    self.solver.time - cfg.pf.time_step,
+                    domain, total_rate, self._accepted_step_dt,
+                    self._accepted_step_start_time,
                     stop_after_completion=True,
                 )
                 self._record_activation_hits(
@@ -1035,8 +1135,8 @@ class EventResolvedSimulation:
                     )
                     total_rate = float(rates.sum())
                     completions, hits = self._advance_activation(
-                        domain, total_rate, cfg.pf.time_step,
-                        self.solver.time - cfg.pf.time_step,
+                        domain, total_rate, self._accepted_step_dt,
+                        self._accepted_step_start_time,
                     )
                     self._record_activation_hits(
                         domain, total_rate, hits, segment=segment, position=ledger_position
@@ -1105,12 +1205,24 @@ class EventResolvedSimulation:
             })
         self.boundary_handle.flush()
 
+    def _extra_checkpoint_state(self) -> dict[str, Any]:
+        """Extension hook for parallel physics models.
+
+        The legacy model returns an empty mapping, so its numerical state and
+        evolution are unchanged.
+        """
+        return {}
+
+    def _load_extra_checkpoint_state(self, state: dict[str, Any]) -> None:
+        """Restore extension state written by :meth:`_extra_checkpoint_state`."""
+
     def _save_checkpoint(self) -> None:
         event_ledger_offset = self.ledger.checkpoint()
         stream_offsets = {}
         for name, handle in (
             ("grain_tracks_offset", self.track_handle),
             ("boundary_tracks_offset", self.boundary_handle),
+            ("timesteps_offset", self.timestep_handle),
         ):
             handle.flush()
             os.fsync(handle.fileno())
@@ -1133,7 +1245,10 @@ class EventResolvedSimulation:
             "accumulated_shear_strain": self.accumulated_shear_strain,
             "accumulated_volumetric_strain": self.accumulated_volumetric_strain,
             "previous_entity_time": self.previous_entity_time,
+            "accepted_step_dt": self._accepted_step_dt,
+            "accepted_step_start_time": self._accepted_step_start_time,
             "event_ledger_offset": event_ledger_offset,
+            "extension_state": self._extra_checkpoint_state(),
             **stream_offsets,
         }
         serialized_state = json.dumps(state, indent=2) + "\n"
@@ -1165,6 +1280,7 @@ class EventResolvedSimulation:
             for name, handle in (
                 ("grain_tracks_offset", self.track_handle),
                 ("boundary_tracks_offset", self.boundary_handle),
+                ("timesteps_offset", self.timestep_handle),
             ):
                 if name in state:
                     offset = int(state[name])
@@ -1184,6 +1300,7 @@ class EventResolvedSimulation:
             self.solver.active_phases = arrays["active_phases"].astype(bool).copy()
             if "orientations" in arrays:
                 self.orientations = arrays["orientations"].copy()
+                self.solver.orientations = self.orientations.copy()
             self.driving_field = arrays["driving_field"].copy()
             self.previous_entity_eta = (
                 arrays["previous_entity_eta"].copy()
@@ -1194,6 +1311,12 @@ class EventResolvedSimulation:
         self.solver.time = float(state["time"])
         self.solver.step_number = int(state["step_number"])
         self.previous_entity_time = float(state.get("previous_entity_time", self.solver.time))
+        self._accepted_step_dt = float(
+            state.get("accepted_step_dt", self.config.pf.time_step)
+        )
+        self._accepted_step_start_time = float(
+            state.get("accepted_step_start_time", self.solver.time - self._accepted_step_dt)
+        )
         self.tracker = EntityTracker(
             self.orientations, self.config.pf.grid_spacing,
             float(self.config.parameters.get("event_domain_length", 8.0)),
@@ -1229,14 +1352,109 @@ class EventResolvedSimulation:
         self.energy_records = state["energy_records"]
         self.accumulated_shear_strain = float(state.get("accumulated_shear_strain", 0.0))
         self.accumulated_volumetric_strain = float(state.get("accumulated_volumetric_strain", 0.0))
+        self._load_extra_checkpoint_state(dict(state.get("extension_state", {})))
 
     def run(self) -> Path:
         failure: str | None = None
+        outcome_classification = "running"
+        maximum_time_value = self.config.parameters.get("maximum_physical_time")
+        maximum_time = (
+            None if maximum_time_value is None else float(maximum_time_value)
+        )
+        if maximum_time is not None and (
+            not np.isfinite(maximum_time) or maximum_time <= 0
+        ):
+            raise ValueError("maximum_physical_time must be finite and positive")
+        output_interval_value = self.config.parameters.get("output_time_interval")
+        energy_interval_value = self.config.parameters.get("energy_time_interval")
+        checkpoint_interval_value = self.config.parameters.get("checkpoint_time_interval")
+        output_interval = (
+            None if output_interval_value is None else float(output_interval_value)
+        )
+        energy_interval = (
+            None if energy_interval_value is None else float(energy_interval_value)
+        )
+        checkpoint_interval = (
+            None if checkpoint_interval_value is None else float(checkpoint_interval_value)
+        )
+        for name, interval in (
+            ("output_time_interval", output_interval),
+            ("energy_time_interval", energy_interval),
+            ("checkpoint_time_interval", checkpoint_interval),
+        ):
+            if interval is not None and (not np.isfinite(interval) or interval <= 0):
+                raise ValueError(f"{name} must be finite and positive")
+
+        def next_time_boundary(interval: float | None) -> float:
+            if interval is None:
+                return float("inf")
+            index = np.floor((self.solver.time + 1e-12 * interval) / interval) + 1
+            return float(index * interval)
+
+        next_output_time = next_time_boundary(output_interval)
+        next_energy_time = next_time_boundary(energy_interval)
+        next_checkpoint_time = next_time_boundary(checkpoint_interval)
+        checkpoint_cadence = max(
+            1, int(self.config.parameters.get(
+                "checkpoint_cadence", self.config.output_cadence
+            ))
+        )
+        energy_cadence = max(
+            1, int(self.config.parameters.get("energy_diagnostic_cadence", 1))
+        )
+        last_output_step = -1
+        last_checkpoint_step = -1
         try:
             entity_every_step = bool(self.config.active_modules) or self.config.compatibility_model != "off"
             for _ in range(max(0, self.config.max_steps - self.solver.step_number)):
-                diag = self.solver.step()
-                update_entities = entity_every_step or self.solver.step_number % self.config.output_cadence == 0
+                if maximum_time is not None and self.solver.time >= maximum_time - 1e-12:
+                    outcome_classification = "censored_physical_time_horizon"
+                    break
+                requested_dt = self.config.pf.time_step
+                if maximum_time is not None:
+                    requested_dt = min(requested_dt, maximum_time - self.solver.time)
+                stability_limit = self.solver.stable_dt()
+                predicted_dt = (
+                    min(requested_dt, stability_limit)
+                    if self.config.pf.adaptive_stepping else requested_dt
+                )
+                predicted_time = self.solver.time + predicted_dt
+                energy_due = (
+                    predicted_time >= next_energy_time - 1e-12
+                    if energy_interval is not None
+                    else (self.solver.step_number + 1) % energy_cadence == 0
+                )
+                if requested_dt == self.config.pf.time_step and energy_due:
+                    # Preserve the historical call contract as well as its
+                    # arithmetic when no physical-horizon truncation or sparse
+                    # diagnostic was requested.
+                    diag = self.solver.step()
+                else:
+                    diag = self.solver.step(
+                        dt=requested_dt, compute_energy=energy_due
+                    )
+                self._accepted_step_dt = float(diag.dt)
+                self._accepted_step_start_time = float(diag.time - diag.dt)
+                self.timestep_writer.writerow({
+                    "run_id": self.run_id,
+                    "step": diag.step,
+                    "start_time": self._accepted_step_start_time,
+                    "end_time": diag.time,
+                    "requested_dt": requested_dt,
+                    "accepted_dt": diag.dt,
+                    "stability_limit": stability_limit,
+                })
+                output_due = (
+                    diag.time >= next_output_time - 1e-12
+                    if output_interval is not None
+                    else self.solver.step_number % self.config.output_cadence == 0
+                )
+                checkpoint_due = (
+                    diag.time >= next_checkpoint_time - 1e-12
+                    if checkpoint_interval is not None
+                    else self.solver.step_number % checkpoint_cadence == 0
+                )
+                update_entities = entity_every_step or output_due
                 if update_entities:
                     self.snapshot = self.tracker.update(self.solver.labels)
                     self._update_physics()
@@ -1256,32 +1474,54 @@ class EventResolvedSimulation:
                 dissipated_free_volume = sum(
                     d.free_volume.dissipated_energy for d in self.domains.values()
                 )
-                self.energy_records.append({
-                    "time": diag.time,
-                    "interfacial": diag.interfacial_energy,
-                    "stored": stored_shear + stored_free_volume + stored_tj,
-                    "stored_shear": stored_shear,
-                    "stored_free_volume": stored_free_volume,
-                    "stored_tj_residual": stored_tj,
-                    "dissipated_shear": dissipated_shear,
-                    "dissipated_free_volume": dissipated_free_volume,
-                })
-                if self.solver.step_number % self.config.output_cadence == 0:
+                if energy_due:
+                    self.energy_records.append({
+                        "time": diag.time,
+                        "dt": diag.dt,
+                        "interfacial": diag.interfacial_energy,
+                        "stored": stored_shear + stored_free_volume + stored_tj,
+                        "stored_shear": stored_shear,
+                        "stored_free_volume": stored_free_volume,
+                        "stored_tj_residual": stored_tj,
+                        "dissipated_shear": dissipated_shear,
+                        "dissipated_free_volume": dissipated_free_volume,
+                    })
+                    while next_energy_time <= diag.time + 1e-12:
+                        next_energy_time += energy_interval or float("inf")
+                if output_due:
                     self._write_tracks()
+                    last_output_step = self.solver.step_number
+                    while next_output_time <= diag.time + 1e-12:
+                        next_output_time += output_interval or float("inf")
+                if checkpoint_due:
                     self._save_checkpoint()
+                    last_checkpoint_step = self.solver.step_number
+                    while next_checkpoint_time <= diag.time + 1e-12:
+                        next_checkpoint_time += checkpoint_interval or float("inf")
                 if update_entities and len(self.snapshot.grains) <= self.config.termination_grains:
+                    outcome_classification = "completed_terminal_grain_count"
                     break
+            if outcome_classification == "running":
+                if len(self.snapshot.grains) <= self.config.termination_grains:
+                    outcome_classification = "completed_terminal_grain_count"
+                elif maximum_time is not None and self.solver.time >= maximum_time - 1e-12:
+                    outcome_classification = "censored_physical_time_horizon"
+                else:
+                    outcome_classification = "censored_max_steps"
         except BaseException as exc:
             failure = f"{type(exc).__name__}: {exc}"
+            outcome_classification = "failed"
             raise
         finally:
-            if (failure is None and self.solver.step_number > 0
-                    and self.solver.step_number % self.config.output_cadence != 0):
-                self._write_tracks()
-                self._save_checkpoint()
+            if failure is None and self.solver.step_number > 0:
+                if last_output_step != self.solver.step_number:
+                    self._write_tracks()
+                if last_checkpoint_step != self.solver.step_number:
+                    self._save_checkpoint()
             self.ledger.close()
             self.track_handle.close()
             self.boundary_handle.close()
+            self.timestep_handle.close()
             (self.output_dir / "energy.json").write_text(json.dumps(self.energy_records, indent=2) + "\n")
             restart_artifacts = []
             for name in ("checkpoint.npz", "checkpoint.json"):
@@ -1295,6 +1535,8 @@ class EventResolvedSimulation:
             write_manifest(self.output_dir / "manifest.json", self.config.to_dict(),
                            "failed" if failure else "completed", {
                                "failure": failure, "steps_completed": self.solver.step_number,
+                               "outcome_classification": outcome_classification,
+                               "final_physical_time": self.solver.time,
                                "final_grains": len(self.snapshot.grains),
                                "accumulated_shear_strain": self.accumulated_shear_strain,
                                "accumulated_volumetric_strain": self.accumulated_volumetric_strain,

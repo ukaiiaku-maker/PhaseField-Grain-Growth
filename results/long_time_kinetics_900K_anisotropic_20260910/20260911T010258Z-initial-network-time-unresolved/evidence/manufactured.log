@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/tmp/sdillon1/55932951/hpc3-20260911T010258Z-nogit-ae4ebc-single/source/scripts/qualify_anisotropic_manufactured.py", line 121, in <module>
+    main()
+    ~~~~^^
+  File "/tmp/sdillon1/55932951/hpc3-20260911T010258Z-nogit-ae4ebc-single/source/scripts/qualify_anisotropic_manufactured.py", line 104, in main
+    report['junction_half_dt'] = relax_junction(BoundaryLaw(), .005)
+                                 ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/sdillon1/55932951/hpc3-20260911T010258Z-nogit-ae4ebc-single/source/scripts/qualify_anisotropic_manufactured.py", line 67, in relax_junction
+    raise RuntimeError('TJ residual did not converge')
+RuntimeError: TJ residual did not converge

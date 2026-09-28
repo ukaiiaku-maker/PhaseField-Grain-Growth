@@ -1,0 +1,90 @@
+{
+  "job_id": "55933300",
+  "model": "sharp polygon network",
+  "pf_coupling_qualified": false,
+  "production_release": false,
+  "cases": {
+    "A0_ISOTROPIC": [
+      {
+        "dt": 0.00025,
+        "steps": 800,
+        "rejections": 0,
+        "initial_energy": 50.260436014924366,
+        "final_energy": 49.6282091390093,
+        "maximum_relative_dissipation_error": 1.9973937319131067e-11,
+        "mean_final_radius": 7.899367864500447,
+        "circle_exact_radius_relative_error": 1.0143190476024196e-07
+      },
+      {
+        "dt": 0.000125,
+        "steps": 1600,
+        "rejections": 0,
+        "initial_energy": 50.260436014924366,
+        "final_energy": 49.628206622087774,
+        "maximum_relative_dissipation_error": 4.1708742881465195e-11,
+        "mean_final_radius": 7.899367463879724,
+        "circle_exact_radius_relative_error": 5.071635754561206e-08
+      }
+    ],
+    "A2_STRONG": [
+      {
+        "dt": 0.00025,
+        "steps": 800,
+        "rejections": 0,
+        "initial_energy": 38.277714653809056,
+        "final_energy": 36.99023950476487,
+        "maximum_relative_dissipation_error": 0.005170203914360338,
+        "mean_final_radius": 7.847232612791931
+      },
+      {
+        "dt": 0.000125,
+        "steps": 1600,
+        "rejections": 0,
+        "initial_energy": 38.277714653809056,
+        "final_energy": 36.99023870908164,
+        "maximum_relative_dissipation_error": 0.002578368802143028,
+        "mean_final_radius": 7.847231184494026
+      }
+    ]
+  },
+  "loop_refinement": {
+    "A0_ISOTROPIC": {
+      "relative_final_position_difference": 5.071554466549171e-08,
+      "relative_final_energy_difference": 5.071554459893531e-08
+    },
+    "A2_STRONG": {
+      "relative_final_position_difference": 1.0987125675393475e-06,
+      "relative_final_energy_difference": 2.1510627198523814e-08
+    }
+  },
+  "junction": {
+    "junction": [
+      0.010458036383995097,
+      0.24954879943487765
+    ],
+    "steps": 18055,
+    "dt": 0.01,
+    "physical_time": 180.55,
+    "maximum_physical_time": 200.0,
+    "initial_energy": 7.687723410088177,
+    "final_energy": 7.664082734865982,
+    "force_residual": 9.994608560039625e-08,
+    "largest_energy_increase": 1.7763568394002505e-15
+  },
+  "junction_half_dt": {
+    "junction": [
+      0.010458036436825737,
+      0.24954879912946992
+    ],
+    "steps": 36116,
+    "dt": 0.005,
+    "physical_time": 180.58,
+    "maximum_physical_time": 200.0,
+    "initial_energy": 7.687723410088177,
+    "final_energy": 7.664082734865983,
+    "force_residual": 9.996657201476353e-08,
+    "largest_energy_increase": 1.7763568394002505e-15
+  },
+  "junction_refinement_distance": 3.0994347268491527e-10,
+  "sharp_network_tests_passed": true
+}

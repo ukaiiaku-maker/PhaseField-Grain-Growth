@@ -1,0 +1,69 @@
+# Minimal hypothesis test for the T2 spatial-convergence discrepancy.
+#
+# Legacy T2 uses tj_correlation_radius = 2 pixels. At dx=1 this blocks a
+# 5 x 5 pixel square, approximately 5 physical units wide. At dx=0.75 the
+# same radius blocks only 3.75 physical units. This test changes only the
+# fine-grid TJ radius to 3 pixels, giving a 7 x 7 square approximately
+# 5.25 physical units wide. If T2/B0 returns toward the dx=1 reference,
+# the remaining convergence error is the pixel-unit TJ gate footprint.
+prepare_initial_conditions: true
+temperatures: [900.0]
+seeds: [5101]
+base:
+  regime: T2_GRID_FINE_TJ_R3
+  seed: 5101
+  pf:
+    shape: [256, 256]
+    grid_spacing: 0.75
+    interface_width: 4.0
+    time_step: 0.04
+    gb_energy: 1.0
+    intrinsic_mobility: 4.0
+    boundary_conditions: periodic
+    temperature: 900.0
+    adaptive_stepping: true
+    grain_extinction_threshold: 0.5
+  mechanics_backend: none
+  compatibility_model: geometric_surrogate
+  active_modules: [tj_compatibility, multihit_persistent]
+  output_cadence: 4
+  max_steps: 3000
+  termination_grains: 100
+  parameters:
+    initial_grains: 267
+    equilibration_steps: 20
+    equilibrate_to_grains: 200
+    equilibration_max_steps: 1800
+    compact_after_equilibration: true
+    event_domain_length: 12.0
+    encounter_density: 0.20
+    barrier_core_ev: 0.25
+    b_coefficient_ev: 0.02
+    h_coefficient_ev: 0.02
+    attempt_frequency: 10.0
+    packet_size: 2.0
+    packet_window_time: 1.0
+    pinned_mobility_fraction: 0.0
+    shear_stiffness: 0.20
+    shear_trigger: 0.25
+    easy_beta: 0.35
+    excess_volume_per_area: 0.01
+    point_defect_formation_volume: 0.02
+    free_volume_stiffness: 0.05
+    climb_trigger_quota: 0.25
+    climb_release_quota: 1.0
+    nucleation_prefactor: 1000.0
+    exchange_prefactor: 1000.0
+    transport_prefactor: 1000.0
+    nucleation_barrier_ev: 0.45
+    exchange_barrier_ev: 0.55
+    transport_barrier_ev: 0.65
+    tj_barrier_ev: 0.55
+    tj_attempt_frequency: 1000.0
+    tj_correlation_radius: 3
+    event_ledger_format: parquet
+    migration_closure: gate_only
+    blocked_gate_profile: line
+    video_frame_cadence: 10
+regimes:
+  T2_GRID_FINE_TJ_R3: {}

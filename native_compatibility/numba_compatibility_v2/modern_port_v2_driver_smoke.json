@@ -1,0 +1,40 @@
+{
+  "schema": "qiu-modern-port-v2-whole-driver-smoke-v1",
+  "passed": true,
+  "source_variant": "numba_compatibility_v2",
+  "target_step": 1,
+  "execution_threads": 1,
+  "environment": {
+    "python": "3.13.5",
+    "numpy": "2.1.3",
+    "numba": "0.61.0",
+    "llvmlite": "0.44.0"
+  },
+  "build_manifest": {
+    "schema": "qiu-native-preflight-v3-build",
+    "baseline_eligible": false,
+    "source_variant": "numba_compatibility_v2",
+    "pristine_driver_sha256": "03f8cee8834e5f9669dceb1c831590de55c5ef26f6cc41e0913c0fc89ee2cd17",
+    "functions_sha256": "00c9c9c51df14ed14b312197594bc855d7f5e2612d62775f35cf6f3cb71ae0cf",
+    "instrumented_driver_sha256": "388e9e0c9d3932d9e144cea947ee85fab637e36785e302005d0b692270540aa6",
+    "instrumentation_sha256": "a94dddb70806b86a76dac16a12b76c8b0d00d537940f9d33b4717f857d98b943",
+    "checkpoints": [
+      0,
+      1,
+      10,
+      100,
+      500,
+      1000
+    ],
+    "restart_checkpoint": 500
+  },
+  "checkpoint_steps": [
+    0,
+    1
+  ],
+  "all_checkpoints_finite": true,
+  "object_mode_or_uncompiled": [],
+  "all_dispatchers_nopython": true,
+  "compilation_manifest_sha256": "e2d82c10300f0f1d8f8847881efb31acd2b61d5c3c90a078bd22cfc069e27851",
+  "checkpoint_manifest_sha256": "ba708c9d3afdec9dac0105c85ef71527c320dcbb6ef0f10e31c803d23574ba8e"
+}
