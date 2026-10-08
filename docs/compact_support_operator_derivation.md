@@ -89,8 +89,10 @@ requires no post-update cutoff or global renormalization.
 
 ## Scaling and restart
 
-Candidate construction enumerates exact support once, then every force and
-pair operation uses the local padded graph. Pair work scales as
+Candidate construction enumerates exact support once, then every energy,
+force, and pair operation uses the same sorted local padded graph, frozen for
+the accepted step and all of its line-search trials. There is no per-cell loop
+over all global phases. Pair work scales as
 
 \[
 \sum_x {|C_x|\choose2}

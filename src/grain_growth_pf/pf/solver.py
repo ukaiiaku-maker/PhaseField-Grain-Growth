@@ -13,7 +13,11 @@ from grain_growth_pf.mechanics.anisotropy import (
     support_derivatives,
 )
 from .anisotropic import anisotropic_energy_gradient, anisotropic_pairwise_step
-from .compact_support import CompactSupportDiagnostics, compact_support_step
+from .compact_support import (
+    CompactSupportDiagnostics,
+    compact_support_energy,
+    compact_support_step,
+)
 from .free_energy import free_energy
 from .kernels import pairwise_obstacle_step
 
@@ -222,6 +226,16 @@ class MultiphaseFieldSolver:
     def _anisotropic_energy(self) -> float:
         cfg = self.config
         strength = LADDER[str(cfg.anisotropy_strength)]
+        if cfg.anisotropic_support_mode == "compact_active_set":
+            return compact_support_energy(
+                self.eta, self.orientations, cfg.gb_energy,
+                cfg.interface_width, cfg.grid_spacing,
+                cfg.boundary_conditions == "periodic", strength.g_min,
+                strength.inclination_weight, strength.support_power,
+                angular_normalization(strength),
+                cfg.anisotropy_energy_normalization,
+                cfg.anisotropic_energy,
+            )
         energy, _ = anisotropic_energy_gradient(
             self.eta, self.active_phases, self.orientations,
             cfg.gb_energy, cfg.intrinsic_mobility, cfg.interface_width,
