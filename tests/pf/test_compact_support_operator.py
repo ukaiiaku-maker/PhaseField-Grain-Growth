@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from grain_growth_pf.config import PFConfig
-from grain_growth_pf.pf.compact_support import exact_candidate_graph
+from grain_growth_pf.pf.compact_support import CompactSupportDiagnostics, exact_candidate_graph
 from grain_growth_pf.pf.solver import MultiphaseFieldSolver
 
 
@@ -87,3 +87,36 @@ def test_compact_support_restart_is_exact_and_energy_cadence_invariant():
     np.testing.assert_array_equal(resumed.eta, continuous.eta)
     assert resumed.time == continuous.time
     assert resumed.step_number == continuous.step_number
+
+
+def test_compact_support_uses_base_proposal_bound():
+    solver = _three_phase_solver()
+    expected = 0.18 * solver.config.grid_spacing**2 / (
+        (solver.config.intrinsic_mobility / (3.0 * solver.config.interface_width))
+        * (3.0 * solver.config.gb_energy * solver.config.interface_width)
+    )
+    assert solver.stable_dt() == expected
+
+
+def test_compact_support_backtracking_advances_accepted_time(monkeypatch):
+    solver = _three_phase_solver()
+    solver.driving = lambda eta, time: np.zeros_like(eta)
+    observed = {}
+
+    def fake_step(*args):
+        observed["use_external"] = args[5]
+        diagnostics = CompactSupportDiagnostics(
+            active_mean=1.0, active_p95=1.0, active_max=1,
+            candidate_mean=1.0, candidate_p95=1.0, candidate_max=1,
+            active_pair_instances=0, candidate_pair_instances=0,
+            kkt_residual=0.0, entries=0, retirements=0,
+            line_search_scale=0.25,
+        )
+        return args[0].copy(), 0.0, np.zeros_like(args[0]), diagnostics
+
+    monkeypatch.setattr("grain_growth_pf.pf.solver.compact_support_step", fake_step)
+    diagnostics = solver.step(dt=0.002)
+    assert observed["use_external"] is False
+    assert diagnostics.dt == pytest.approx(0.0005)
+    assert diagnostics.time == pytest.approx(0.0005)
+    assert solver.time == pytest.approx(0.0005)

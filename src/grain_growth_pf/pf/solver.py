@@ -111,6 +111,12 @@ class MultiphaseFieldSolver:
         )
         if not self.anisotropic:
             return base
+        # Compact support enforces the obstacle constraints and performs
+        # deterministic energy backtracking. Its accepted interval is applied
+        # to the physical clock in ``step`` below, so use the historical
+        # isotropic explicit bound as the proposal bound.
+        if self.config.anisotropic_support_mode == "compact_active_set":
+            return base
         strength = LADDER[str(self.config.anisotropy_strength)]
         angles = np.arange(4096, dtype=float) * (2.0 * np.pi / 4096.0)
         support_stiffness = support_derivatives(
@@ -151,11 +157,14 @@ class MultiphaseFieldSolver:
         requested = cfg.time_step if dt is None else dt
         used_dt = min(requested, self.stable_dt()) if cfg.adaptive_stepping else requested
         external = np.empty((1, 1, 1), dtype=float)
-        use_external = self.driving is not None
+        use_external = False
         if self.driving is not None:
             external = np.asarray(self.driving(self.eta, self.time), dtype=float)
             if external.shape != self.eta.shape:
                 raise ValueError("driving callback returned the wrong shape")
+            # A wired but identically zero event field is still unforced and
+            # must retain compact-support energy backtracking.
+            use_external = bool(np.any(external != 0.0))
         if self.anisotropic:
             strength = LADDER[str(cfg.anisotropy_strength)]
             arguments = (
@@ -177,6 +186,7 @@ class MultiphaseFieldSolver:
                     self._last_capillary_potential,
                     self._last_compact_support,
                 ) = compact_support_step(*arguments, cfg.anisotropic_kkt_tolerance)
+                used_dt *= self._last_compact_support.line_search_scale
             else:
                 self.eta, self._last_pre_step_energy, self._last_capillary_potential = anisotropic_pairwise_step(*arguments)
                 self._last_compact_support = None
