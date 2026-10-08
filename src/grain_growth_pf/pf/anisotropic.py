@@ -139,7 +139,7 @@ def anisotropic_energy_gradient(
     energy = 0.0
     gradient_scale = width * width / (np.pi * np.pi)
     density_scale = 4.0 / width
-    tolerance = 1e-14
+    tolerance = 0.0
     local = np.empty(phases, dtype=np.int64)
 
     for y in range(height):
@@ -260,7 +260,7 @@ def anisotropic_pairwise_step(
     outgoing = np.empty(phases, dtype=np.float64)
     donor_scale = np.empty(phases, dtype=np.float64)
     kinetic_scale = np.pi * np.pi / (4.0 * width * dx * dx)
-    tolerance = 1e-14
+    tolerance = 0.0
     for y in range(height):
         ym = (y - 1) % height if periodic else max(y - 1, 0)
         yp = (y + 1) % height if periodic else min(y + 1, height - 1)
@@ -406,7 +406,7 @@ def anisotropic_pairwise_audit(
         anisotropic_energy,
     )
     phases, height, width_pixels = eta.shape
-    tolerance = 1e-14
+    tolerance = 0.0
     local = np.empty(phases, dtype=np.int64)
     local_count = np.zeros((height, width_pixels), dtype=np.int32)
     edge_total = 0

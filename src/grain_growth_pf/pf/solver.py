@@ -13,6 +13,7 @@ from grain_growth_pf.mechanics.anisotropy import (
     support_derivatives,
 )
 from .anisotropic import anisotropic_energy_gradient, anisotropic_pairwise_step
+from .compact_support import CompactSupportDiagnostics, compact_support_step
 from .free_energy import free_energy
 from .kernels import pairwise_obstacle_step
 
@@ -41,6 +42,7 @@ class StepDiagnostics:
     dt: float
     interfacial_energy: float
     max_constraint_error: float
+    compact_support: CompactSupportDiagnostics | None = None
 
 
 class MultiphaseFieldSolver:
@@ -86,6 +88,7 @@ class MultiphaseFieldSolver:
             raise ValueError("anisotropic PF evolution requires one orientation per phase")
         self._last_capillary_potential: Array | None = None
         self._last_pre_step_energy = float("nan")
+        self._last_compact_support: CompactSupportDiagnostics | None = None
         self.mobility_scale = np.ones(config.shape, dtype=float)
         self.time = 0.0
         self.step_number = 0
@@ -151,7 +154,7 @@ class MultiphaseFieldSolver:
                 raise ValueError("driving callback returned the wrong shape")
         if self.anisotropic:
             strength = LADDER[str(cfg.anisotropy_strength)]
-            self.eta, self._last_pre_step_energy, self._last_capillary_potential = anisotropic_pairwise_step(
+            arguments = (
                 self.eta, self.active_phases, self.orientations,
                 self.mobility_scale, external, use_external, used_dt,
                 cfg.gb_energy, cfg.intrinsic_mobility, cfg.interface_width,
@@ -163,6 +166,16 @@ class MultiphaseFieldSolver:
                 cfg.anisotropy_mobility_normalization,
                 cfg.anisotropic_energy, cfg.anisotropic_mobility,
             )
+            if cfg.anisotropic_support_mode == "compact_active_set":
+                (
+                    self.eta,
+                    self._last_pre_step_energy,
+                    self._last_capillary_potential,
+                    self._last_compact_support,
+                ) = compact_support_step(*arguments, cfg.anisotropic_kkt_tolerance)
+            else:
+                self.eta, self._last_pre_step_energy, self._last_capillary_potential = anisotropic_pairwise_step(*arguments)
+                self._last_compact_support = None
         else:
             self.eta = pairwise_obstacle_step(
                 self.eta,
@@ -203,6 +216,7 @@ class MultiphaseFieldSolver:
                 if compute_energy else float("nan")
             ),
             float(np.max(np.abs(self.eta.sum(axis=0) - 1.0))),
+            self._last_compact_support,
         )
 
     def _anisotropic_energy(self) -> float:
