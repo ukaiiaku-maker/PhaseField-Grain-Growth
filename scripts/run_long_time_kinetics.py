@@ -118,10 +118,18 @@ def _load_new_campaign(args: argparse.Namespace, sha: str) -> tuple[Path, list[M
         configs = [replace(config, max_steps=int(args.max_steps or 200), termination_grains=1) for config in configs]
 
     base = ModelConfig.from_dict(spec["base"])
-    cache_root = Path(args.output_root).parent / "initial_conditions"
-    identity = initial_condition_identity(base.pf, base.seed, base.parameters, sha)
-    state = cache_root / f"seed-{base.seed}-{identity[:16]}.npz"
-    prepare_initial_condition(base.pf, base.seed, base.parameters, state, sha)
+    configured_state = base.parameters.get("initial_state_file")
+    if configured_state:
+        state = Path(str(configured_state)).resolve()
+        if not state.is_file():
+            raise FileNotFoundError(
+                f"configured matched initial state does not exist: {state}"
+            )
+    else:
+        cache_root = Path(args.output_root).parent / "initial_conditions"
+        identity = initial_condition_identity(base.pf, base.seed, base.parameters, sha)
+        state = cache_root / f"seed-{base.seed}-{identity[:16]}.npz"
+        prepare_initial_condition(base.pf, base.seed, base.parameters, state, sha)
     configs = [replace(
         config, parameters={**config.parameters, "initial_state_file": str(state)}
     ) for config in configs]
@@ -154,8 +162,8 @@ def main() -> None:
     parser.add_argument("--preflight", action="store_true")
     parser.add_argument("--resume", type=Path)
     args = parser.parse_args()
-    if not 1 <= args.processes <= 2:
-        raise SystemExit("Phase 1 permits only one or two concurrent large simulations")
+    if not 1 <= args.processes <= mp.cpu_count():
+        raise SystemExit(f"processes must be between 1 and {mp.cpu_count()}")
 
     sha = git_sha()
     if args.resume:
@@ -178,12 +186,19 @@ def main() -> None:
         completed = False
         if run_manifest.exists():
             data = json.loads(run_manifest.read_text())
+            maximum_time = config.parameters.get("maximum_physical_time")
+            reached_time = (
+                maximum_time is not None
+                and float(data.get("final_physical_time", -1.0))
+                >= float(maximum_time) - 1e-12
+            )
             completed = bool(
                 data.get("status") == "completed"
                 and (
                     int(data.get("steps_completed", -1)) >= config.max_steps
                     or int(data.get("final_grains", config.termination_grains + 1))
                     <= config.termination_grains
+                    or reached_time
                 )
             )
         if completed:

@@ -34,6 +34,12 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
 
     def _write_frame(self, force: bool = False) -> None:
         cadence = max(1, int(self.config.parameters.get("video_frame_cadence", 10)))
+        time_interval_value = self.config.parameters.get("video_time_interval")
+        time_interval = (
+            None if time_interval_value is None else float(time_interval_value)
+        )
+        if time_interval is not None and time_interval <= 0.0:
+            raise ValueError("video_time_interval must be positive")
         step = int(self.solver.step_number)
         frame_dir = self.output_dir / "frames"
         frame_dir.mkdir(parents=True, exist_ok=True)
@@ -51,11 +57,18 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
                     initial = float(first.get("G_population", g_population))
                 with np.load(existing[-1]) as last:
                     previous = float(last.get("G_population", g_population))
+                    previous_time = float(last.get("time", 0.0))
             else:
                 initial = previous = g_population
+                previous_time = float("-inf")
             self._initial_video_characteristic_size = initial
             self._last_video_characteristic_size = previous
-        step_due = step % cadence == 0
+            self._last_video_time = previous_time
+        step_due = (
+            self.solver.time >= self._last_video_time + time_interval - 1e-12
+            if time_interval is not None
+            else step % cadence == 0
+        )
         progress_due = bool(
             progress_fraction > 0.0
             and np.isfinite(g_population)
@@ -318,6 +331,7 @@ class ClosureFrameSimulation(MigrationClosureSimulation):
             qiu_shear_stress_max_abs=np.asarray(float(np.max(np.abs(qiu_shear_stress)))),
         )
         self._last_video_characteristic_size = g_population
+        self._last_video_time = float(self.solver.time)
 
     def _save_checkpoint(self) -> None:
         super()._save_checkpoint()
