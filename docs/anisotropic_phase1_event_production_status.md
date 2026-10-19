@@ -81,3 +81,33 @@ their batch steps had accumulated approximately 52 CPU seconds each and used
 scientific processes entered their workloads and that the 16 GiB requests have
 adequate initial headroom. No full production trajectory is yet complete;
 preflight completion must not be reported as production completion.
+
+## 2026-10-19 recovery status
+
+Six trajectories are scientifically complete at the terminal grain-count
+criterion: `B0` (99 grains, physical time 216.0025), `G` (100 grains, physical
+time 419.9675), `T` (100 grains, physical time 350.665), and all three coupled
+shear/climb/event regimes (97, 100, and 99 grains). The retrieved `G` archive
+has a valid checkpoint and completed manifest but its Slurm wrapper was
+interrupted during post-validation. Its identity verifier passes locally with
+no failed assertions, so it is classified as scientific completion with an
+operationally interrupted wrapper, not a trajectory requiring replay.
+
+Compute node `hpc3-14-12` became `DOWN+NOT_RESPONDING`. This produced Slurm
+`NODE_FAIL` records for `G`, `T`, and `GT`. `G` and `T` had already preserved
+terminal scientific states; `GT` had no remote final archive or durable
+checkpoint because the original wrapper retained intermediate checkpoints only
+on node-local scratch. The unavailable `GT` scratch state therefore cannot be
+used while that node remains down.
+
+`GTC_GB` remains healthy in original task `57937717_4`; at the latest
+reconciliation it was at physical time 400.5425, with 157 grains at time 400
+and a checkpoint at time 400.005.
+
+The exact `GT` trajectory was restarted from the matched initial state under
+runner ID `20261019T164456Z-nogit-6fd9e0`, Slurm task `58245823_0`, on node
+`hpc3-14-20`. It uses the same source bundle, source commit, configuration, and
+initial-state SHA-256. Its wrapper additionally copies an immutable checkpoint
+package to shared storage every 30 minutes so a later node failure loses at
+most one checkpoint interval. The replacement entered its scientific workload
+successfully with approximately 5.0 GiB RSS.
