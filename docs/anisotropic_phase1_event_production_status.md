@@ -102,11 +102,14 @@ clock. The relevant unit and resume/integration suite passes 22 tests.
 
 The repaired exact continuation is runner
 `20261023T230538Z-nogit-47b1c2`, Slurm job `58449253`. It was submitted with
-16 GiB memory and was pending for scheduler priority at this timestamp. Its
+16 GiB memory and is running on `hpc3-15-28`. Its
 immutable lineage record binds the original source, continuation source,
 checkpoint step, physical time, grain count, and checkpoint SHA-256. Once it
 starts, acceptance requires an observed step greater than 105921 and physical
-time greater than 520.005 before this restart is classified as operational.
+time greater than 520.005 before this restart is classified as advancing. The
+live process is CPU-active, has clean stderr, and has remained below the 16 GiB
+memory request; the first new CSV record is still awaiting userspace-buffer
+flush at this timestamp.
 
 A redundant replacement `GT` job (`58245823`) was cancelled after the original
 `GT` result was proven complete at 100 grains. No completed scientific
