@@ -3,7 +3,7 @@ from scipy.stats import chisquare
 
 from grain_growth_pf.climb.exchange import butler_volmer_flux, linear_onsager_coefficient
 from grain_growth_pf.climb.free_volume import FreeVolumeState
-from grain_growth_pf.climb.serial_cycle import SerialClimbCycle
+from grain_growth_pf.climb.serial_cycle import ClimbStage, SerialClimbCycle
 from grain_growth_pf.climb.transport import diffusivity, transport_time
 from grain_growth_pf.disconnections.admissibility import combination_rates, feasible_combinations
 from grain_growth_pf.disconnections.mode import DisconnectionMode, ModeDriving
@@ -11,6 +11,7 @@ from grain_growth_pf.disconnections.shear_coupling import event_shear_increment
 from grain_growth_pf.disconnections.spectrum import isotropic_surrogate_library
 from grain_growth_pf.mechanics.local_shear_memory import LocalShearMemory
 from grain_growth_pf.mechanics.force_balance import normal_force_balance
+from grain_growth_pf.simulation import DomainPhysics
 
 
 def test_mode_attempt_limit_and_direction_selection():
@@ -112,6 +113,33 @@ def test_serial_mean_not_parallel_and_shear_sign():
     relaxing.migrate(beta=1.0, normal_displacement=1.0, dt=0.1)
     assert np.isclose(relaxing.state, 0.8)
     assert relaxing.dissipated_energy > 0
+
+
+def test_legacy_domain_checkpoint_synthesizes_active_climb_history():
+    arguments = {
+        "entity_id": "gb:1-2:0",
+        "encounter_density": 0.2,
+        "hits": 2,
+        "hit_interpretation": "persistent_hits",
+        "shear_stiffness": 0.25,
+        "shear_relaxation_time": None,
+        "excess_volume": 0.01,
+        "formation_volume": 0.02,
+        "free_volume_stiffness": 0.05,
+    }
+    original = DomainPhysics(rng=np.random.default_rng(7), **arguments)
+    state = original.state_dict()
+    state["climb"].pop("history")
+    state["climb"]["stage"] = ClimbStage.EXCHANGE.value
+    state["previous_time"] = 520.005
+
+    restored = DomainPhysics(rng=np.random.default_rng(8), **arguments)
+    restored.load_state_dict(state)
+
+    assert restored.climb.history == [(520.005, ClimbStage.EXCHANGE)]
+    assert restored.state_dict()["climb"]["history"] == [
+        [520.005, ClimbStage.EXCHANGE.value]
+    ]
 
 
 def test_normal_force_balance_separates_backstress_and_transition_work():

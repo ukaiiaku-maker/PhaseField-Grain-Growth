@@ -90,7 +90,10 @@ class DomainPhysics:
                       "clock_hazard": self.climb.clock.cumulative_hazard,
                       "clock_threshold": self.climb.clock.threshold,
                       "clock_last_rate": self.climb.clock.last_rate,
-                      "last_completion_time": self.climb.last_completion_time},
+                      "last_completion_time": self.climb.last_completion_time,
+                      "history": [
+                          [time, stage.value] for time, stage in self.climb.history
+                      ]},
             "blocked": self.blocked,
             "compatibility_pending": self.compatibility_pending,
             "area_loss_pending": self.area_loss_pending,
@@ -123,6 +126,18 @@ class DomainPhysics:
         self.climb.clock.threshold = state["climb"]["clock_threshold"]
         self.climb.clock.last_rate = state["climb"]["clock_last_rate"]
         self.climb.last_completion_time = state["climb"].get("last_completion_time")
+        history = state["climb"].get("history")
+        if history is not None:
+            self.climb.history = [
+                (float(time), ClimbStage(stage)) for time, stage in history
+            ]
+        elif self.climb.stage not in {ClimbStage.INACTIVE, ClimbStage.COMPLETE}:
+            # Older checkpoints did not persist diagnostic stage history.  The
+            # checkpoint time is the only defensible lower bound for the active
+            # stage's residence time; stochastic clock state remains exact.
+            self.climb.history = [
+                (float(state.get("previous_time", 0.0)), self.climb.stage)
+            ]
         self.blocked = state["blocked"]
         self.compatibility_pending = state.get("compatibility_pending", False)
         self.area_loss_pending = state.get("area_loss_pending", False)
