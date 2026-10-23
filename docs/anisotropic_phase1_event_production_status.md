@@ -1,6 +1,6 @@
 # Matched anisotropic Phase-1 event-production status
 
-Status timestamp: 2026-10-08 09:53 PDT
+Status timestamp: 2026-10-23 16:10 PDT
 
 This campaign is the corrected execution of the original matched-isotropic
 Phase-1 experiment. It is separate from the native-Qiu campaign. The Qiu
@@ -9,7 +9,8 @@ outputs do not substitute for these trajectories.
 ## Fixed scientific identity
 
 - Branch: `codex/aniso-phase1-event-production-v1`
-- Source commit: `8310877207fbee26e5eea6ae14617d10d4d0a10a`
+- Original production source commit: `8310877207fbee26e5eea6ae14617d10d4d0a10a`
+- GTC continuation source commit: `8754e382f38236c8514c34d3c356d2dbd8ccfa15`
 - Configuration: `configs/production/anisotropic_phase1_event_900K.yaml`
 - Initial state: exact 384 x 384, 800-grain, seed-5101 matched state
 - Initial-state SHA-256:
@@ -17,7 +18,7 @@ outputs do not substitute for these trajectories.
 - Temperature: 900 K
 - Anisotropy: A2 strong, energy and mobility enabled
 - Support constraint: compact active set, KKT tolerance `1e-10`
-- Stop: physical time 4000 or grain count at most 100
+- Stop: grain count at most 100. No scientific physical-time cap is present in the continuation configuration
 - Proposed timestep: 0.04; the physical clock advances by the timestep accepted
   by energy backtracking.
 
@@ -53,61 +54,60 @@ The `GTSC_GBTJ_Ks030_LONG` preflight is much slower than the other conditions:
 about 148 seconds per step versus 8.7-14.0 seconds per step. It remains a full
 production condition and is not being replaced by a short run.
 
-## Production submissions
+## Production outcomes and continuation
 
-| Conditions | Runner ID | Slurm identity | State at timestamp |
-|---|---|---|---|
-| `B0`, `G`, `T`, `GT`, `GTC_GB`, `GSC_GBTJ_Ks025`, `GTSC_GBTJ_Ks025` | `20261008T165132Z-nogit-9fa9b5` | `57937717_[0-6]` | all seven running |
-| `GTSC_GBTJ_Ks030_LONG` | `20261008T165136Z-nogit-bc3997` | `57937722_0` | running |
+Seven of the eight trajectories have reached the terminal grain-count
+criterion. Grain count is taken from each completed manifest. `GTC_GB` is the
+only incomplete scientific trajectory; its exact checkpoint count is confirmed
+independently by the latest `grain_tracks.csv` time slice and by the checkpoint
+field areas.
 
-Each task requests one CPU, 16 GiB memory, 120 GiB node-local temporary space,
-and the standard partition's 14-day limit. A planned interrupt at 13 days 21
-hours preserves an exact checkpoint for continuation without replay. There is
-no self-imposed two-worker ceiling; the seven-task array may run seven
-conditions concurrently. HPC3 bills each 16 GiB task as three CPU slots. The
-request retains more than a two-times margin over the measured 7.8 GiB peak.
+| Regime | State | Grain count | Physical time | Disposition |
+|---|---|---:|---:|---|
+| `B0` | complete | 99 | 216.0025 | terminal |
+| `G` | complete | 100 | 419.9675 | terminal |
+| `T` | complete | 100 | 350.6650 | terminal |
+| `GT` | complete | 100 | 535.30875 | terminal; original archive verified |
+| `GTC_GB` | stopped by Slurm | 114 | 520.0050 | exact restart submitted |
+| `GSC_GBTJ_Ks025` | complete | 97 | 13.0000 | terminal |
+| `GTSC_GBTJ_Ks025` | complete | 100 | 14.4400 | terminal |
+| `GTSC_GBTJ_Ks030_LONG` | complete | 99 | 12.8400 | terminal |
 
-The initial submissions `57937688` and `57937710` requested 32 GiB on the small
-`SDILLON1` allocation and were held for `AssocGrpBillingMinutes`; both remained
-scientifically unstarted and were cancelled. Their replacements use the
-user-accessible `SDILLON1_LAB` allocation, which reported 90,565 available SU.
-Four unrelated jobs (`57937556_[0-3]`) on that account were not modified. The
-unused prepared plan `20261008T165121Z-nogit-bcedab` retained the old resources
-after a local path error and must not be submitted.
+The original `GTC_GB` task `57937728` exhausted the standard partition's
+14-day scheduler allocation. Its step-105921 checkpoint is intact, has SHA-256
+`cc551e9ef2b3907976736c24baa6d8d927e80c174d177e3b13e50298bf16bc01`,
+and contains the exact field state, active-phase mask, stochastic RNG states,
+hazards, climb states, and event counters. The scientific continuation has
+`termination_grains = 100`, `max_steps = 100000000`, and no
+`maximum_physical_time` setting. HPC3 still requires a finite Slurm request;
+the continuation uses the partition maximum of 14 days and will be chained
+from its latest exact checkpoint if another scheduler segment is needed.
 
-All eight replacements entered `RUNNING` concurrently. At about one minute,
-their batch steps had accumulated approximately 52 CPU seconds each and used
-4.0-4.6 GiB average RSS, with 7.32-7.80 GiB maximum RSS. This confirms that the
-scientific processes entered their workloads and that the 16 GiB requests have
-adequate initial headroom. No full production trajectory is yet complete;
-preflight completion must not be reported as production completion.
+The timeout archive omitted early Parquet fragments from the detailed event
+ledgers (`events` parts 0-3, `event_trace_events` parts 0-3, and
+`event_traces` parts 0-65). The node-local scratch directory no longer exists.
+This creates an explicit early-ledger gap for final mechanism statistics but
+does not affect the checkpointed physical or stochastic state. Zero-row schema
+placeholders allow the append-only ledgers to continue, and
+`RECOVERED_LEDGER_GAPS.json` records the missing ranges.
 
-## 2026-10-19 recovery status
+Two continuation launches stopped before accepting a new timestep. Runner
+`20261023T225217Z-nogit-17c561` exposed the non-contiguous Parquet parts;
+runner `20261023T225631Z-nogit-d78f67` then exposed a legacy restart bug in
+which active serial-climb stage history had not been checkpointed. Neither
+attempt modified the step-105921 checkpoint. Commit `8754e38` persists climb
+history for new checkpoints and reconstructs the diagnostic stage-history
+lower bound for legacy checkpoints without changing the saved stochastic
+clock. The relevant unit and resume/integration suite passes 22 tests.
 
-Six trajectories are scientifically complete at the terminal grain-count
-criterion: `B0` (99 grains, physical time 216.0025), `G` (100 grains, physical
-time 419.9675), `T` (100 grains, physical time 350.665), and all three coupled
-shear/climb/event regimes (97, 100, and 99 grains). The retrieved `G` archive
-has a valid checkpoint and completed manifest but its Slurm wrapper was
-interrupted during post-validation. Its identity verifier passes locally with
-no failed assertions, so it is classified as scientific completion with an
-operationally interrupted wrapper, not a trajectory requiring replay.
+The repaired exact continuation is runner
+`20261023T230538Z-nogit-47b1c2`, Slurm job `58449253`. It was submitted with
+16 GiB memory and was pending for scheduler priority at this timestamp. Its
+immutable lineage record binds the original source, continuation source,
+checkpoint step, physical time, grain count, and checkpoint SHA-256. Once it
+starts, acceptance requires an observed step greater than 105921 and physical
+time greater than 520.005 before this restart is classified as operational.
 
-Compute node `hpc3-14-12` became `DOWN+NOT_RESPONDING`. This produced Slurm
-`NODE_FAIL` records for `G`, `T`, and `GT`. `G` and `T` had already preserved
-terminal scientific states; `GT` had no remote final archive or durable
-checkpoint because the original wrapper retained intermediate checkpoints only
-on node-local scratch. The unavailable `GT` scratch state therefore cannot be
-used while that node remains down.
-
-`GTC_GB` remains healthy in original task `57937717_4`; at the latest
-reconciliation it was at physical time 400.5425, with 157 grains at time 400
-and a checkpoint at time 400.005.
-
-The exact `GT` trajectory was restarted from the matched initial state under
-runner ID `20261019T164456Z-nogit-6fd9e0`, Slurm task `58245823_0`, on node
-`hpc3-14-20`. It uses the same source bundle, source commit, configuration, and
-initial-state SHA-256. Its wrapper additionally copies an immutable checkpoint
-package to shared storage every 30 minutes so a later node failure loses at
-most one checkpoint interval. The replacement entered its scientific workload
-successfully with approximately 5.0 GiB RSS.
+A redundant replacement `GT` job (`58245823`) was cancelled after the original
+`GT` result was proven complete at 100 grains. No completed scientific
+trajectory is being rerun.
