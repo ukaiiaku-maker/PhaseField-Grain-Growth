@@ -1,6 +1,6 @@
 # Matched anisotropic Phase-1 event-production status
 
-Status timestamp: 2026-10-23 16:10 PDT
+Status timestamp: 2026-10-26 09:59 PDT
 
 This campaign is the corrected execution of the original matched-isotropic
 Phase-1 experiment. It is separate from the native-Qiu campaign. The Qiu
@@ -107,9 +107,12 @@ immutable lineage record binds the original source, continuation source,
 checkpoint step, physical time, grain count, and checkpoint SHA-256. Once it
 starts, acceptance requires an observed step greater than 105921 and physical
 time greater than 520.005 before this restart is classified as advancing. The
-live process is CPU-active, has clean stderr, and has remained below the 16 GiB
-memory request; the first new CSV record is still awaiting userspace-buffer
-flush at this timestamp.
+process was found in Linux stopped state on 2026-10-26 after a prior diagnostic
+attach had not resumed it. It had not changed the exact checkpoint, timestep
+history, or 114-grain state. `SIGCONT` returned the same process to CPU-running
+state on `hpc3-15-28`; stderr remains empty and memory remains below the 16 GiB
+request. A post-checkpoint timestep has not yet been flushed, so the restart is
+running but is not yet classified as advancing.
 
 A redundant replacement `GT` job (`58245823`) was cancelled after the original
 `GT` result was proven complete at 100 grains. No completed scientific
