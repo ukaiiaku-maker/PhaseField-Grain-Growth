@@ -73,9 +73,9 @@ complete are scientifically invalid and have been replaced by repaired reruns.
 | `T` | complete | 100 | 350.6650 | terminal |
 | `GT` | complete | 100 | 535.30875 | terminal; original archive verified |
 | `GTC_GB` | running | 108 at latest track output | 528.0050 | timestep stream has advanced to 531.505 |
-| `GSC_GBTJ_Ks025` | invalid; repaired rerun pending | 800 restart | 0 | Slurm array task 0 |
-| `GTSC_GBTJ_Ks025` | invalid; repaired rerun pending | 800 restart | 0 | Slurm array task 1 |
-| `GTSC_GBTJ_Ks030_LONG` | invalid; repaired rerun pending | 800 restart | 0 | Slurm array task 2 |
+| `GSC_GBTJ_Ks025` | invalid; repaired rerun running | 800 restart | 0 | Slurm array task 0 |
+| `GTSC_GBTJ_Ks025` | invalid; repaired rerun running | 800 restart | 0 | Slurm array task 1 |
+| `GTSC_GBTJ_Ks030_LONG` | invalid; repaired rerun running | 800 restart | 0 | Slurm array task 2 |
 
 The original `GTC_GB` task `57937728` exhausted the standard partition's
 14-day scheduler allocation. Its step-105921 checkpoint is intact, has SHA-256
@@ -144,8 +144,8 @@ The invalid outputs and videos are quarantined under
 `completed-results/invalidated-unstable` with an explicit invalidation record.
 
 The repaired production array is runner `20261026T232929Z-nogit-a6542b`,
-Slurm job `58521780_[0-2]`. All three tasks request 16 GiB and may run in
-parallel. They were pending for scheduler priority at this timestamp. The only
+Slurm job `58521780_[0-2]`. All three 16 GiB tasks are running concurrently on
+`hpc3-20-25`, have clean stderr, and verified the exact repair source. The only
 scientific termination criterion is at most 100 grains. Because HPC3 enforces a
 14-day scheduler maximum, the wrapper copies each new exact checkpoint and its
 complete run history to shared storage for subsequent continuation segments.
