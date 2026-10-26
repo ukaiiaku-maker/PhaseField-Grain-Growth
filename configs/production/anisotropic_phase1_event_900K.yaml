@@ -35,7 +35,6 @@ base:
     equilibrate_to_grains: 800
     equilibration_max_steps: 2000
     compact_after_equilibration: true
-    maximum_physical_time: 4000.0
     output_time_interval: 8.0
     energy_time_interval: 4.0
     checkpoint_time_interval: 20.0

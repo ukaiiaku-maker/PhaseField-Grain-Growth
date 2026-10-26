@@ -23,6 +23,13 @@ from .anisotropic import _pair_homogeneous_norm_and_gradient, _pair_law
 
 Array = NDArray[np.float64]
 
+# Explicit obstacle updates must not traverse a substantial fraction of the
+# simplex in one accepted step.  Capillary-only runs are already restricted by
+# the energy line search, but a strong external drive can lower the generalized
+# potential while projecting directly to a simplex vertex.  A ten-percent
+# phase-fraction trust region prevents that numerically discontinuous collapse.
+MAX_PHASE_INCREMENT = 0.1
+
 
 @dataclass(frozen=True)
 class CompactSupportDiagnostics:
@@ -325,6 +332,22 @@ def compact_support_step(
         inclination_weight, support_power, mobility_exponent, angular_scale,
         energy_normalization, mobility_normalization, anisotropic_mobility,
     )
+    # With a frozen external driving field, the pair rate is a descent
+    # direction for E - sum_i(eta_i * external_i / (n * kinetic_scale)),
+    # where n is the cell-local candidate count.  Earlier production code
+    # skipped backtracking whenever ``use_external`` was true; that accepted
+    # unstable full proposals in the coupled shear/climb conditions.  Apply
+    # the same deterministic line search to the generalized potential so
+    # physically supplied work is retained without abandoning stability.
+    kinetic_scale = np.pi * np.pi / (4.0 * interface_width * dx * dx)
+    external_weight = (
+        external / (counts[np.newaxis, :, :] * kinetic_scale)
+        if use_external else None
+    )
+    potential = (
+        energy - float(np.sum(eta * external_weight))
+        if external_weight is not None else energy
+    )
     scale = 1.0
     accepted = None
     residual = float("inf")
@@ -332,16 +355,20 @@ def compact_support_step(
         trial, residual = _project_candidate_simplex(
             eta, rate, graph, counts, dt * scale
         )
-        if use_external:
-            accepted = trial
-            break
         trial_energy = _candidate_energy_gradient(
             trial, graph, counts, orientations, gamma0, interface_width, dx,
             periodic, g_min, inclination_weight, support_power, angular_scale,
             energy_normalization, anisotropic_energy,
         )[0]
-        energy_slack = 64.0 * np.finfo(float).eps * max(1.0, abs(energy))
-        if trial_energy <= energy + energy_slack:
+        trial_potential = (
+            trial_energy - float(np.sum(trial * external_weight))
+            if external_weight is not None else trial_energy
+        )
+        energy_slack = 64.0 * np.finfo(float).eps * max(1.0, abs(potential))
+        increment_ok = float(np.max(np.abs(trial - eta))) <= (
+            MAX_PHASE_INCREMENT + 16.0 * np.finfo(float).eps
+        )
+        if increment_ok and trial_potential <= potential + energy_slack:
             accepted = trial
             break
         scale *= 0.5

@@ -2,7 +2,11 @@ import numpy as np
 import pytest
 
 from grain_growth_pf.config import PFConfig
-from grain_growth_pf.pf.compact_support import CompactSupportDiagnostics, exact_candidate_graph
+from grain_growth_pf.pf.compact_support import (
+    MAX_PHASE_INCREMENT,
+    CompactSupportDiagnostics,
+    exact_candidate_graph,
+)
 from grain_growth_pf.pf.solver import MultiphaseFieldSolver
 
 
@@ -120,3 +124,41 @@ def test_compact_support_backtracking_advances_accepted_time(monkeypatch):
     assert diagnostics.dt == pytest.approx(0.0005)
     assert diagnostics.time == pytest.approx(0.0005)
     assert solver.time == pytest.approx(0.0005)
+
+
+def test_forced_compact_support_backtracks_large_simplex_jump():
+    solver = _three_phase_solver()
+    solver.config = PFConfig(
+        shape=solver.config.shape,
+        time_step=0.04,
+        interface_width=4.0,
+        intrinsic_mobility=4.0,
+        anisotropy_strength="A2_STRONG",
+        anisotropic_support_mode="compact_active_set",
+        anisotropic_kkt_tolerance=1e-10,
+    )
+    initial = solver.eta.copy()
+    external = np.zeros_like(initial)
+    external[0] = 10.0
+    external[1] = -10.0
+    solver.driving = lambda eta, time: external
+
+    graph, counts = exact_candidate_graph(initial, periodic=True)
+    del graph
+    kinetic_scale = np.pi**2 / (
+        4.0 * solver.config.interface_width * solver.config.grid_spacing**2
+    )
+    initial_potential = solver._anisotropic_energy() - np.sum(
+        initial * external / (counts[np.newaxis, :, :] * kinetic_scale)
+    )
+    diagnostics = solver.step()
+    final_potential = solver._anisotropic_energy() - np.sum(
+        solver.eta * external / (counts[np.newaxis, :, :] * kinetic_scale)
+    )
+
+    assert diagnostics.compact_support is not None
+    assert diagnostics.compact_support.line_search_scale < 1.0
+    assert np.max(np.abs(solver.eta - initial)) <= (
+        MAX_PHASE_INCREMENT + 16.0 * np.finfo(float).eps
+    )
+    assert final_potential <= initial_potential + 128.0 * np.finfo(float).eps * abs(initial_potential)
