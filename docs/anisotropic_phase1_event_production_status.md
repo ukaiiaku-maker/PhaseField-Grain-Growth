@@ -1,6 +1,6 @@
 # Matched anisotropic Phase-1 event-production status
 
-Status timestamp: 2026-10-26 16:31 PDT
+Status timestamp: 2026-10-27 10:13 PDT
 
 This campaign is the corrected execution of the original matched-isotropic
 Phase-1 experiment. It is separate from the native-Qiu campaign. The Qiu
@@ -73,9 +73,9 @@ complete are scientifically invalid and have been replaced by repaired reruns.
 | `T` | complete | 100 | 350.6650 | terminal |
 | `GT` | complete | 100 | 535.30875 | terminal; original archive verified |
 | `GTC_GB` | running | 108 at latest track output | 528.0050 | timestep stream has advanced to 531.505 |
-| `GSC_GBTJ_Ks025` | invalid; repaired rerun running | 800 restart | 0 | Slurm array task 0 |
-| `GTSC_GBTJ_Ks025` | invalid; repaired rerun running | 800 restart | 0 | Slurm array task 1 |
-| `GTSC_GBTJ_Ks030_LONG` | invalid; repaired rerun running | 800 restart | 0 | Slurm array task 2 |
+| `GSC_GBTJ_Ks025` | repaired rerun stable and running | 717 at time 8 | 14.475 latest accepted output | Slurm array task 0 |
+| `GTSC_GBTJ_Ks025` | repaired rerun stable and running | 719 at time 8.0025 | 14.7775 latest accepted output | Slurm array task 1 |
+| `GTSC_GBTJ_Ks030_LONG` | repaired rerun stable and running | 717 at time 8.0025 | 14.8475 latest accepted output | Slurm array task 2 |
 
 The original `GTC_GB` task `57937728` exhausted the standard partition's
 14-day scheduler allocation. Its step-105921 checkpoint is intact, has SHA-256
@@ -149,6 +149,33 @@ Slurm job `58521780_[0-2]`. All three 16 GiB tasks are running concurrently on
 scientific termination criterion is at most 100 grains. Because HPC3 enforces a
 14-day scheduler maximum, the wrapper copies each new exact checkpoint and its
 complete run history to shared storage for subsequent continuation segments.
+
+### Live repaired-run stability audit
+
+A read-only audit at 2026-10-27 10:13 PDT found all three array tasks in
+`RUNNING` state after 17 h 44 min. Each scientific process was CPU-running at
+about one full core, all three stderr files were empty, and Slurm reported peak
+batch RSS of 9.61-9.65 GiB, below each 16 GiB allocation. A failed zero-duration
+job step visible as `58521780_0.7` is the audit helper's obsolete Python-path
+probe; the parent scientific batch task remained running and was not modified.
+
+The repaired trajectories have crossed the old failure horizon without the
+catastrophic grain loss. At physical time 8, the invalid trajectories had only
+220-247 grains, whereas the repaired trajectories retain 717-719 grains:
+
+| Regime | Latest accepted step/time | Accepted-dt range | Median dt | Grains near time 8 | Latest full-frame conservation residual |
+|---|---:|---:|---:|---:|---:|
+| `GSC_GBTJ_Ks025` | 2986 / 14.4750 | 0.00125-0.02 | 0.005 | 717 at 8.0000 | -5.46e-12 |
+| `GTSC_GBTJ_Ks025` | 2965 / 14.7775 | 0.0025-0.02 | 0.005 | 719 at 8.0025 | 9.09e-13 |
+| `GTSC_GBTJ_Ks030_LONG` | 2972 / 14.8475 | 0.0025-0.02 | 0.005 | 717 at 8.0025 | -1.11e-11 |
+
+The proposed timestep remains 0.04, but the repaired acceptance logic is
+actively backtracking rather than forcing it. Shear-state, climb/defect,
+activation-work, and stochastic event-trace outputs are populated for all three
+conditions. This establishes early-trajectory numerical stability and repairs
+the specific failure that invalidated the prior runs. It is not a terminal
+scientific classification; all three continue toward 100 grains, with exact
+restart checkpoints scheduled at physical-time intervals of 20.
 
 A redundant replacement `GT` job (`58245823`) was cancelled after the original
 `GT` result was proven complete at 100 grains.
