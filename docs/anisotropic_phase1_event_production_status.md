@@ -1,6 +1,6 @@
 # Matched anisotropic Phase-1 event-production status
 
-Status timestamp: 2026-10-27 10:13 PDT
+Status timestamp: 2026-10-28 11:36 PDT
 
 This campaign is the corrected execution of the original matched-isotropic
 Phase-1 experiment. It is separate from the native-Qiu campaign. The Qiu
@@ -62,7 +62,7 @@ production condition and is not being replaced by a short run.
 
 ## Production outcomes and continuation
 
-Four trajectories have valid terminal results. `GTC_GB` is advancing from its
+Five trajectories have valid terminal results. `GTC_GB` completed from its
 exact timeout checkpoint. The three shear/climb trajectories previously marked
 complete are scientifically invalid and have been replaced by repaired reruns.
 
@@ -72,10 +72,10 @@ complete are scientifically invalid and have been replaced by repaired reruns.
 | `G` | complete | 100 | 419.9675 | terminal |
 | `T` | complete | 100 | 350.6650 | terminal |
 | `GT` | complete | 100 | 535.30875 | terminal; original archive verified |
-| `GTC_GB` | running | 108 at latest track output | 528.0050 | timestep stream has advanced to 531.505 |
-| `GSC_GBTJ_Ks025` | repaired rerun stable and running | 717 at time 8 | 14.475 latest accepted output | Slurm array task 0 |
-| `GTSC_GBTJ_Ks025` | repaired rerun stable and running | 719 at time 8.0025 | 14.7775 latest accepted output | Slurm array task 1 |
-| `GTSC_GBTJ_Ks030_LONG` | repaired rerun stable and running | 717 at time 8.0025 | 14.8475 latest accepted output | Slurm array task 2 |
+| `GTC_GB` | complete | 100 | 592.1450 | terminal continuation verified |
+| `GSC_GBTJ_Ks025` | repaired rerun stable and running | 552 at time 32.0025 | 35.345 latest accepted output | Slurm array task 0 |
+| `GTSC_GBTJ_Ks025` | repaired rerun stable and running | 553 at time 32.0100 | 36.230 latest accepted output | Slurm array task 1 |
+| `GTSC_GBTJ_Ks030_LONG` | repaired rerun stable and running | 559 at time 32.0025 | 36.4525 latest accepted output | Slurm array task 2 |
 
 The original `GTC_GB` task `57937728` exhausted the standard partition's
 14-day scheduler allocation. Its step-105921 checkpoint is intact, has SHA-256
@@ -104,20 +104,13 @@ history for new checkpoints and reconstructs the diagnostic stage-history
 lower bound for legacy checkpoints without changing the saved stochastic
 clock. The relevant unit and resume/integration suite passes 22 tests.
 
-The repaired exact continuation is runner
-`20261023T230538Z-nogit-47b1c2`, Slurm job `58449253`. It was submitted with
-16 GiB memory and is running on `hpc3-15-28`. Its
-immutable lineage record binds the original source, continuation source,
-checkpoint step, physical time, grain count, and checkpoint SHA-256. Once it
-starts, acceptance requires an observed step greater than 105921 and physical
-time greater than 520.005 before this restart is classified as advancing. The
-process was found in Linux stopped state on 2026-10-26 after a prior diagnostic
-attach had not resumed it. It had not changed the exact checkpoint, timestep
-history, or 114-grain state. `SIGCONT` returned the same process to CPU-running
-state on `hpc3-15-28`; stderr remains empty and memory remains below the 16 GiB
-request. It is now confirmed advancing: the durable timestep stream reached
-step 108221 and physical time 531.505, while the latest grain-track output at
-time 528.005 contains 108 grains.
+The repaired exact continuation was runner
+`20261023T230538Z-nogit-47b1c2`, Slurm job `58449253`. It completed normally
+with exit code 0 on `hpc3-15-28` after 4 days 9 hours. The continuation advanced
+from step 105921 at time 520.005 to terminal step 120338 at time 592.145 and
+reached exactly 100 grains. The 841 MB retrieved result archive was
+checksum-verified twice. Its terminal checkpoint, timestep stream, and
+grain-track output agree on step and physical time. Peak RSS was 7.51 GiB.
 
 ## Coupled-run instability repair
 
@@ -176,6 +169,15 @@ conditions. This establishes early-trajectory numerical stability and repairs
 the specific failure that invalidated the prior runs. It is not a terminal
 scientific classification; all three continue toward 100 grains, with exact
 restart checkpoints scheduled at physical-time intervals of 20.
+
+A second live audit at 2026-10-28 11:36 PDT found all three repaired tasks still
+`RUNNING` after 1 day 19 hours, with CPU-running processes and empty stderr.
+Their accepted timestep streams reached times 35.345, 36.230, and 36.4525. At
+the latest complete frame near time 32 they retained 552, 553, and 559 grains,
+respectively; conservation residual magnitudes remained below 1e-10. Each task
+has also produced a complete time-20 exact checkpoint in shared storage. All
+three checkpoint checksum manifests verify successfully, so recovery is ready
+if a later scheduler segment is required.
 
 A redundant replacement `GT` job (`58245823`) was cancelled after the original
 `GT` result was proven complete at 100 grains.
