@@ -1,6 +1,6 @@
 # Matched anisotropic Phase-1 event-production status
 
-Status timestamp: 2026-10-28 11:36 PDT
+Status timestamp: 2026-10-28 12:05 PDT
 
 This campaign is the corrected execution of the original matched-isotropic
 Phase-1 experiment. It is separate from the native-Qiu campaign. The Qiu
@@ -111,6 +111,12 @@ from step 105921 at time 520.005 to terminal step 120338 at time 592.145 and
 reached exactly 100 grains. The 841 MB retrieved result archive was
 checksum-verified twice. Its terminal checkpoint, timestep stream, and
 grain-track output agree on step and physical time. Peak RSS was 7.51 GiB.
+The terminal `GTC_GB` composite movie was rendered locally from the verified
+archives at 1920 x 1200, 8 fps, with 45 frames and SHA-256
+`e6b881f53b662eea2bba7151728b53b63e7a82878c7564c66255644c21805eda`.
+It ends at step 120338, time 592.145, and 100 grains. The retained timeout
+archive has an explicit visualization-frame gap between steps 0 and 19617;
+the simulation checkpoint and diagnostic histories are unaffected.
 
 ## Coupled-run instability repair
 
