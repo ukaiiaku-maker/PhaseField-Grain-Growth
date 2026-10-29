@@ -1,6 +1,6 @@
 # Matched anisotropic Phase-1 event-production status
 
-Status timestamp: 2026-10-28 12:05 PDT
+Status timestamp: 2026-10-29 11:24 PDT
 
 This campaign is the corrected execution of the original matched-isotropic
 Phase-1 experiment. It is separate from the native-Qiu campaign. The Qiu
@@ -73,9 +73,9 @@ complete are scientifically invalid and have been replaced by repaired reruns.
 | `T` | complete | 100 | 350.6650 | terminal |
 | `GT` | complete | 100 | 535.30875 | terminal; original archive verified |
 | `GTC_GB` | complete | 100 | 592.1450 | terminal continuation verified |
-| `GSC_GBTJ_Ks025` | repaired rerun stable and running | 552 at time 32.0025 | 35.345 latest accepted output | Slurm array task 0 |
-| `GTSC_GBTJ_Ks025` | repaired rerun stable and running | 553 at time 32.0100 | 36.230 latest accepted output | Slurm array task 1 |
-| `GTSC_GBTJ_Ks030_LONG` | repaired rerun stable and running | 559 at time 32.0025 | 36.4525 latest accepted output | Slurm array task 2 |
+| `GSC_GBTJ_Ks025` | repaired rerun stable and running | 493 at time 48.0000 | 53.49625 latest accepted output | Slurm array task 0 |
+| `GTSC_GBTJ_Ks025` | repaired rerun stable and running | 487 at time 48.0050 | 51.78625 latest accepted output | Slurm array task 1 |
+| `GTSC_GBTJ_Ks030_LONG` | repaired rerun stable and running | 496 at time 48.00375 | 54.98875 latest accepted output | Slurm array task 2 |
 
 The original `GTC_GB` task `57937728` exhausted the standard partition's
 14-day scheduler allocation. Its step-105921 checkpoint is intact, has SHA-256
@@ -184,6 +184,17 @@ respectively; conservation residual magnitudes remained below 1e-10. Each task
 has also produced a complete time-20 exact checkpoint in shared storage. All
 three checkpoint checksum manifests verify successfully, so recovery is ready
 if a later scheduler segment is required.
+
+A connection-recovery audit at 2026-10-29 11:24 PDT confirmed that the client
+network interruption did not affect HPC3 execution. All three parent tasks have
+remained `RUNNING` on `hpc3-20-25` for 2 days 19 hours. Their scientific
+processes are in CPU-running state near 100% utilization, stderr remains empty,
+and resident memory remains below the 16 GiB allocation. The accepted streams
+reached times 53.49625, 51.78625, and 54.98875. Latest complete frames near
+time 48 contain 493, 487, and 496 grains, with conservation residual magnitudes
+of 8.6e-11 to 1.9e-10. The newest shared recovery checkpoints are steps 8277,
+8157, and 8218; every file in all three checksum manifests verifies. No restart
+or scheduler intervention was required.
 
 A redundant replacement `GT` job (`58245823`) was cancelled after the original
 `GT` result was proven complete at 100 grains.
