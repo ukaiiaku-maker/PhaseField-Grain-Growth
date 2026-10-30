@@ -1,6 +1,6 @@
 # Matched anisotropic Phase-1 event-production status
 
-Status timestamp: 2026-10-29 11:24 PDT
+Status timestamp: 2026-10-30 08:29 PDT
 
 This campaign is the corrected execution of the original matched-isotropic
 Phase-1 experiment. It is separate from the native-Qiu campaign. The Qiu
@@ -73,9 +73,9 @@ complete are scientifically invalid and have been replaced by repaired reruns.
 | `T` | complete | 100 | 350.6650 | terminal |
 | `GT` | complete | 100 | 535.30875 | terminal; original archive verified |
 | `GTC_GB` | complete | 100 | 592.1450 | terminal continuation verified |
-| `GSC_GBTJ_Ks025` | repaired rerun stable and running | 493 at time 48.0000 | 53.49625 latest accepted output | Slurm array task 0 |
-| `GTSC_GBTJ_Ks025` | repaired rerun stable and running | 487 at time 48.0050 | 51.78625 latest accepted output | Slurm array task 1 |
-| `GTSC_GBTJ_Ks030_LONG` | repaired rerun stable and running | 496 at time 48.00375 | 54.98875 latest accepted output | Slurm array task 2 |
+| `GSC_GBTJ_Ks025` | repaired rerun stable and running | 436 at time 64.0000 | 70.2025 latest accepted output | Slurm array task 0 |
+| `GTSC_GBTJ_Ks025` | repaired rerun stable and running | 438 at time 64.00375 | 70.93125 latest accepted output | Slurm array task 1 |
+| `GTSC_GBTJ_Ks030_LONG` | repaired rerun stable and running | 433 at time 72.00125 | 71.83125 flushed accepted output | Slurm array task 2 |
 
 The original `GTC_GB` task `57937728` exhausted the standard partition's
 14-day scheduler allocation. Its step-105921 checkpoint is intact, has SHA-256
@@ -195,6 +195,17 @@ time 48 contain 493, 487, and 496 grains, with conservation residual magnitudes
 of 8.6e-11 to 1.9e-10. The newest shared recovery checkpoints are steps 8277,
 8157, and 8218; every file in all three checksum manifests verifies. No restart
 or scheduler intervention was required.
+
+A live audit at 2026-10-30 08:29 PDT found all three repaired tasks still
+`RUNNING` after 3 days 16 hours. Each scientific process was CPU-running near
+100%, all stderr files were empty, and Slurm peak batch RSS was 11.70-12.03
+GiB, within the 16 GiB allocations. The accepted timestep files reached times
+70.2025, 70.93125, and 71.83125; the third run's latest grain diagnostic had
+already reached time 72.00125 while its timestep CSV buffer had not yet
+flushed. Latest grain diagnostics contain 436, 438, and 433 grains. Defect
+conservation residual magnitudes remain at 4.2e-11 to 1.6e-10. The current
+shared recovery checkpoints are steps 13010, 13208, and 13316, and all files in
+their checksum manifests verify. No restart or intervention is required.
 
 A redundant replacement `GT` job (`58245823`) was cancelled after the original
 `GT` result was proven complete at 100 grains.
