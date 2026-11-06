@@ -1,6 +1,6 @@
 # Matched anisotropic Phase-1 event-production status
 
-Status timestamp: 2026-11-03 09:42 PST
+Status timestamp: 2026-11-06 09:28 PST
 
 This campaign is the corrected execution of the original matched-isotropic
 Phase-1 experiment. It is separate from the native-Qiu campaign. The Qiu
@@ -73,9 +73,9 @@ complete are scientifically invalid and have been replaced by repaired reruns.
 | `T` | complete | 100 | 350.6650 | terminal |
 | `GT` | complete | 100 | 535.30875 | terminal; original archive verified |
 | `GTC_GB` | complete | 100 | 592.1450 | terminal continuation verified |
-| `GSC_GBTJ_Ks025` | repaired rerun stable and running | 317 at time 144.005 | 147.505 latest accepted output | Slurm array task 0 |
-| `GTSC_GBTJ_Ks025` | repaired rerun stable and running | 312 at time 160.00125 | 161.86125 latest accepted output | Slurm array task 1 |
-| `GTSC_GBTJ_Ks030_LONG` | repaired rerun stable and running | 322 at time 160.00125 | 163.08125 latest accepted output | Slurm array task 2 |
+| `GSC_GBTJ_Ks025` | repaired rerun stable and running | 275 at time 216.005 | 216.015 latest accepted output | Slurm array task 0 |
+| `GTSC_GBTJ_Ks025` | repaired rerun stable and running | 276 at time 224.00375 | 231.70375 latest accepted output | Slurm array task 1 |
+| `GTSC_GBTJ_Ks030_LONG` | repaired rerun stable and running | 290 at time 224.00375 | 230.78625 latest accepted output | Slurm array task 2 |
 
 The original `GTC_GB` task `57937728` exhausted the standard partition's
 14-day scheduler allocation. Its step-105921 checkpoint is intact, has SHA-256
@@ -222,6 +222,24 @@ The shared filesystem did not complete a new checksum read within the bounded
 audit window, so that read-only check was stopped. Previously verified shared
 checkpoints remain available, and the newer node-local exact checkpoints are
 intact. The simulations were not modified, and no restart is warranted.
+
+A live audit at 2026-11-06 09:28 PST found all three repaired tasks still
+`RUNNING` after 10 days 18 hours. Each scientific process remains CPU-running
+near 100%, stderr is empty, and peak batch RSS remains 11.70-12.03 GiB within
+the 16 GiB allocations. Accepted timestep streams reached times 216.015,
+231.70375, and 230.78625. Latest complete grain diagnostics contain 275, 276,
+and 290 grains at times 216-224. Inventory residual magnitudes remain below
+5.8e-10 in the latest full diagnostics.
+
+Exact node-local checkpoints are readable at step 44115/time 200.0025, step
+45541/time 220.00375, and step 45967/time 220.00375. Because the shared `/pub`
+filesystem again stalled during a bounded read, these three checkpoints were
+also streamed over SSH into local emergency archives without `rsync`. The
+archives are 61-64 MiB each, pass their archive checksums, and their embedded
+checkpoint NPZ hashes exactly match the values computed on the node:
+`d1ea83b1...`, `f695901a...`, and `7f56c59a...`. They are stored under
+`emergency-node-checkpoints-20261106`. No restart is required; the local copies
+provide current recovery coverage while shared storage is slow.
 
 A redundant replacement `GT` job (`58245823`) was cancelled after the original
 `GT` result was proven complete at 100 grains.
