@@ -1,6 +1,6 @@
 # Matched anisotropic Phase-1 event-production status
 
-Status timestamp: 2026-11-06 09:28 PST
+Status timestamp: 2026-11-09 11:28 PST
 
 This campaign is the corrected execution of the original matched-isotropic
 Phase-1 experiment. It is separate from the native-Qiu campaign. The Qiu
@@ -73,9 +73,9 @@ complete are scientifically invalid and have been replaced by repaired reruns.
 | `T` | complete | 100 | 350.6650 | terminal |
 | `GT` | complete | 100 | 535.30875 | terminal; original archive verified |
 | `GTC_GB` | complete | 100 | 592.1450 | terminal continuation verified |
-| `GSC_GBTJ_Ks025` | repaired rerun stable and running | 275 at time 216.005 | 216.015 latest accepted output | Slurm array task 0 |
-| `GTSC_GBTJ_Ks025` | repaired rerun stable and running | 276 at time 224.00375 | 231.70375 latest accepted output | Slurm array task 1 |
-| `GTSC_GBTJ_Ks030_LONG` | repaired rerun stable and running | 290 at time 224.00375 | 230.78625 latest accepted output | Slurm array task 2 |
+| `GSC_GBTJ_Ks025` | repaired rerun stable and running | 250 at time 280.005 | 285.705 latest accepted output | Slurm array task 0; continuation queued |
+| `GTSC_GBTJ_Ks025` | repaired rerun stable and running | 241 at time 296.0025 | 302.8025 latest accepted output | Slurm array task 1; continuation queued |
+| `GTSC_GBTJ_Ks030_LONG` | repaired rerun stable and running | 265 at time 296.00125 | 300.44625 latest accepted output | Slurm array task 2; continuation queued |
 
 The original `GTC_GB` task `57937728` exhausted the standard partition's
 14-day scheduler allocation. Its step-105921 checkpoint is intact, has SHA-256
@@ -240,6 +240,30 @@ checkpoint NPZ hashes exactly match the values computed on the node:
 `d1ea83b1...`, `f695901a...`, and `7f56c59a...`. They are stored under
 `emergency-node-checkpoints-20261106`. No restart is required; the local copies
 provide current recovery coverage while shared storage is slow.
+
+A live audit at 2026-11-09 11:28 PST found all three repaired tasks still
+`RUNNING` after 13 days 20 hours, with about 4 hours 17 minutes left in the
+14-day segment. Scientific processes remain CPU-running near 100% and stderr is
+empty. Accepted timestep streams reached times 285.705, 302.8025, and
+300.44625. Latest grain diagnostics contain 250, 241, and 265 grains, so all
+three require another scheduler segment.
+
+Exact continuation checkpoints were captured at step 60972/time 280.005, step
+61926/time 300.005, and step 62865/time 300.00125. Their SHA-256 values are
+`0e3c153b...`, `23ae7fa4...`, and `f23cf8b...`. Complete 0.5 GiB restart
+directories, including the checkpointed event-ledger fragments, were streamed
+locally over SSH without `rsync`; all 424 Parquet fragments are readable. CSV
+diagnostics newer than the authoritative checkpoints were removed from the
+continuation copies, while the resume loader will truncate append-only Parquet
+ledgers to their checkpointed offsets.
+
+The continuation is runner `20261109T192224Z-nogit-479471`, Slurm array
+`59399492_[0-2]`. It is staged in healthy HPC3 home storage because `/pub` was
+unresponsive. The uploaded 1.2 GiB bundle has SHA-256
+`e822c507fb658f5cfd3b78d7e6a854e2c9f276a5176e7831656fbfdf838ed760`.
+Slurm reports `PENDING (Dependency)` with
+`afterany:58521780_*(unfulfilled)`, so it cannot replay while the parent array
+is active and will release automatically when that array terminates.
 
 A redundant replacement `GT` job (`58245823`) was cancelled after the original
 `GT` result was proven complete at 100 grains.
