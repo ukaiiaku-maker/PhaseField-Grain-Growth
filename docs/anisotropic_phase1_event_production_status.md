@@ -302,9 +302,17 @@ Python 3.13.5, NumPy 2.1.3, SciPy 1.15.3, Numba 0.61.0, PyArrow 19.0.0,
 PyYAML 6.0.2, and pandas 2.2.3. Environment setup job `59519477` completed
 normally in 53 seconds.
 
-The active corrected continuation is Slurm array `59519613_[0-2]`, using
-continuation root `20261112T203559Z-nogit-07701d`. At the 2026-11-12 12:47 PST
-audit all three tasks were `RUNNING` on separate nodes, CPU-running near one
-full core, with peak RSS 11.39-12.68 GiB inside the 16 GiB allocations and no
-new error output or failure records. They loaded the exact authoritative
-checkpoint step/time pairs without replay. No `rsync` command was used.
+Array `59519613_[0-2]` then demonstrated clean exact-checkpoint loading and
+sustained CPU execution. It was deliberately stopped after ten minutes before
+advancing a durable checkpoint: the measured production rate showed that a
+20-hour quota-limited segment could end just before the former 20-time-unit
+checkpoint cadence. The continuation wrapper now checkpoints every 8 physical
+time units. This changes output cadence only, not the equations, event process,
+accepted timesteps, or 100-grain stopping criterion.
+
+The active corrected continuation is Slurm array `59519730_[0-2]`, using
+continuation root `20261112T203559Z-nogit-07701d`. At the 2026-11-12 12:56 PST
+audit all three tasks were `RUNNING` on nodes `hpc3-14-09` and `hpc3-14-10`
+with no scheduler hold. They resume the same authoritative checkpoint
+step/time pairs without replay and have 16 GiB per task. No `rsync` command was
+used.
