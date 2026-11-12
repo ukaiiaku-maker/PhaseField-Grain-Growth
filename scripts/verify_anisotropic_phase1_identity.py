@@ -53,10 +53,13 @@ def main() -> None:
         "kkt_tolerance": float(pf["anisotropic_kkt_tolerance"]) == 1e-10,
         "matched_shape": pf["shape"] == [384, 384],
         "matched_temperature": float(pf["temperature"]) == 900.0,
-        "physical_horizon": float(config["parameters"]["maximum_physical_time"]) == 4000.0,
+        "no_physical_time_cap": "maximum_physical_time" not in config["parameters"],
         "accepted_steps": int(checkpoint["step_number"]) >= args.minimum_steps,
         "checkpoint_time_positive": float(checkpoint["time"]) > 0.0,
-        "event_ledger_declared": bool(manifest.get("event_ledger")),
+        "event_ledger_declared": bool(manifest.get("event_ledger")) or (
+            config["parameters"].get("event_ledger_format") == "parquet"
+            and (run / "events.parquet").is_dir()
+        ),
         "checkpoint_domain_state": "domains" in checkpoint,
     }
     if "multihit_persistent" in modules:

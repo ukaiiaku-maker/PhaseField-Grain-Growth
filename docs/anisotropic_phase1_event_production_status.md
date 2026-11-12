@@ -267,3 +267,44 @@ is active and will release automatically when that array terminates.
 
 A redundant replacement `GT` job (`58245823`) was cancelled after the original
 `GT` result was proven complete at 100 grains.
+
+### Exact-checkpoint continuation restart: 2026-11-12
+
+The original repaired array `58521780_[0-2]` exhausted HPC3's mandatory
+14-day scheduler segment and ended in `TIMEOUT` after 14 days and 22 seconds.
+This was scheduler termination, not a numerical failure. The three complete
+histories and exact checkpoints listed above remain authoritative.
+
+The dependent continuation `59399492_[0-2]` released correctly but was held by
+`AssocGrpBillingMinutes`: the lab allocation had only 12 SUs remaining. The
+personal allocation had enough capacity for a bounded 20-hour segment for all
+three runs, including HPC3's memory-driven three-CPU charge per 16 GiB task.
+The physical stopping condition remains 100 grains with no physical-time cap;
+20 hours is only the current scheduler segment.
+
+Startup reconciliation exposed and repaired three continuation-only
+compatibility defects before any timestep advanced: the archived initial-state
+path referred to the former compute-node scratch directory, the identity
+verifier assumed the removed physical-time cap, and installing that verifier
+inside the checkout made the source identity appear dirty. The wrapper now
+maps the initial state to its packaged copy, runs the verifier outside the
+byte-clean source checkout, and accepts the legacy Parquet event-ledger
+declaration only when the configured ledger directory is actually present.
+All three pre-resume identity reports pass at exact steps 60972, 61926, and
+62865, including stochastic RNG state, shear coupling, climb/defect modules,
+compact anisotropic support, and the Parquet ledger.
+
+The `/pub` environment became stuck in uninterruptible filesystem I/O. A new
+read-only replacement at
+`/data/homezvol3/sdillon1/sw/pfgg-envs/4761ef957715-py3.13.5-home` was rebuilt
+from the recorded production fingerprint and promoted only after verifying
+Python 3.13.5, NumPy 2.1.3, SciPy 1.15.3, Numba 0.61.0, PyArrow 19.0.0,
+PyYAML 6.0.2, and pandas 2.2.3. Environment setup job `59519477` completed
+normally in 53 seconds.
+
+The active corrected continuation is Slurm array `59519613_[0-2]`, using
+continuation root `20261112T203559Z-nogit-07701d`. At the 2026-11-12 12:47 PST
+audit all three tasks were `RUNNING` on separate nodes, CPU-running near one
+full core, with peak RSS 11.39-12.68 GiB inside the 16 GiB allocations and no
+new error output or failure records. They loaded the exact authoritative
+checkpoint step/time pairs without replay. No `rsync` command was used.
