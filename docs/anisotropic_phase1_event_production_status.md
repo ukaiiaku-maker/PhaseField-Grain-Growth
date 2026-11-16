@@ -339,7 +339,9 @@ HPC3 has exhausted both usable allocations: `sdillon1_lab` has consumed
 60,000. Exact next-segment array `59717051_[0-2]`, continuation identity
 `20261116T170308Z-nogit-6fb8b7`, is staged and `PENDING
 (AssocGrpBillingMinutes)` under the lab account. It will resume all three from
-the verified checkpoints above if the allocation is increased or reset.
+the verified checkpoints above if the allocation is increased or reset. Array
+task 1 is held while its condition runs locally, preventing duplicate
+ownership; tasks 0 and 2 remain eligible once billing capacity exists.
 
 Meanwhile, `GTSC_GBTJ_Ks025` was transferred locally with an SSH tar stream,
 not `rsync`, and resumed from step 65943 using the exact production source
