@@ -316,3 +316,34 @@ audit all three tasks were `RUNNING` on nodes `hpc3-14-09` and `hpc3-14-10`
 with no scheduler hold. They resume the same authoritative checkpoint
 step/time pairs without replay and have 16 GiB per task. No `rsync` command was
 used.
+
+### Quota exhaustion and local continuation: 2026-11-16
+
+Array `59519730_[0-2]` reached its planned 20-hour scheduler limit on
+2026-11-13 without a simulation failure. The 8-time-unit checkpoint cadence
+produced multiple durable recovery generations. The newest complete
+checkpoints and grain diagnostics are:
+
+| Regime | Step | Physical time | Grains | Checkpoint SHA-256 |
+|---|---:|---:|---:|---|
+| `GSC_GBTJ_Ks025` | 64245 | 296.005 | 245 | `1db9ce2d...` |
+| `GTSC_GBTJ_Ks025` | 65943 | 320.005 | 235 | `3ae0f727...` |
+| `GTSC_GBTJ_Ks030_LONG` | 66990 | 320.00125 | 255 | `4147ae9f...` |
+
+Every newest recovery checksum manifest verifies. All three manifests remain
+`running`, with no failure classification, no physical-time cap, and a
+100-grain termination target.
+
+HPC3 has exhausted both usable allocations: `sdillon1_lab` has consumed
+5,999,380 of 6,000,000 billing minutes and `sdillon1` has consumed 59,880 of
+60,000. Exact next-segment array `59717051_[0-2]`, continuation identity
+`20261116T170308Z-nogit-6fb8b7`, is staged and `PENDING
+(AssocGrpBillingMinutes)` under the lab account. It will resume all three from
+the verified checkpoints above if the allocation is increased or reset.
+
+Meanwhile, `GTSC_GBTJ_Ks025` was transferred locally with an SSH tar stream,
+not `rsync`, and resumed from step 65943 using the exact production source
+commit and matching Python 3.13.5 numerical package versions. Local PID 21311
+is CPU-running with clean stderr. Only one anisotropic continuation is run
+locally because the workstation has 32 GiB RAM; parallel local execution would
+not preserve a safe memory margin.
